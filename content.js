@@ -74,6 +74,17 @@ function injectDropdown(prompts) {
 
 // Function to initialize the dropdown when the input box is available
 function initialize() {
+  // First, check if the input box already exists
+  const inputBox = document.getElementById('prompt-textarea');
+  if (inputBox && !document.getElementById('prompt-dropdown')) {
+    console.log('Input box detected on initial load.');
+    // Get prompts from storage and inject dropdown
+    chrome.storage.sync.get('prompts', data => {
+      const prompts = data.prompts || [];
+      injectDropdown(prompts);
+    });
+  }
+
   // Use MutationObserver to watch for changes in the DOM
   const observer = new MutationObserver((mutations, obs) => {
     for (const mutation of mutations) {
