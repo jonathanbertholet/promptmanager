@@ -184,4 +184,3 @@ document.addEventListener('DOMContentLoaded', () => {
     const match = line.match(regex);
     return match ? [match[1], match[2]] : [];
   }
-  
