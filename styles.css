@@ -44,3 +44,19 @@ body {
     background-color: #f0f0f0;
   }
   
+  .coffee-button {
+    display: inline-block;
+    padding: 10px 20px;
+    margin-top:10px;
+    background-color: #7f330b;
+    color: white;
+    text-decoration: none;
+    font-size: 14px;
+    border-radius: 30px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transition: background-color 0.3s ease;
+  }
+  
+  .coffee-button:hover {
+    background-color: #ff651a;
+  }
