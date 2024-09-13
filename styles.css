@@ -1,0 +1,46 @@
+/* styles.css */
+
+body {
+    font-family: Arial, sans-serif;
+    width: 300px;
+    padding: 10px;
+  }
+  
+  h2, h3 {
+    margin-top: 0;
+  }
+  
+  form {
+    margin-bottom: 10px;
+  }
+  
+  input[type="text"], textarea {
+    width: 100%;
+    box-sizing: border-box;
+    margin-bottom: 5px;
+  }
+  
+  button {
+    margin-top: 5px;
+  }
+  
+  #prompt-list li {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 5px;
+  }
+  
+  #prompt-list li span {
+    flex-grow: 1;
+  }
+  
+  #prompt-list button {
+    margin-left: 5px;
+  }
+  
+  #cancel-edit-button {
+    margin-left: 5px;
+    background-color: #f0f0f0;
+  }
+  

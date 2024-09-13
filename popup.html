@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Prompt Manager</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <h2>Prompt Manager</h2>
+  <p class="feature-requests">Feature requests: bejo@odoo.com</p>
+  <form id="prompt-form">
+    <input type="hidden" id="prompt-index">
+    <input type="text" id="prompt-title" placeholder="Title" required><br>
+    <textarea id="prompt-content" placeholder="Prompt content" required></textarea><br>
+    <button type="submit" id="submit-button">Add Prompt</button>
+    <button type="button" id="cancel-edit-button" style="display: none;">Cancel</button>
+  </form>
+
+  <h3>Prompts</h3>
+  <ul id="prompt-list"></ul>
+
+  <button id="export-btn">Export Prompts</button>
+  <input type="file" id="import-file" accept=".csv" hidden>
+  <button id="import-btn">Import Prompts</button>
+
+  <script src="popup.js"></script>
+</body>
+</html>
