@@ -73,3 +73,8 @@ Feel free to contribute by adding new features! To add functionality, modify the
 ## Issues
 
 If you find any bugs or have suggestions for new features, feel free to submit an issue or reach out at `bejo@odoo.com`.
+
+## Accreditations
+
+Chrome web store icon : 
+Prompt by Rikas Dzihab from <a href="https://thenounproject.com/browse/icons/term/prompt/" target="_blank" title="Prompt Icons">Noun Project</a> (CC BY 3.0)
