@@ -49,8 +49,6 @@ ChatGPT Prompt Manager is a Google Chrome extension that enhances the ChatGPT in
 The extension requires the following permissions:
 
 - **storage**: To store the list of prompts and synchronize them across devices.
-- **scripting**: To inject the dropdown into the ChatGPT interface.
-- **activeTab**: To interact with the currently active tab.
 - **downloads**: To handle exporting prompts as a CSV file.
 
 ## Development
