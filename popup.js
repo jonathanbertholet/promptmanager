@@ -102,7 +102,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('prompt-title').value = prompt.title;
         document.getElementById('prompt-content').value = prompt.content;
         document.getElementById('prompt-index').value = index;
-        document.getElementById('submit-button').textContent = 'Update Prompt';
+        document.getElementById('submit-button').textContent = 'Update';
         document.getElementById('cancel-edit-button').style.display = 'inline';
       }
     });
@@ -119,7 +119,7 @@ document.addEventListener('DOMContentLoaded', () => {
       li.appendChild(titleSpan);
   
       const editBtn = document.createElement('button');
-      editBtn.textContent = 'Edit';
+      editBtn.textContent = '✏️ Edit';
       editBtn.addEventListener('click', () => editPrompt(index));
       li.appendChild(editBtn);
   
