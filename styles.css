@@ -8,6 +8,7 @@ body {
   
   h2, h3 {
     margin-top: 0;
+    color: #023E8A;
   }
   
   form {
@@ -20,10 +21,27 @@ body {
     margin-bottom: 5px;
   }
   
-  button {
-    margin-top: 5px;
+  button.main {
+    background-color: #0077B6; /* A vibrant color, adjust as needed */
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 13px;
+    margin: 4px 2px;
+    cursor: pointer;
+    border-radius: 20px; /* Rounded corners */
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Slight shadow */
+    font-weight: bold;
+    transition: background-color 0.3s ease;
   }
   
+  button.main:hover {
+    background-color: #023E8A; /* Darker shade on hover */
+  }
+
   #prompt-list li {
     display: flex;
     justify-content: space-between;
@@ -42,21 +60,31 @@ body {
   #cancel-edit-button {
     margin-left: 5px;
     background-color: #f0f0f0;
+    color: #023E8A;
+    border: none;
+    padding: 10px 20px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 13px;
+    border-radius: 20px; /* Rounded corners */
+    font-weight: bold;
   }
   
   .coffee-button {
     display: inline-block;
     padding: 10px 20px;
     margin-top:10px;
-    background-color: #7f330b;
+    background-color: #E07A5F;
     color: white;
     text-decoration: none;
-    font-size: 14px;
+    font-size: 13px;
     border-radius: 30px;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     transition: background-color 0.3s ease;
+    font-weight: bold;
   }
   
   .coffee-button:hover {
-    background-color: #ff651a;
+    background-color: #a74616;
   }
