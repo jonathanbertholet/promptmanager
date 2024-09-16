@@ -1,9 +1,9 @@
 {
     "manifest_version": 3,
     "name": "ChatGPT Prompt Manager",
-    "version": "0.5",
+    "version": "0.7",
     "description": "Adds a dropdown of default prompts to ChatGPT.com input box.",
-    "permissions": ["storage", "scripting", "activeTab", "downloads"],
+    "permissions": ["storage"],
     "action": {
       "default_popup": "popup.html"
     },
