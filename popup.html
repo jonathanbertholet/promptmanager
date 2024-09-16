@@ -12,16 +12,16 @@
     <input type="hidden" id="prompt-index">
     <input type="text" id="prompt-title" placeholder="Title" required><br>
     <textarea id="prompt-content" placeholder="Prompt content" required></textarea><br>
-    <button type="submit" id="submit-button">Add Prompt</button>
+    <button class="main" type="submit" id="submit-button">Add prompt</button>
     <button type="button" id="cancel-edit-button" style="display: none;">Cancel</button>
   </form>
 
-  <h3>Prompts</h3>
+  <h2>Prompts</h2>
   <ul id="prompt-list"></ul>
 
-  <button id="export-btn">Export Prompts</button>
+  <button class="main" id="export-btn">Export prompts</button>
   <input type="file" id="import-file" accept=".csv" hidden>
-  <button id="import-btn">Import Prompts</button>
+  <button class="main" id="import-btn">Import prompts</button>
 
   <script src="popup.js"></script>
 
