@@ -1,4 +1,4 @@
-// content.js
+//Content.js
 
 console.log("ChatGPT Prompt Manager content script loaded.");
 
@@ -27,6 +27,8 @@ function injectDropdown(prompts) {
   dropdown.style.width = '100%';
   dropdown.style.padding = '5px';
   dropdown.style.fontSize = '14px';
+  dropdown.style.borderRadius = '8px';  // Rounded corners with 8px radius
+
 
   // Default option
   const defaultOption = document.createElement('option');
@@ -72,39 +74,60 @@ function injectDropdown(prompts) {
   parentContainer.insertBefore(dropdown, inputBox);
 }
 
+// Function to wait for the textarea to be available
+function waitForTextarea() {
+  return new Promise((resolve, reject) => {
+    const checkExist = setInterval(() => {
+      const inputBox = document.getElementById('prompt-textarea');
+      if (inputBox) {
+        clearInterval(checkExist);
+        resolve(inputBox);
+      }
+    }, 500); // Check every 500ms
+
+    // Optional: Set a timeout if you want to reject after a certain time
+    setTimeout(() => {
+      clearInterval(checkExist);
+      reject("Textarea not found.");
+    }, 10000); // 10 seconds timeout
+  });
+}
+
 // Function to initialize the dropdown when the input box is available
-function initialize() {
-  // First, check if the input box already exists
-  const inputBox = document.getElementById('prompt-textarea');
-  if (inputBox && !document.getElementById('prompt-dropdown')) {
-    console.log('Input box detected on initial load.');
-    // Get prompts from storage and inject dropdown
+async function initialize() {
+  try {
+    // Wait for the textarea to be available
+    const inputBox = await waitForTextarea();
+    console.log('Textarea found on initial load.');
+    
+    // Fetch prompts and inject dropdown
     chrome.storage.sync.get('prompts', data => {
       const prompts = data.prompts || [];
       injectDropdown(prompts);
     });
+
+    // Use MutationObserver to watch for dynamic changes in the DOM
+    const observer = new MutationObserver((mutations, obs) => {
+      mutations.forEach(mutation => {
+        const inputBox = document.getElementById('prompt-textarea');
+        if (inputBox && !document.getElementById('prompt-dropdown')) {
+          console.log('Input box detected or re-added by MutationObserver.');
+          // Get prompts from storage and inject dropdown
+          chrome.storage.sync.get('prompts', data => {
+            const prompts = data.prompts || [];
+            injectDropdown(prompts);
+          });
+        }
+      });
+    });
+
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true
+    });
+  } catch (error) {
+    console.error(error);
   }
-
-  // Use MutationObserver to watch for changes in the DOM
-  const observer = new MutationObserver((mutations, obs) => {
-    for (const mutation of mutations) {
-      // Check if the input box exists and dropdown doesn't exist
-      const inputBox = document.getElementById('prompt-textarea');
-      if (inputBox && !document.getElementById('prompt-dropdown')) {
-        console.log('Input box detected or re-added by MutationObserver.');
-        // Get prompts from storage and inject dropdown
-        chrome.storage.sync.get('prompts', data => {
-          const prompts = data.prompts || [];
-          injectDropdown(prompts);
-        });
-      }
-    }
-  });
-
-  observer.observe(document.body, {
-    childList: true,
-    subtree: true
-  });
 }
 
 // Start the initialization process
