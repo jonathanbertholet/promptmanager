@@ -1,9 +1,14 @@
 {
     "manifest_version": 3,
-    "name": "ChatGPT Prompt Manager",
-    "version": "0.7",
-    "description": "Adds a dropdown of default prompts to ChatGPT.com input box.",
-    "permissions": ["storage"],
+    "name": "Simple ChatGPT Prompt Manager",
+    "version": "0.9",
+    "description": "Save & Reuse ChatGPT prompts easily. Adds a dropdown to your message input box. Export & Import your prompts.",
+    "permissions": ["storage", "tabs"],
+    "icons": {
+      "16": "icon16.png",
+      "48": "icon48.png",
+      "128": "icon128.png"
+    },
     "action": {
       "default_popup": "popup.html"
     },
