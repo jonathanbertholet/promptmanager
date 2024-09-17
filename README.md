@@ -52,28 +52,11 @@ The extension requires the following permissions:
 - **downloads**: To handle exporting prompts as a CSV file.
 - **tabs**: For links to open in a new tab (github, donation link) 
 
-## Development
-
-### Prerequisites
-
-- A basic understanding of JavaScript, HTML, and CSS.
-- Chrome with Developer Mode enabled for loading the extension.
-
-### Adding Functionality
-
-Feel free to contribute by adding new features! To add functionality, modify the `popup.js`, `content.js`, and `popup.html` files as necessary. For example, you can improve the user interface, add search functionality for prompts, or extend CSV import/export capabilities.
-
-### Debugging
-
-1. Open Chrome Developer Tools by pressing `F12`.
-2. You can inspect the popup by right-clicking on the extension icon and selecting **Inspect**.
-3. You can inspect the content injected into ChatGPT by visiting `https://chat.openai.com/` and opening Developer Tools.
-
 ## Issues
 
 If you find any bugs or have suggestions for new features, feel free to submit an issue or reach out at `bejo@odoo.com`.
 
 ## Accreditations
 
-Chrome web store icon : 
+App icon : 
 Prompt by Rikas Dzihab from <a href="https://thenounproject.com/browse/icons/term/prompt/" target="_blank" title="Prompt Icons">Noun Project</a> (CC BY 3.0)
