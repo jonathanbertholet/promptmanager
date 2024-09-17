@@ -4,12 +4,21 @@ body {
     font-family: Arial, sans-serif;
     width: 300px;
     padding: 10px;
+    padding-bottom: 0px;
+    margin-bottom: 10px;
   }
   
   h2, h3 {
     margin-top: 0;
-    color: #023E8A;
+    color: #0077B6;
+    margin-bottom: 0px;
+    padding-bottom: 0px;
   }
+
+  .promptslistheader {
+    margin-bottom:10px;
+  }
+
   
   form {
     margin-bottom: 10px;
@@ -42,15 +51,25 @@ body {
     background-color: #023E8A; /* Darker shade on hover */
   }
 
+/* Adjust list item spacing for left aligned list */
+#prompt-list {
+  list-style-type: none;
+  padding: 0;
+  margin: 0;
+}
+
   #prompt-list li {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 5px;
+    margin-bottom:5px;
   }
   
   #prompt-list li span {
     flex-grow: 1;
+    text-align: left;
+    margin-right: 10px;
+    font-size: 14px;
   }
   
   #prompt-list button {
@@ -73,7 +92,7 @@ body {
   
   .coffee-button {
     display: inline-block;
-    padding: 10px 20px;
+    padding: 10px 17px;
     margin-top:10px;
     background-color: #E07A5F;
     color: white;
@@ -88,3 +107,11 @@ body {
   .coffee-button:hover {
     background-color: #a74616;
   }
+
+.title {
+  display: flex;
+  gap: 10px;
+  vertical-align: middle;
+  margin-bottom: 0px;
+  padding-bottom: 0px;
+}
