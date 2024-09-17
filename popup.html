@@ -1,22 +1,25 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Prompt Manager</title>
+  <title>Simple Prompt Manager</title>
   <link rel="stylesheet" href="styles.css">
   <meta charset="UTF-8">
 </head>
 <body>
-  <h2>Prompt Manager</h2>
-  <p class="feature-requests">Feature requests: bejo@odoo.com</p>
+  <div class="title">
+    <img src="icon128.png" alt="Extension Icon" width="22" height="22">
+    <h2>Prompt Manager</h2>
+  </div>
+  <p>Open Source Simple Prompt Manager</p>
   <form id="prompt-form">
     <input type="hidden" id="prompt-index">
     <input type="text" id="prompt-title" placeholder="Title" required><br>
-    <textarea id="prompt-content" placeholder="Prompt content" required></textarea><br>
+    <textarea id="prompt-content" placeholder="Prompt" required></textarea><br>
     <button class="main" type="submit" id="submit-button">Add prompt</button>
     <button type="button" id="cancel-edit-button" style="display: none;">Cancel</button>
   </form>
 
-  <h2>Prompts</h2>
+  <h2 class="promptslistheader">Prompts</h2>
   <ul id="prompt-list"></ul>
 
   <button class="main" id="export-btn">Export prompts</button>
@@ -25,9 +28,12 @@
 
   <script src="popup.js"></script>
 
-  <a href="https://www.buymeacoffee.com/bejo" class="coffee-button">
-    ☕  Buy me a coffee
+  <a href="https://www.paypal.com/donate/?business=TGE9D9GS2WHCU&no_recurring=1&currency_code=EUR" class="coffee-button" id="coffee-link">
+    ☕  Buy me coffee
   </a>
-
+  <p class="feature-requests">Feature requests: bejo@odoo.com</p>
+  <a href="https://github.com/jonathanbertholet/promptmanager" id="github-link">
+   Github Link
+  </a>
 </body>
 </html>
