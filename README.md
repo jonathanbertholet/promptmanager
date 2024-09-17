@@ -12,11 +12,11 @@ ChatGPT Prompt Manager is a Google Chrome extension that enhances the ChatGPT in
   
 ## Installation
 
-# Store link
+### Store link
 
 [Link to chrome web store page](https://chromewebstore.google.com/detail/gmhaghdbihgenofhnmdbglbkbplolain?hl=en-GB&authuser=0)
 
-# Github
+### Github
 
 1. Clone or download the repository.
 2. Open Chrome and go to `chrome://extensions/`.
