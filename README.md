@@ -50,6 +50,7 @@ The extension requires the following permissions:
 
 - **storage**: To store the list of prompts and synchronize them across devices.
 - **downloads**: To handle exporting prompts as a CSV file.
+- **tabs**: For links to open in a new tab (github, donation link) 
 
 ## Development
 
