@@ -7,20 +7,20 @@ export function loadPrompts() {
     });
 }
 
-export function addPrompt(title, content, folder) {
+export function addPrompt(title, content) {
     if (!title || !content) return;
     chrome.storage.sync.get('prompts', data => {
         const prompts = data.prompts || [];
-        prompts.push({ title, content, folder });
+        prompts.push({ title, content });
         chrome.storage.sync.set({ prompts }, loadPrompts);
     });
 }
 
-export function updatePrompt(index, title, content, folder) {
+export function updatePrompt(index, title, content) {
     chrome.storage.sync.get('prompts', data => {
         const prompts = data.prompts || [];
         if (index >= 0 && index < prompts.length) {
-            prompts[index] = { title, content, folder };
+            prompts[index] = { title, content};
             chrome.storage.sync.set({ prompts }, loadPrompts);
         }
     });
@@ -41,7 +41,6 @@ export function editPrompt(index) {
             const prompt = prompts[index];
             document.getElementById('prompt-title').value = prompt.title;
             document.getElementById('prompt-content').value = prompt.content;
-            document.getElementById('folder-select').value = prompt.folder;
             document.getElementById('prompt-index').value = index;
             document.getElementById('submit-button').textContent = 'Update';
             document.getElementById('cancel-edit-button').style.display = 'inline';
