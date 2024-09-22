@@ -3,6 +3,9 @@
 <head>
   <title>Simple Prompt Manager</title>
   <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="buttons.css">
+  <link rel="stylesheet" href="darkmode.css">
+  <link rel="stylesheet" href="input.css">
   <meta charset="UTF-8">
 </head>
 <body>
@@ -22,18 +25,40 @@
   <h2 class="promptslistheader">Prompts</h2>
   <ul id="prompt-list"></ul>
 
-  <button class="main" id="export-btn">Export prompts</button>
-  <input type="file" id="import-file" accept=".csv" hidden>
-  <button class="main" id="import-btn">Import prompts</button>
+<table style="width: 100%;">
+  <tr>
+    <td>
+      <button class="main export" id="export-btn">Export prompts</button>
+    </td>
+    <td>
+      <input type="file" id="import-file" accept=".csv" hidden>
+      <button class="main import" id="import-btn">Import prompts</button>
+    </td>
+  </tr>
+</table>
 
   <script src="popup.js"></script>
 
+  <table style="width: 100%;">
+    <tr>
+      <td>
+        <p>Feature requests: bejo@odoo.com</p>
+      </td>
+      <td>
+        <a href="https://github.com/jonathanbertholet/promptmanager" id="github-link">
+          Github
+         </a>
+      </td>
+      <td>
+        <a href="https://chromewebstore.google.com/detail/simple-chatgpt-prompt-man/gmhaghdbihgenofhnmdbglbkbplolain?hl=en-GB&authuser=0" id="review-link">
+          Review
+        </a>
+      </td>
+    </tr>
+  </table>
+
   <a href="https://www.paypal.com/donate/?business=TGE9D9GS2WHCU&no_recurring=1&currency_code=EUR" class="coffee-button" id="coffee-link">
     ☕  Buy me coffee
-  </a>
-  <p class="feature-requests">Feature requests: bejo@odoo.com</p>
-  <a href="https://github.com/jonathanbertholet/promptmanager" id="github-link">
-   Github Link
   </a>
 </body>
 </html>
