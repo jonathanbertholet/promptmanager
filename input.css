@@ -1,0 +1,14 @@
+form {
+    margin-bottom: 10px;
+  }
+  
+  input[type="text"], textarea {
+    width: 100%;
+    box-sizing: border-box;
+    margin-bottom: 3px;
+    font-family: Arial, Helvetica, sans-serif;
+    border-color: #0077B6;
+    border-width: 1px;
+    padding: 2px;
+    border-radius: 3px;
+  }
