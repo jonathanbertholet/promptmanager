@@ -49,15 +49,17 @@
       color: #1682a5; /* Light blue for headings */
     }
 
-    #prompt-list {
-        background-color: #0f2f57;
-    }
 
     #github-link {
       color: #1682a5;
     }
     /* Add dark mode styles for other elements if necessary */
   
+    li {
+        background-color: #0f2f57;
+        color: #cdc9c9;
+        }
+        
   select#prompt-dropdown {
       background-color: #333333; /* Dark background for dropdown */
       color: #ffffff; /* Light text */
