@@ -1,11 +1,12 @@
 /* styles.css */
 
 body {
-    font-family: Arial, sans-serif;
+    font-family: Arial, Helvetica, sans-serif;
     width: 300px;
     padding: 10px;
     padding-bottom: 0px;
     margin-bottom: 10px;
+    background-color: #f9f9f9;
   }
   
   h2, h3 {
@@ -19,99 +20,57 @@ body {
     margin-bottom:10px;
   }
 
-  
-  form {
-    margin-bottom: 10px;
-  }
-  
-  input[type="text"], textarea {
-    width: 100%;
-    box-sizing: border-box;
-    margin-bottom: 5px;
-  }
-  
-  button.main {
-    background-color: #0077B6; /* A vibrant color, adjust as needed */
-    color: white;
-    border: none;
-    padding: 10px 20px;
-    text-align: center;
-    text-decoration: none;
-    display: inline-block;
-    font-size: 13px;
-    margin: 4px 2px;
-    cursor: pointer;
-    border-radius: 20px; /* Rounded corners */
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Slight shadow */
-    font-weight: bold;
-    transition: background-color 0.3s ease;
-  }
-  
-  button.main:hover {
-    background-color: #023E8A; /* Darker shade on hover */
-  }
-
 /* Adjust list item spacing for left aligned list */
 #prompt-list {
   list-style-type: none;
   padding: 0;
   margin: 0;
+  border-radius: 8px;
+  padding-bottom: 5px;
+  padding-left:0px;
+  margin-bottom: 2px;
 }
 
   #prompt-list li {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom:5px;
+    border-radius: 8px;
+    margin-bottom: 5px;
   }
   
   #prompt-list li span {
     flex-grow: 1;
     text-align: left;
     margin-right: 10px;
-    font-size: 14px;
-  }
-  
-  #prompt-list button {
-    margin-left: 5px;
-  }
-  
-  #cancel-edit-button {
-    margin-left: 5px;
-    background-color: #f0f0f0;
-    color: #023E8A;
-    border: none;
-    padding: 10px 20px;
-    text-align: center;
-    text-decoration: none;
-    display: inline-block;
     font-size: 13px;
-    border-radius: 20px; /* Rounded corners */
-    font-weight: bold;
+    border-radius: 8px;
+    padding: 5px;
   }
   
-  .coffee-button {
-    display: inline-block;
-    padding: 10px 17px;
-    margin-top:10px;
-    background-color: #E07A5F;
-    color: white;
-    text-decoration: none;
-    font-size: 13px;
-    border-radius: 30px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    transition: background-color 0.3s ease;
-    font-weight: bold;
-  }
-  
-  .coffee-button:hover {
-    background-color: #a74616;
-  }
 
 .title {
   display: flex;
   gap: 10px;
   vertical-align: middle;
+  border-radius: 8px;
   margin-bottom: 0px;
   padding-bottom: 0px;
+}
+
+
+/* Dropdown styles */
+select#prompt-dropdown {
+  background-color: #ffffff; /* Default light mode background */
+  color: #000000; /* Default light mode text */
+  border-radius: 8px;
+}
+
+
+li {
+background-color: white;
+border-radius: 8px;
+padding:3px;
+font-weight:600;
+color: #3f3f3f;
 }
