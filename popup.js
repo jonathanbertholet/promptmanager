@@ -119,12 +119,12 @@ document.addEventListener('DOMContentLoaded', () => {
       li.appendChild(titleSpan);
   
       const editBtn = document.createElement('button');
-      editBtn.textContent = '✏️ Edit';
+      editBtn.textContent = ' ✏️ ';
       editBtn.addEventListener('click', () => editPrompt(index));
       li.appendChild(editBtn);
   
       const delBtn = document.createElement('button');
-      delBtn.textContent = 'Delete';
+      delBtn.textContent = ' ❌ ';
       delBtn.addEventListener('click', () => deletePrompt(index));
       li.appendChild(delBtn);
   
@@ -184,3 +184,42 @@ document.addEventListener('DOMContentLoaded', () => {
     const match = line.match(regex);
     return match ? [match[1], match[2]] : [];
   }
+
+  // Coffee link
+  document.addEventListener('DOMContentLoaded', function() {
+    const coffeeLink = document.getElementById('coffee-link');
+    if (coffeeLink) {
+      coffeeLink.addEventListener('click', function(e) {
+        e.preventDefault(); // Prevent the default action of opening in the popup
+        chrome.tabs.create({ url: 'https://www.paypal.com/donate/?business=TGE9D9GS2WHCU&no_recurring=1&currency_code=EUR' }); // Open in a new tab
+      });
+    } else {
+      console.error('Coffee link not found.');
+    }
+  });
+  
+    // Github link
+    document.addEventListener('DOMContentLoaded', function() {
+      const githublink = document.getElementById('github-link');
+      if (githublink) {
+        githublink.addEventListener('click', function(e) {
+          e.preventDefault(); // Prevent the default action of opening in the popup
+          chrome.tabs.create({ url: 'https://github.com/jonathanbertholet/promptmanager' }); // Open in a new tab
+        });
+      } else {
+        console.error('link not found.');
+      }
+    });
+
+    // review link
+    document.addEventListener('DOMContentLoaded', function() {
+      const reviewLink = document.getElementById('review-link');
+      if (reviewLink) {
+        reviewLink.addEventListener('click', function(e) {
+          e.preventDefault(); // Prevent the default action of opening in the popup
+          chrome.tabs.create({ url: 'https://chromewebstore.google.com/detail/simple-chatgpt-prompt-man/gmhaghdbihgenofhnmdbglbkbplolain?hl=en-GB&authuser=0' }); // Open in a new tab
+        });
+      } else {
+        console.error('Review link not found.');
+      }
+    });
