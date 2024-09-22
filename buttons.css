@@ -1,0 +1,101 @@
+button.main {
+    background-color: #0077B6; /* A vibrant color, adjust as needed */
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 13px;
+    margin: 4px 2px;
+    cursor: pointer;
+    border-radius: 8px; /* Rounded corners */
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Slight shadow */
+    transition: background-color 0.3s ease;
+    width: 100%;
+  }
+
+button.main.import {
+    background-color: #0077B6; /* A vibrant color, adjust as needed */
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 13px;
+    margin: 4px 2px;
+    cursor: pointer;
+    border-radius: 8px; /* Rounded corners */
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Slight shadow */
+    transition: background-color 0.3s ease;
+    width: 100%;
+  }
+
+  button.main.export {
+    background-color: #0077B6; /* A vibrant color, adjust as needed */
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+  } 
+
+  
+  button.main:hover {
+    background-color: #1d549c; /* Darker shade on hover */
+  }
+
+  #prompt-list button {
+    margin-left: 5px;
+    border-radius: 50px;
+    border:none;
+  }
+
+ /* to be improved */ 
+#prompt-list button:hover {
+  background-color: #f0f0f0;
+  cursor: pointer;
+  border:#0077B6;
+}
+  
+  #cancel-edit-button {
+    margin-left: 5px;
+    background-color: #f0f0f0;
+    color: #023E8A;
+    border: none;
+    padding: 10px 20px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 13px;
+    border-radius: 20px; /* Rounded corners */
+    font-weight: bold;
+  }
+
+  #cancel-edit-button:hover {
+    background-color: #c3c3c3;
+    cursor: pointer;
+    border:#0077B6;
+  }
+
+  .coffee-button {
+    display: inline-block;
+    padding: 10px 17px;
+    margin: 4px 2px;
+    background-color: #dc6b4b;
+    color: white;
+    text-decoration: none;
+    font-size: 13px;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transition: background-color 0.3s ease;
+    width: 88%;
+    text-align: center;
+  }
+
+  
+  .coffee-button:hover {
+    background-color: #a74616;
+  }
