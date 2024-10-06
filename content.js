@@ -1,14 +1,5 @@
 console.log("ChatGPT Prompt Manager content script loaded.");
 
-// Function to inject CSS
-function injectCSS() {
-  const link = document.createElement('link');
-  link.href = chrome.runtime.getURL('styles.css');
-  link.type = 'text/css';
-  link.rel = 'stylesheet';
-  document.head.appendChild(link);
-}
-
 // Function to inject the dropdown menu
 function injectDropdown(prompts) {
   // Check if the dropdown already exists
@@ -35,7 +26,8 @@ function injectDropdown(prompts) {
   dropdown.style.padding = '5px';
   dropdown.style.fontSize = '14px';
   dropdown.style.borderRadius = '8px';  // Rounded corners with 8px radius
-  
+
+
   // Default option
   const defaultOption = document.createElement('option');
   defaultOption.text = prompts.length > 0 ? 'Select a prompt' : 'No prompts available';
@@ -99,12 +91,9 @@ function waitForTextarea() {
   });
 }
 
-// Function to initialize the dropdown and CSS when the input box is available
+// Function to initialize the dropdown when the input box is available
 async function initialize() {
   try {
-    // Inject CSS
-    injectCSS();
-
     // Wait for the textarea to be available
     const inputBox = await waitForTextarea();
     console.log('Textarea found on initial load.');
