@@ -1,7 +1,7 @@
 {
     "manifest_version": 3,
     "name": "Simple ChatGPT Prompt Manager",
-    "version": "1.1",
+    "version": "1.2.1",
     "description": "Save & Reuse ChatGPT prompts easily. Adds a dropdown to your message input box. Export & Import your prompts.",
     "permissions": ["storage"],
     "icons": {
@@ -12,11 +12,14 @@
     "action": {
       "default_popup": "popup.html"
     },
+    "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'"
+  },
     "content_scripts": [
       {
         "matches": ["*://chatgpt.com/*"],
-        "js": ["content.js"],
-        "css": ["styles.css", "input.css", "buttons.css", "darkmode.css"]
+        "js": ["content.js"]
       }
     ]
   }
+  
