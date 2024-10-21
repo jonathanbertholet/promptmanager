@@ -1,7 +1,7 @@
 {
     "manifest_version": 3,
     "name": "Simple ChatGPT Prompt Manager",
-    "version": "1.2.1",
+    "version": "1.2.3",
     "description": "Save & Reuse ChatGPT prompts easily. Adds a dropdown to your message input box. Export & Import your prompts.",
     "permissions": ["storage"],
     "icons": {
