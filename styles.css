@@ -1,8 +1,10 @@
 /* styles.css */
 
 body {
-    font-family: Arial, Helvetica, sans-serif;
+    font-family: Helvetica, Verdana, Geneva, Tahoma, sans-serif;
     width: 300px;
+    height: auto;
+    overflow-y: auto;
     padding: 10px;
     padding-bottom: 0px;
     margin-bottom: 10px;
@@ -12,7 +14,7 @@ body {
   h2, h3 {
     margin-top: 0;
     color: #0077B6;
-    margin-bottom: 0px;
+    margin-bottom: 15px;
     padding-bottom: 0px;
   }
 
@@ -27,10 +29,36 @@ body {
   input[type="text"], textarea {
     width: 100%;
     box-sizing: border-box;
-    margin-bottom: 5px;
-    font-family: Arial, Helvetica, sans-serif;
+    margin-bottom: 6px;
+    font-family: Helvetica, Verdana, Geneva, Tahoma, sans-serif;
     border-color: #0077B6;
     border-width: 1px;
+    border-style: solid;
+    border-radius: 6px;
+    padding: 6px;
+    outline: none;
+  }
+
+  input[type="text"]:focus, textarea:focus {
+    border-color: #0077B6;
+  }
+
+  textarea {
+    resize: vertical;
+    min-height: 70px;
+  }
+
+  ::placeholder {
+    color: #999;
+    opacity: 1;
+  }
+
+  :-ms-input-placeholder {
+    color: #999;
+  }
+
+  ::-ms-input-placeholder {
+    color: #999;
   }
   
   button.main {
@@ -51,8 +79,13 @@ body {
   }
   
   button.main:hover {
-    background-color: #023E8A; /* Darker shade on hover */
+    background-color: #00679f; /* Darker shade on hover */
   }
+
+button.main a {
+  text-decoration: none;
+  color: white;
+}
 
 .table {
 margin:0px;
@@ -64,6 +97,7 @@ padding:0px;
   list-style-type: none;
   padding: 0;
   margin: 0;
+  margin-bottom: 5px;
 }
 
   #prompt-list li {
@@ -89,6 +123,8 @@ padding:0px;
   
   #prompt-list button {
     margin-left: 5px;
+    margin-top: 3px;
+    margin-bottom: 3px;
     border-radius: 50px;
     border:none;
   }
@@ -97,7 +133,6 @@ padding:0px;
 #prompt-list button:hover {
   background-color: #f0f0f0;
   cursor: pointer;
-  border:#0077B6
 }
   
   #cancel-edit-button {
@@ -120,30 +155,11 @@ padding:0px;
     border:#0077B6
   }
 
-  
-  .coffee-button {
-    display: inline-block;
-    padding: 10px 17px;
-    margin-top: 5px;
-    background-color: #dc6b4b;
-    color: white;
-    text-decoration: none;
-    font-size: 13px;
-    border-radius: 8px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    transition: background-color 0.3s ease;
-    width:88%;
-    text-align: center;
-  }
-  
-  .coffee-button:hover {
-    background-color: #a74616;
-  }
-
 .title {
   display: flex;
   gap: 10px;
   vertical-align: middle;
+  align-items: center;
   margin-bottom: 0px;
   padding-bottom: 0px;
 }
@@ -170,15 +186,6 @@ padding:0px;
     background-color: #0056b3; /* Adjusted hover color for dark mode */
   }
 
-  .coffee-button {
-    background-color: #8a3923;
-    color: #cdc9c9;
-  }
-
-  .coffee-button:hover {
-    background-color: #a74616;
-  }
-
   button.main.import {
       background-color: #0f2f57;
   }
@@ -189,6 +196,7 @@ padding:0px;
 
   button.main.export{
       background-color: #0f2f57;
+      margin-top: 4px;
   }
 
   button.main.export:hover {
@@ -196,12 +204,13 @@ padding:0px;
   }    
 
   h2, h3 {
-    color: #1682a5; /* Light blue for headings */
+    color: #c0c0c0
   }
 
 
-  #github-link {
+  #link {
     color: #1682a5;
+    text-decoration: none;
   }
   /* Add dark mode styles for other elements if necessary */
 
@@ -214,4 +223,43 @@ select#prompt-dropdown {
     background-color: #333333; /* Dark background for dropdown */
     color: #ffffff; /* Light text */
   }
+}
+
+/* Add these styles */
+.prompts-container {
+    position: relative;
+    height: auto;  /* Allow container to adapt to its contents */
+    min-height: 200px;  /* Set a minimum height to ensure visibility */
+    margin-bottom: 10px;
+    overflow-y: auto;  /* Add vertical scrolling if content exceeds max-height */
+}
+
+.prompts-section {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: auto;
+    min-height: 50px;
+    max-height: 270px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: #0077B6 #f0f0f000;
+}
+
+#prompt-list {
+    list-style-type: none;
+    padding: 0;
+    margin: 0;
+}
+
+.link-container a {
+  text-decoration: none;
+  display: inline-block;
+  margin-right: 8px;
+}
+
+.link-container a:last-child {
+  margin-right: 0;
 }
