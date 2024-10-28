@@ -1,8 +1,8 @@
 {
     "manifest_version": 3,
-    "name": "Simple ChatGPT Prompt Manager",
-    "version": "1.2.3",
-    "description": "Save & Reuse ChatGPT prompts easily. Adds a dropdown to your message input box. Export & Import your prompts.",
+    "name": "Simple Prompt Manager - ChatGPT, Claude, Gemini, NotebookLM, Poe",
+    "version": "1.4",
+    "description": "The best prompt manager for AI Chatbots. Open Source & Focus on simplicity.",
     "permissions": ["storage"],
     "icons": {
       "16": "icon16.png",
@@ -12,14 +12,28 @@
     "action": {
       "default_popup": "popup.html"
     },
+    "options_page": "settings.html",
     "content_security_policy": {
     "extension_pages": "script-src 'self'; object-src 'self'"
   },
     "content_scripts": [
       {
-        "matches": ["*://chatgpt.com/*"],
-        "js": ["content.js"]
+        "matches": [
+          "*://chatgpt.com/*",
+          "*://notebooklm.google.com/*",
+          "*://claude.ai/*",
+          "*://poe.com/*",
+          "*://gemini.google.com/*"
+        ],
+          "js": ["content.js"]
+      }
+    ],
+    "web_accessible_resources": [
+      {
+        "resources": ["icons/*.png","icon128.png", "icons/*"], 
+        "matches": ["<all_urls>"]
       }
     ]
+  
   }
   
