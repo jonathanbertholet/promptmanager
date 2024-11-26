@@ -7,7 +7,7 @@
 </head>
 <body>
   <div class="title">
-    <img class="icon" src="icon128.png" alt="Extension Icon" style="width: 22px; height: 22px; margin-bottom: 15px;">
+    <img class="icon" src="icon128.png" alt="Extension Icon" style="width: 22px; height: 22px;">
     <h2>Simple Prompt Manager</h2>
   </div>
   <form id="prompt-form">
@@ -24,6 +24,33 @@
   <div class="prompts-container">
     <div class="prompts-section">
       <ul id="prompt-list"></ul>
+      <div id="empty-state" class="shortcut-container" style="display: none;">
+        <h3>Keyboard Navigation & Shortcuts</h3>
+        <p style="display: flex; align-items: center; margin: 8px 0;">
+          <span style="background-color: #0077B6; color: white; padding: 4px 8px; border-radius: 4px; margin-right: 10px;">
+            Hover/Click
+          </span>
+          <span>Open prompt list buttons</span>
+        </p>
+        <p style="display: flex; align-items: center; margin: 8px 0;">
+          <span style="background-color: #0077B6; color: white; padding: 4px 8px; border-radius: 4px; margin-right: 10px;">
+            ⌘ or Ctrl + Shift + P
+          </span>
+          <span>Open / close prompt list</span>
+        </p>
+        <p style="display: flex; align-items: center; margin: 8px 0;">
+          <span style="background-color: #0077B6; color: white; padding: 4px 8px; border-radius: 4px; margin-right: 10px;">↑↓</span>
+          <span>Navigate the prompt list</span>
+        </p>
+        <p style="display: flex; align-items: center; margin: 8px 0;">
+          <span style="background-color: #0077B6; color: white; padding: 4px 8px; border-radius: 4px; margin-right: 10px;">Enter</span>
+          <span>Select a prompt</span>
+        </p>
+        <p style="display: flex; align-items: center; margin: 8px 0;">
+          <span style="background-color: #0077B6; color: white; padding: 4px 8px; border-radius: 4px; margin-right: 10px;">Esc</span>
+          <span>Close the prompt manager</span>
+        </p>
+      </div>
     </div>
   </div>
 
@@ -54,8 +81,7 @@
       <td style="text-align: right;">
         <a id="link" href="https://github.com/jonathanbertholet/promptmanager" target="_blank"><img src="icons/github-icon.png" alt="Github" style="width: 16px; height: 16px; vertical-align: middle; margin-right: 5px;"></a>
         <a id="link" href="https://chromewebstore.google.com/detail/simple-prompt-manager-cha/gmhaghdbihgenofhnmdbglbkbplolain?authuser=0&hl=en-GB" target="_blank"><img src="icons/review-icon.png" alt="Review me" style="width: 16px; height: 16px; vertical-align: middle; margin-right: 5px;"></a>
-        <!-- <a href="settings.html"><img src="settings-icon.png" alt="Settings" style="width: 16px; height: 16px; vertical-align: middle;"></a> -->
-
+        <a href="settings.html"><img src="icons/settings-icon.png" alt="Settings" style="width: 16px; height: 16px; vertical-align: middle;"></a>
       </td>
     </tr>
   </table>
