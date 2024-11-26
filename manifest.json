@@ -1,7 +1,7 @@
 {
     "manifest_version": 3,
     "name": "Simple Prompt Manager - ChatGPT, Claude, Gemini, NotebookLM, Poe",
-    "version": "1.4",
+    "version": "1.5.0",
     "description": "The best prompt manager for AI Chatbots. Open Source & Focus on simplicity.",
     "permissions": ["storage"],
     "icons": {
@@ -25,7 +25,8 @@
           "*://poe.com/*",
           "*://gemini.google.com/*"
         ],
-          "js": ["content.js"]
+          "js": ["inputBoxHandler.js", "content.js"],
+          "run_at": "document_end"
       }
     ],
     "web_accessible_resources": [
