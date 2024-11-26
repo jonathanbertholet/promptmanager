@@ -62,7 +62,44 @@ export function loadPrompts() {
   
   export function displayPrompts(prompts) {
     const promptList = document.getElementById('prompt-list');
+    const emptyState = document.getElementById('empty-state');
     promptList.innerHTML = '';
+
+    if (prompts.length === 0) {
+        const emptyStateDiv = document.createElement('div');
+        emptyStateDiv.className = 'shortcut-container';
+        emptyStateDiv.innerHTML = `
+            <h3>Keyboard Navigation & Shortcuts</h3>
+            <p style="display: flex; align-items: center; margin: 8px 0;">
+                <span style="background-color: #0077B6; color: white; padding: 4px 8px; border-radius: 4px; margin-right: 10px;">
+                    Hover/Click
+                </span>
+                <span>Open prompt list buttons</span>
+            </p>
+            <p style="display: flex; align-items: center; margin: 8px 0;">
+                <span style="background-color: #0077B6; color: white; padding: 4px 8px; border-radius: 4px; margin-right: 10px;">
+                    ⌘ or Ctrl + Shift + P
+                </span>
+                <span>Open / close prompt list</span>
+            </p>
+            <p style="display: flex; align-items: center; margin: 8px 0;">
+                <span style="background-color: #0077B6; color: white; padding: 4px 8px; border-radius: 4px; margin-right: 10px;">↑↓</span>
+                <span>Navigate the prompt list</span>
+            </p>
+            <p style="display: flex; align-items: center; margin: 8px 0;">
+                <span style="background-color: #0077B6; color: white; padding: 4px 8px; border-radius: 4px; margin-right: 10px;">Enter</span>
+                <span>Select a prompt</span>
+            </p>
+            <p style="display: flex; align-items: center; margin: 8px 0;">
+                <span style="background-color: #0077B6; color: white; padding: 4px 8px; border-radius: 4px; margin-right: 10px;">Esc</span>
+                <span>Close the prompt manager</span>
+            </p>
+        `;
+        promptList.appendChild(emptyStateDiv);
+        return;
+    }
+
+    emptyState.style.display = 'none';
     prompts.forEach((prompt, index) => {
       const li = document.createElement('li');
   
