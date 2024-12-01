@@ -101,8 +101,26 @@ class InputBoxHandler {
         if (inputBox.contentEditable === 'true') {
           // For contenteditable elements (e.g., ChatGPT and Claude)
           inputBox.innerHTML = '';
-          const textNode = document.createTextNode(content + '  '); // Add two spaces
-          inputBox.appendChild(textNode);
+          // Line break handling for CodeMirror 
+          // Split content by line breaks and create elements for each line
+          const lines = content.split('\n');
+          lines.forEach((line, index) => {
+            if (line.trim()) {
+              // If line has text content, wrap it in a paragraph
+              const p = document.createElement('p');
+              p.textContent = line;
+              inputBox.appendChild(p);
+            } else if (index < lines.length - 1) {
+              // If line is empty (and not the last line), add p-wrapped-br
+              const p = document.createElement('p');
+              const br = document.createElement('br');
+              p.appendChild(br);
+              inputBox.appendChild(p);
+            }
+          });
+          
+          // Add two spaces at the end
+          inputBox.appendChild(document.createTextNode('  '));
   
           // Move cursor to the end of the content
           const range = document.createRange();
