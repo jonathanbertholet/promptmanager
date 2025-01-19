@@ -8,9 +8,8 @@ console.log("Prompt Manager content script loaded.");
 // Note: InputBoxHandler is now loaded from inputBoxHandler.js
 
 // Add these constants at the top of the file
-const CHROME_STORAGE_LIMIT = 102400; // Chrome sync storage total limit (100KB)
-const CHROME_STORAGE_ITEM_LIMIT = 8192; // Chrome sync storage per-item limit (8KB)
-const PROMPT_OVERHEAD = 50; // Estimated overhead for prompt metadata
+const CHROME_STORAGE_LIMIT = 10485760; // Chrome sync storage total limit (100KB)
+const CHROME_STORAGE_ITEM_LIMIT = 10485760; // Chrome sync storage per-item limit (8KB)
 
 /**
  * Class to manage Chrome storage interactions for prompts and UI settings.
@@ -22,7 +21,7 @@ class StorageManager {
    */
   static getPrompts() {
     return new Promise((resolve) => {
-      chrome.storage.sync.get('prompts', data => {
+      chrome.storage.local.get('prompts', data => {
         resolve(data.prompts || []);
       });
     });
@@ -35,37 +34,29 @@ class StorageManager {
    */
   static async savePrompt(prompt) {
     try {
-      // Calculate size of new prompt
-      const promptSize = new TextEncoder().encode(JSON.stringify(prompt)).length + PROMPT_OVERHEAD;
-      
-      // Check per-item size limit first
-      if (promptSize > CHROME_STORAGE_ITEM_LIMIT) {
-        // Cache the prompt locally
-        if (!window.localStorage.getItem('cachedPrompt')) {
-          window.localStorage.setItem('cachedPrompt', JSON.stringify(prompt));
-        }
-        
-        throw new Error(`Prompt exceeds the per-item size limit (${Math.round(promptSize/1024)}KB). Each prompt must be under 8KB.`);
-      }
-
-      // Get current storage usage
-      const data = await chrome.storage.sync.get('prompts');
+      // Get current prompts first
+      const data = await chrome.storage.local.get('prompts');
       const prompts = data.prompts || [];
-      const currentSize = new TextEncoder().encode(JSON.stringify(prompts)).length;
+      
+      // Calculate size of all prompts including the new one
+      const allPrompts = [...prompts, prompt];
+      const totalSize = new TextEncoder().encode(JSON.stringify(allPrompts)).length;
       
       // Check total storage limit
-      if (currentSize + promptSize > CHROME_STORAGE_LIMIT) {
-        // Cache the prompt locally
-        if (!window.localStorage.getItem('cachedPrompt')) {
-          window.localStorage.setItem('cachedPrompt', JSON.stringify(prompt));
-        }
-        
-        throw new Error(`Not enough storage space. The prompt requires ${Math.round(promptSize/1024)}KB, but only ${Math.round((CHROME_STORAGE_LIMIT - currentSize)/1024)}KB is available.`);
+      if (totalSize > CHROME_STORAGE_LIMIT) {
+        window.localStorage.setItem('cachedPrompt', JSON.stringify(prompt));
+        throw new Error(`Total storage limit exceeded. The prompts require ${Math.round(totalSize/1024)}KB, but only ${Math.round(CHROME_STORAGE_LIMIT/1024)}KB is available.`);
       }
 
-      // If both checks pass, save the prompt
-      prompts.push(prompt);
-      await chrome.storage.sync.set({ prompts });
+      // Check individual prompt size
+      const promptSize = new TextEncoder().encode(JSON.stringify(prompt)).length;
+      if (promptSize > CHROME_STORAGE_ITEM_LIMIT) {
+        window.localStorage.setItem('cachedPrompt', JSON.stringify(prompt));
+        throw new Error(`Individual prompt size limit exceeded. The prompt requires ${Math.round(promptSize/1024)}KB, but maximum allowed is ${Math.round(CHROME_STORAGE_ITEM_LIMIT/1024)}KB.`);
+      }
+
+      // If both checks pass, save all prompts as a single item
+      await chrome.storage.local.set({ prompts: allPrompts });
       console.log('New prompt saved');
       
       // Clear any cached prompt
@@ -75,9 +66,15 @@ class StorageManager {
 
     } catch (error) {
       console.error('Error saving prompt:', error);
+      
+      // Add more detailed error information
+      const errorMessage = error.message.includes('QUOTA_BYTES_PER_ITEM') 
+        ? 'Storage quota exceeded. Please try reducing the size of your prompts or removing some existing ones.'
+        : error.message;
+        
       return { 
         success: false, 
-        error: error.message 
+        error: errorMessage
       };
     }
   }
@@ -96,7 +93,7 @@ class StorageManager {
    */
   static getButtonPosition() {
     return new Promise((resolve) => {
-      chrome.storage.sync.get('buttonPosition', data => {
+      chrome.storage.local.get('buttonPosition', data => {
         resolve(data.buttonPosition || { x: 75, y: 100 }); // Default position
       });
     });
@@ -108,7 +105,7 @@ class StorageManager {
    */
   static saveButtonPosition(position) {
     return new Promise((resolve) => {
-      chrome.storage.sync.set({ buttonPosition: position }, resolve);
+      chrome.storage.local.set({ buttonPosition: position }, resolve);
     });
   }
 
@@ -118,7 +115,7 @@ class StorageManager {
    */
   static getKeyboardShortcut() {
     return new Promise((resolve) => {
-      chrome.storage.sync.get('keyboardShortcut', data => {
+      chrome.storage.local.get('keyboardShortcut', data => {
         // Detect if user is on Mac
         const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
         
@@ -139,8 +136,26 @@ class StorageManager {
    */
   static saveKeyboardShortcut(shortcut) {
     return new Promise((resolve) => {
-      chrome.storage.sync.set({ keyboardShortcut: shortcut }, resolve);
+      chrome.storage.local.set({ keyboardShortcut: shortcut }, resolve);
     });
+  }
+
+  /**
+   * Gets current storage usage statistics
+   * @returns {Promise<{used: number, total: number, percentage: number}>}
+   */
+  static async getStorageUsage() {
+    const data = await chrome.storage.local.get('prompts');
+    const prompts = data.prompts || [];
+    const used = new TextEncoder().encode(JSON.stringify(prompts)).length;
+    const total = CHROME_STORAGE_LIMIT;
+    const percentage = Math.round((used / total) * 100);
+    
+    return {
+      used,
+      total,
+      percentage
+    };
   }
 }
 
@@ -1411,6 +1426,8 @@ class UIManager {
                 width: '90%'
             });
 
+            const usage = await StorageManager.getStorageUsage();
+
             dialog.innerHTML = `
                 <h3 style="margin-top: 0; color: ${isDark ? '#e1e1e1' : '#333'}">Unable to Save Prompt</h3>
                 <p style="color: ${isDark ? '#e1e1e1' : '#333'}">${result.error}</p>
@@ -1617,7 +1634,7 @@ class UIManager {
                     }
 
                     // Save to storage
-                    await chrome.storage.sync.set({ prompts });
+                    await chrome.storage.local.set({ prompts });
                     
                     // Refresh the prompt list
                     UIManager.refreshPromptList(prompts);
@@ -1837,7 +1854,7 @@ class UIManager {
             title: titleInput.value.trim(),
             content: contentTextarea.value.trim()
         };
-        await chrome.storage.sync.set({ prompts });
+        await chrome.storage.local.set({ prompts });
         
         // Refresh the edit view
         const newEditView = await UIManager.createEditView();
@@ -1865,7 +1882,7 @@ class UIManager {
   static async deletePrompt(index) {
     const prompts = await StorageManager.getPrompts();
     prompts.splice(index, 1);
-    await chrome.storage.sync.set({ prompts });
+    await chrome.storage.local.set({ prompts });
     
     // Refresh the edit view
     const promptList = document.getElementById('prompt-list');

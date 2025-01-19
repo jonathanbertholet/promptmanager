@@ -2,26 +2,28 @@
 
 import { generateUUID } from './utils.js';
 
-// Add constants for storage limits
-const CHROME_STORAGE_LIMIT = 102400; // Chrome sync storage total limit (100KB)
-const CHROME_STORAGE_ITEM_LIMIT = 8192; // Chrome sync storage per-item limit (8KB)
+// Update the constants
+const CHROME_STORAGE_LIMIT = 10485760; // Chrome local storage total limit (10MB)
+const CHROME_STORAGE_ITEM_LIMIT = 10485760; // Chrome local storage per-item limit (10MB)
 const PROMPT_OVERHEAD = 50; // Estimated overhead for prompt metadata
 
 // Add this function to check storage usage
 async function getStorageUsage() {
-  return new Promise((resolve) => {
-    chrome.storage.sync.getBytesInUse(null, (bytesInUse) => {
-      resolve({
-        used: bytesInUse,
-        total: CHROME_STORAGE_LIMIT,
-        percentage: Math.round((bytesInUse / CHROME_STORAGE_LIMIT) * 100)
-      });
-    });
-  });
+  const data = await chrome.storage.local.get('prompts');
+  const prompts = data.prompts || [];
+  const used = new TextEncoder().encode(JSON.stringify(prompts)).length;
+  const total = CHROME_STORAGE_LIMIT;
+  const percentage = Math.round((used / total) * 100);
+  
+  return {
+    used,
+    total,
+    percentage
+  };
 }
 
 export function loadPrompts() {
-  chrome.storage.sync.get('prompts', data => {
+  chrome.storage.local.get('prompts', data => {
     const prompts = data.prompts || [];
     displayPrompts(prompts);
     
@@ -41,42 +43,22 @@ export async function addPrompt(title, content) {
       createdAt: new Date().toISOString()
     };
 
-    // Calculate size of new prompt
-    const promptSize = new TextEncoder().encode(JSON.stringify(prompt)).length + PROMPT_OVERHEAD;
-    
-    // Check per-item size limit first
-    if (promptSize > CHROME_STORAGE_ITEM_LIMIT) {
-      // Cache the prompt locally with a different key for popup
-      if (!window.localStorage.getItem('popupCachedPrompt')) {
-        window.localStorage.setItem('popupCachedPrompt', JSON.stringify(prompt));
-      }
-      
-      showErrorDialog(
-        `Prompt exceeds the per-item size limit (${Math.round(promptSize/1024)}KB). Each prompt must be under 8KB.`
-      );
-      return;
-    }
-
-    // Get current storage usage
-    const usage = await getStorageUsage();
-    
-    // Then check total storage limit
-    if (usage.used + promptSize > CHROME_STORAGE_LIMIT) {
-      if (!window.localStorage.getItem('popupCachedPrompt')) {
-        window.localStorage.setItem('popupCachedPrompt', JSON.stringify(prompt));
-      }
-      
-      showErrorDialog(
-        `Not enough storage space. The prompt requires ${Math.round(promptSize/1024)}KB, but only ${Math.round((CHROME_STORAGE_LIMIT - usage.used)/1024)}KB is available.`
-      );
-      return;
-    }
-
-    // If both checks pass, save the prompt
-    const data = await chrome.storage.sync.get('prompts');
+    // Get current prompts first
+    const data = await chrome.storage.local.get('prompts');
     const prompts = data.prompts || [];
-    prompts.push(prompt);
-    await chrome.storage.sync.set({ prompts });
+    
+    // Calculate size of all prompts including the new one
+    const allPrompts = [...prompts, prompt];
+    const totalSize = new TextEncoder().encode(JSON.stringify(allPrompts)).length;
+    
+    // Check total storage limit
+    if (totalSize > CHROME_STORAGE_LIMIT) {
+      window.localStorage.setItem('popupCachedPrompt', JSON.stringify(prompt));
+      throw new Error(`Total storage limit exceeded. The prompts require ${Math.round(totalSize/1024)}KB, but only ${Math.round(CHROME_STORAGE_LIMIT/1024)}KB is available.`);
+    }
+
+    // Save all prompts as a single item
+    await chrome.storage.local.set({ prompts: allPrompts });
     
     // Clear any cached prompt
     window.localStorage.removeItem('popupCachedPrompt');
@@ -90,10 +72,12 @@ export async function addPrompt(title, content) {
 
   } catch (error) {
     console.error('Error saving prompt:', error);
+    
     // Cache the prompt if it wasn't already cached
     if (!window.localStorage.getItem('popupCachedPrompt')) {
       window.localStorage.setItem('popupCachedPrompt', JSON.stringify({ title, content }));
     }
+    
     showErrorDialog(error.message);
   }
 }
@@ -147,12 +131,12 @@ async function showErrorDialog(message) {
         ${(usage.used / 1024).toFixed(1)}KB used of ${(usage.total / 1024).toFixed(1)}KB total
       </p>
       <p style="color: ${isDark ? '#999' : '#666'}; font-size: 12px; margin: 4px 0 0 0;">
-        Maximum prompt size: 8KB
+        Maximum prompt size: 10MB
       </p>
     </div>
     <p style="color: ${isDark ? '#e1e1e1' : '#333'}">Your prompt has been temporarily cached. You can try:</p>
     <ul style="color: ${isDark ? '#e1e1e1' : '#333'}">
-      <li>Shortening the prompt content (must be under 8KB per prompt)</li>
+      <li>Shortening the prompt content (must be under 10MB per prompt)</li>
       <li>Splitting the prompt into multiple smaller prompts</li>
       <li>Exporting your prompts and using local storage instead</li>
     </ul>
@@ -247,7 +231,7 @@ function checkForCachedPrompt() {
 }
 
 export function updatePrompt(index, title, content) {
-  chrome.storage.sync.get('prompts', data => {
+  chrome.storage.local.get('prompts', data => {
     const prompts = data.prompts || [];
     if (index >= 0 && index < prompts.length) {
       prompts[index] = { 
@@ -256,21 +240,21 @@ export function updatePrompt(index, title, content) {
         content,
         updatedAt: new Date().toISOString()
       };
-      chrome.storage.sync.set({ prompts }, loadPrompts);
+      chrome.storage.local.set({ prompts }, loadPrompts);
     }
   });
 }
   
 export function deletePrompt(index) {
-  chrome.storage.sync.get('prompts', data => {
+  chrome.storage.local.get('prompts', data => {
     const prompts = data.prompts || [];
     prompts.splice(index, 1);
-    chrome.storage.sync.set({ prompts }, loadPrompts);
+    chrome.storage.local.set({ prompts }, loadPrompts);
   });
 }
   
 export function editPrompt(index) {
-  chrome.storage.sync.get('prompts', data => {
+  chrome.storage.local.get('prompts', data => {
     const prompts = data.prompts || [];
     if (index >= 0 && index < prompts.length) {
       const prompt = prompts[index];
