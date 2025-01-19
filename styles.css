@@ -1,0 +1,280 @@
+/* styles.css */
+
+body {
+    font-family: Helvetica, Verdana, Geneva, Tahoma, sans-serif;
+    width: 300px;
+    height: auto;
+    overflow-y: auto;
+    padding: 10px;
+    padding-bottom: 0px;
+    margin-bottom: 10px;
+    background-color:#f5f5f5 ;
+  }
+  
+  h2, h3 {
+    margin-top: 0;
+    color: #0077B6;
+    margin-bottom: 12px;
+    padding-bottom: 0px;
+  }
+
+  .promptslistheader {
+    margin-bottom:10px;
+  }
+  
+  form {
+    margin-bottom: 10px;
+  }
+  
+  input[type="text"], textarea {
+    width: 100%;
+    box-sizing: border-box;
+    margin-bottom: 6px;
+    font-family: Helvetica, Verdana, Geneva, Tahoma, sans-serif;
+    border-color: #0077B6;
+    border-width: 1px;
+    border-style: solid;
+    border-radius: 6px;
+    padding: 6px;
+    outline: none;
+  }
+
+  input[type="text"]:focus, textarea:focus {
+    border-color: #0077B6;
+  }
+
+  textarea {
+    resize: vertical;
+    min-height: 70px;
+  }
+
+  ::placeholder {
+    color: #999;
+    opacity: 1;
+  }
+
+  :-ms-input-placeholder {
+    color: #999;
+  }
+
+  ::-ms-input-placeholder {
+    color: #999;
+  }
+  
+  button.main {
+    background-color: #0077B6; /* A vibrant color, adjust as needed */
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 13px;
+    margin: 0px;
+    cursor: pointer;
+    border-radius: 8px; /* Rounded corners */
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Slight shadow */
+    transition: background-color 0.3s ease;
+    width: 100%;
+  }
+  
+  button.main:hover {
+    background-color: #00679f; /* Darker shade on hover */
+  }
+
+button.main a {
+  text-decoration: none;
+  color: white;
+}
+
+.table {
+margin:0px;
+padding:0px;
+  }
+
+/* Adjust list item spacing for left aligned list */
+#prompt-list {
+  list-style-type: none;
+  padding: 0;
+  margin: 0;
+  margin-bottom: 5px;
+}
+
+  #prompt-list li {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom:5px;
+    background-color: #ffffff;
+    padding-left:6px;
+    padding-top: 3px;
+    padding-bottom:3px;
+    padding-right: 6px;
+    border-radius: 4px;
+    color: #494949;
+  }
+  
+  #prompt-list li span {
+    flex-grow: 1;
+    text-align: left;
+    margin-right: 10px;
+    font-size: 14px;
+  }
+  
+  #prompt-list button {
+    margin-left: 5px;
+    margin-top: 3px;
+    margin-bottom: 3px;
+    border-radius: 50px;
+    border:none;
+  }
+
+ /* to be improved */ 
+#prompt-list button:hover {
+  background-color: #f0f0f0;
+  cursor: pointer;
+}
+
+.shortcut-container {
+  margin-bottom: 18px;
+}
+  
+  #cancel-edit-button {
+    background-color: #dfdfdf;
+    color: #023E8A;
+    border: none;
+    padding: 10px 20px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 13px;
+    border-radius: 8px; /* Rounded corners */
+    margin-top:8px;
+    width:100%;
+  }
+
+  #cancel-edit-button:hover {
+    background-color: #c0c0c0;
+    cursor: pointer;
+    border:#0077B6
+  }
+
+.title {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.title h2 {
+  margin: 0;
+  padding: 0;
+}
+
+/* Dark mode styles */
+@media (prefers-color-scheme: dark) {
+  body {
+    background-color: #020f3b; /* Dark background */
+    color: #cdc9c9; /* Light text */
+  }
+
+  input[type="text"], textarea {
+    background-color: #333333; /* Dark background for inputs */
+    color: #cdc9c9; /* Light text */
+    border: 1px solid #0077B6;
+  }
+
+  button.main {
+    background-color: #0f2f57; /* Adjusted color for dark mode */
+    color: #cdc9c9;
+  }
+
+  button.main:hover {
+    background-color: #0056b3; /* Adjusted hover color for dark mode */
+  }
+
+  button.main.import {
+      background-color: #0f2f57;
+  }
+
+  button.main.import:hover {
+      background-color: #0056b3;
+  }    
+
+  button.main.export{
+      background-color: #0f2f57;
+      margin-top: 4px;
+  }
+
+  button.main.export:hover {
+      background-color: #0056b3;
+  }    
+
+  h2, h3 {
+    color: #dbdbdb
+  }
+
+
+  #link {
+    color: #1682a5;
+    text-decoration: none;
+  }
+  /* Add dark mode styles for other elements if necessary */
+
+  #prompt-list li {
+    background-color: #0f2f57;
+      color: #cdc9c9;
+      }
+      
+select#prompt-dropdown {
+    background-color: #333333; /* Dark background for dropdown */
+    color: #ffffff; /* Light text */
+  }
+
+  .link-container img,
+  .footer-table img,
+  .icon,
+  #submit-button img {
+    opacity: 0.9;
+    filter: brightness(0) saturate(100%) invert(100%);
+  }
+}
+
+/* Add these styles */
+.prompts-container {
+    position: relative;
+    height: auto;  /* Allow container to adapt to its contents */
+    min-height: 200px;  /* Set a minimum height to ensure visibility */
+    margin-bottom: 10px;
+    overflow-y: auto;  /* Add vertical scrolling if content exceeds max-height */
+}
+
+.prompts-section {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: auto;
+    min-height: 50px;
+    max-height: 270px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: #0077B6 #f0f0f000;
+}
+
+#prompt-list {
+    list-style-type: none;
+    padding: 0;
+    margin: 0;
+}
+
+.link-container a {
+  text-decoration: none;
+  display: inline-block;
+  margin-right: 8px;
+}
+
+.link-container a:last-child {
+  margin-right: 0;
+}
