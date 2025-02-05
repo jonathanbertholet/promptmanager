@@ -1,7 +1,7 @@
 // popup.js
 
 import { loadPrompts, addPrompt, updatePrompt } from './prompts.js';
-import { exportPrompts, importPrompts } from './importExport.js';
+import { exportPrompts, importPrompts} from './importExport.js';
 import { initLinks } from './links.js';
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -37,7 +37,7 @@ document.addEventListener('DOMContentLoaded', () => {
     titleInput.value = '';
     contentInput.value = '';
     promptIndexInput.value = '';
-    submitButton.textContent = 'Add Prompt';
+    submitButton.textContent = 'Save prompt';
     cancelEditButton.style.display = 'none';
   });
 

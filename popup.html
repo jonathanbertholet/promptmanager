@@ -20,11 +20,13 @@
     </button>
     <button type="button" id="cancel-edit-button" style="display: none;">Cancel</button>
   </form>
-
   <div class="prompts-container">
     <div class="prompts-section">
       <ul id="prompt-list"></ul>
+      <!-- Add title and message about storage changes -->
       <div id="empty-state" class="shortcut-container" style="display: none;">
+        <h3>Prompts missing?</h3>
+        <p>The latest update handles prompt storage differently and should have been migrated automatically. Click the "Settings" Icon for a manual fix.</p>
         <h3>Keyboard Navigation & Shortcuts</h3>
         <p style="display: flex; align-items: center; margin: 8px 0;">
           <span style="background-color: #0077B6; color: white; padding: 4px 8px; border-radius: 4px; margin-right: 10px;">
@@ -34,7 +36,7 @@
         </p>
         <p style="display: flex; align-items: center; margin: 8px 0;">
           <span style="background-color: #0077B6; color: white; padding: 4px 8px; border-radius: 4px; margin-right: 10px;">
-            ⌘ or Ctrl + Shift + P
+            ⌘ + Shift + P or Ctrl + M
           </span>
           <span>Open / close prompt list</span>
         </p>

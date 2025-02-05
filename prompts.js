@@ -22,13 +22,83 @@ async function getStorageUsage() {
   };
 }
 
+// Add this function at the top level
+async function migrateFromSyncToLocal() {
+  try {
+    // Check if we've already performed the migration
+    const migrationFlag = await chrome.storage.local.get('syncMigrationComplete');
+    if (migrationFlag.syncMigrationComplete) {
+      return;
+    }
+
+    // Check for prompts in sync storage
+    const syncData = await chrome.storage.sync.get('prompts');
+    if (syncData.prompts && syncData.prompts.length > 0) {
+      console.log('Found prompts in sync storage, copying to local storage...');
+      
+      // Get existing local prompts (if any)
+      const localData = await chrome.storage.local.get('prompts');
+      const localPrompts = localData.prompts || [];
+      
+      // Merge prompts, keeping the newer version if duplicates exist
+      const mergedPrompts = mergePrompts(localPrompts, syncData.prompts);
+      
+      // Save to local storage
+      await chrome.storage.local.set({ prompts: mergedPrompts });
+      
+      console.log('Migration complete:', mergedPrompts.length, 'prompts copied to local storage');
+    }
+
+    // Set migration flag to prevent future migrations
+    await chrome.storage.local.set({ syncMigrationComplete: true });
+
+  } catch (error) {
+    console.error('Error during storage migration:', error);
+  }
+}
+
+// Helper function to merge prompts arrays, handling duplicates
+function mergePrompts(localPrompts, syncPrompts) {
+  // Create a map of existing prompts by ID
+  const promptsMap = new Map(
+    localPrompts.map(p => [p.id, p])
+  );
+  
+  // Merge sync prompts, updating if newer version exists
+  syncPrompts.forEach(syncPrompt => {
+    if (syncPrompt.id) {
+      if (promptsMap.has(syncPrompt.id)) {
+        // Update existing prompt if sync version is newer
+        const localPrompt = promptsMap.get(syncPrompt.id);
+        const localDate = localPrompt.updatedAt || localPrompt.createdAt;
+        const syncDate = syncPrompt.updatedAt || syncPrompt.createdAt;
+        
+        if (new Date(syncDate) > new Date(localDate)) {
+          promptsMap.set(syncPrompt.id, syncPrompt);
+        }
+      } else {
+        // Add new prompt
+        promptsMap.set(syncPrompt.id, syncPrompt);
+      }
+    }
+  });
+  
+  // Convert map back to array
+  return Array.from(promptsMap.values());
+}
+
+// Modify the loadPrompts function to include migration
 export function loadPrompts() {
-  chrome.storage.local.get('prompts', data => {
-    const prompts = data.prompts || [];
-    displayPrompts(prompts);
-    
-    // Check for cached prompts on load
-    checkForCachedPrompt();
+  // First perform migration if needed
+  migrateFromSyncToLocal().then(() => {
+    // Then load prompts from local storage
+    chrome.storage.local.get('prompts', data => {
+      const prompts = data.prompts || [];
+      displayPrompts(prompts);
+      
+      // Check for cached prompts on load
+      checkForCachedPrompt();
+    });
   });
 }
 
@@ -273,37 +343,9 @@ export function displayPrompts(prompts) {
   promptList.innerHTML = '';
 
   if (prompts.length === 0) {
-      const emptyStateDiv = document.createElement('div');
-      emptyStateDiv.className = 'shortcut-container';
-      emptyStateDiv.innerHTML = `
-          <h3>Keyboard Navigation & Shortcuts</h3>
-          <p style="display: flex; align-items: center; margin: 8px 0;">
-              <span style="background-color: #0077B6; color: white; padding: 4px 8px; border-radius: 4px; margin-right: 10px;">
-                  Hover/Click
-              </span>
-              <span>Open prompt list buttons</span>
-          </p>
-          <p style="display: flex; align-items: center; margin: 8px 0;">
-              <span style="background-color: #0077B6; color: white; padding: 4px 8px; border-radius: 4px; margin-right: 10px;">
-                  ⌘ or Ctrl + Shift + P
-              </span>
-              <span>Open / close prompt list</span>
-          </p>
-          <p style="display: flex; align-items: center; margin: 8px 0;">
-              <span style="background-color: #0077B6; color: white; padding: 4px 8px; border-radius: 4px; margin-right: 10px;">↑↓</span>
-              <span>Navigate the prompt list</span>
-          </p>
-          <p style="display: flex; align-items: center; margin: 8px 0;">
-              <span style="background-color: #0077B6; color: white; padding: 4px 8px; border-radius: 4px; margin-right: 10px;">Enter</span>
-              <span>Select a prompt</span>
-          </p>
-          <p style="display: flex; align-items: center; margin: 8px 0;">
-              <span style="background-color: #0077B6; color: white; padding: 4px 8px; border-radius: 4px; margin-right: 10px;">Esc</span>
-              <span>Close the prompt manager</span>
-          </p>
-      `;
-      promptList.appendChild(emptyStateDiv);
-      return;
+    // Show the existing empty state div instead of creating a new one
+    emptyState.style.display = 'block';
+    return;
   }
 
   emptyState.style.display = 'none';

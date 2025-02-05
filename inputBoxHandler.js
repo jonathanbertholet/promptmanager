@@ -12,7 +12,7 @@ class InputBoxHandler {
     static getInputBox() {
       const url = window.location.hostname;
   
-      // ChatGPT (chat.openai.com)
+      // ChatGPT (chatgpt.com)
       if (url.includes('chatgpt.com')) {
         const inputBox = document.getElementById('prompt-textarea');
         if (inputBox) {
@@ -34,7 +34,16 @@ class InputBoxHandler {
       if (url.includes('gemini.google.com')) {
         const inputBox = document.querySelector('div.ql-editor[contenteditable="true"]');
         if (inputBox) {
-          console.log('Input box found: Gemini');
+          console.log('Input box found: Gemini Old');
+          return inputBox;
+        }
+      }
+
+      // Gemini (gemini.google.com)
+      if (url.includes('gemini.google.com')) {
+        const inputBox = document.querySelector('div.textarea.placeholder.new-input-ui');
+        if (inputBox) {
+          console.log('Input box found: Gemini New');
           return inputBox;
         }
       }

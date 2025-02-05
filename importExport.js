@@ -3,7 +3,7 @@
 import { loadPrompts } from './prompts.js';
 
 export function exportPrompts() {
-  chrome.storage.sync.get('prompts', data => {
+  chrome.storage.local.get('prompts', data => {
     const prompts = data.prompts || [];
     const jsonContent = JSON.stringify(prompts, null, 2); // Pretty-print with 2 spaces
     const blob = new Blob([jsonContent], { type: 'application/json;charset=utf-8;' });
@@ -29,7 +29,7 @@ export function importPrompts(file) {
     try {
       const importedPrompts = JSON.parse(reader.result);
       if (Array.isArray(importedPrompts)) {
-        chrome.storage.sync.get('prompts', data => {
+        chrome.storage.local.get('prompts', data => {
           const existingPrompts = data.prompts || [];
           
           // Create a map of existing prompts by ID
@@ -60,7 +60,7 @@ export function importPrompts(file) {
           const mergedPrompts = Array.from(existingPromptsMap.values());
           
           // Save merged prompts
-          chrome.storage.sync.set({ prompts: mergedPrompts }, loadPrompts);
+          chrome.storage.local.set({ prompts: mergedPrompts }, loadPrompts);
         });
       } else {
         console.error('Invalid JSON format');
@@ -70,4 +70,34 @@ export function importPrompts(file) {
     }
   };
   reader.readAsText(file);
+}
+
+export function exportSyncPrompts() {
+  console.log('exportSyncPrompts called'); // Debug line
+  chrome.storage.sync.get('prompts', data => {
+    console.log('Storage data received:', data); // Debug line
+    const prompts = data.prompts || [];
+    
+    // Check if there are any prompts to export
+    if (prompts.length === 0) {
+      alert('No prompts found in sync storage.');
+      return;
+    }
+
+    const jsonContent = JSON.stringify(prompts, null, 2); // Pretty-print with 2 spaces
+    const blob = new Blob([jsonContent], { type: 'application/json;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'sync_prompts.json';
+
+    document.body.appendChild(a);
+    a.click();
+
+    setTimeout(() => {
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }, 0);
+  });
 }

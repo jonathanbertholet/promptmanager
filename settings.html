@@ -12,33 +12,38 @@
 </div>
 
 <!--Keyboard shortcut-->
-<h3>Keyboard Navigation & Shortcuts</h3>
-<div class="shortcut-container">
+<div id="empty-state" class="shortcut-container">
+    <h3>Keyboard Navigation & Shortcuts</h3>
     <p style="display: flex; align-items: center; margin: 8px 0;">
-        <span style="background-color: #0077B6; color: white; padding: 4px 8px; border-radius: 4px; margin-right: 10px;">
-            Hover/Click
-        </span>
-        <span>Open prompt list buttons</span>
+      <span style="background-color: #0077B6; color: white; padding: 4px 8px; border-radius: 4px; margin-right: 10px;">
+        Hover/Click
+      </span>
+      <span>Open prompt list buttons</span>
     </p>
     <p style="display: flex; align-items: center; margin: 8px 0;">
-        <span style="background-color: #0077B6; color: white; padding: 4px 8px; border-radius: 4px; margin-right: 10px;">
-         ⌘ or Ctrl + Shift + P
-        </span>
-        <span>Open / close prompt list</span>
+      <span style="background-color: #0077B6; color: white; padding: 4px 8px; border-radius: 4px; margin-right: 10px;">
+        ⌘ + Shift + P or Ctrl + M
+    </span>
+      <span>Open / close prompt list</span>
     </p>
     <p style="display: flex; align-items: center; margin: 8px 0;">
-        <span style="background-color: #0077B6; color: white; padding: 4px 8px; border-radius: 4px; margin-right: 10px;">↑↓</span>
-        <span>Navigate the prompt list</span>
+      <span style="background-color: #0077B6; color: white; padding: 4px 8px; border-radius: 4px; margin-right: 10px;">↑↓</span>
+      <span>Navigate the prompt list</span>
     </p>
     <p style="display: flex; align-items: center; margin: 8px 0;">
-        <span style="background-color: #0077B6; color: white; padding: 4px 8px; border-radius: 4px; margin-right: 10px;">Enter</span>
-        <span>Select a prompt</span>
+      <span style="background-color: #0077B6; color: white; padding: 4px 8px; border-radius: 4px; margin-right: 10px;">Enter</span>
+      <span>Select a prompt</span>
     </p>
     <p style="display: flex; align-items: center; margin: 8px 0;">
-        <span style="background-color: #0077B6; color: white; padding: 4px 8px; border-radius: 4px; margin-right: 10px;">Esc</span>
-        <span>Close the prompt manager</span>
+      <span style="background-color: #0077B6; color: white; padding: 4px 8px; border-radius: 4px; margin-right: 10px;">Esc</span>
+      <span>Close the prompt manager</span>
     </p>
-</div>
+  </div>
+
+  <!-- Add new export button for sync storage -->
+<h3>Missing prompts fix</h3>
+<p style="font-size: 12px; color: #666;">The prompt storage method has been updated. You can now save as many prompts as you want. Export & Import your prompts again.</p>
+<button class="main" id="export-sync-prompts" style="margin-bottom: 10px;">Export legacy prompts</button>
 
 
 <!--<h3>Delete prompts</h3>
@@ -54,7 +59,11 @@
 <h3>Feature requests</h3>
 <p>Contact me on <a href="https://github.com/jonathanbertholet" target="_blank">Github</a></p>
 
-<a href="popup.html"><button class="main" style="margin-top: 10px;">Return Home</button></a>
+
+<a href="popup.html"><button class="main" style="margin-top: 10px;">Back to main menu</button></a>
+
+<!-- Add script import -->
+<script type="module" src="settings.js"></script>
 
 </body>
 </html>
