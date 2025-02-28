@@ -183,7 +183,7 @@ class UIManager {
 
     // Add tooltip that shows on first load
     const hasSeenTooltip = await StorageManager.getData('hasSeenTooltip', false);
-    if (hasSeenTooltip) {
+    if (!hasSeenTooltip) {
       const tooltip = createEl('div', {
         id: 'prompt-tooltip',
         innerHTML: 'Hover to start',
@@ -1642,25 +1642,50 @@ class UIManager {
 // PromptManager Class
 // --------------------
 class PromptManager {
+  static initialized = false; // Track initialization state
+  
   static async initialize() {
+    // Prevent multiple initializations
+    if (PromptManager.initialized) {
+      console.log('PromptManager already initialized, skipping.');
+      return;
+    }
+    
     try {
+      // Set initialization flag immediately to prevent race conditions
+      PromptManager.initialized = true;
+      
       // Wait for the input box to appear
       await InputBoxHandler.waitForInputBox();
       console.log('Input box found.');
       await UIManager.checkForCachedPrompt();
+      
       const prompts = await StorageManager.getPrompts();
       UIManager.injectPromptManagerButton(prompts);
       
-      // Observe DOM changes to re-inject if necessary
-      const observer = new MutationObserver(async () => {
-        const inputBox = InputBoxHandler.getInputBox();
-        if (inputBox && !document.getElementById('prompt-button-container')) {
-          console.log('Reinjecting prompt manager button via MutationObserver.');
-          const updatedPrompts = await StorageManager.getPrompts();
-          UIManager.injectPromptManagerButton(updatedPrompts);
+      // Use a debounced observer to prevent rapid firing
+      let observerTimeout = null;
+      const observer = new MutationObserver(async (mutations) => {
+        // Skip processing if button already exists
+        if (document.getElementById('prompt-button-container')) {
+          return;
         }
+        
+        // Debounce the observer callback to avoid multiple calls
+        if (observerTimeout) clearTimeout(observerTimeout);
+        observerTimeout = setTimeout(async () => {
+          const inputBox = InputBoxHandler.getInputBox();
+          if (inputBox && !document.getElementById('prompt-button-container')) {
+            console.log('Reinjecting prompt manager button via MutationObserver.');
+            const updatedPrompts = await StorageManager.getPrompts();
+            UIManager.injectPromptManagerButton(updatedPrompts);
+          }
+        }, 300); // Debounce for 300ms
       });
-      observer.observe(document.body, { childList: true, subtree: true });
+      
+      // More specific targeting for the observer
+      const chatContainer = document.querySelector('main') || document.body;
+      observer.observe(chatContainer, { childList: true, subtree: true });
       
       // Listen for storage changes
       StorageManager.onChange(async (changes, area) => {
@@ -1684,7 +1709,9 @@ class PromptManager {
         }
       });
     } catch (error) {
-      console.error(error);
+      console.error('Error initializing PromptManager:', error);
+      // Reset initialization flag on error to allow retry
+      PromptManager.initialized = false;
     }
   }
   
@@ -1727,7 +1754,10 @@ class PromptManager {
 // --------------------
 // Initialize the Prompt Manager
 // --------------------
-PromptManager.initialize();
+// Add a small delay to let the page stabilize before initialization
+setTimeout(() => {
+  PromptManager.initialize();
+}, 500);
 
 // Add a custom style tag to handle focus states for all inputs in the prompt manager
 const style = document.createElement('style');
