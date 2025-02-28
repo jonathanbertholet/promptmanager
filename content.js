@@ -181,6 +181,65 @@ class UIManager {
     addHoverEffect(button, { backgroundColor: '#285d8f' });
     container.appendChild(button);
 
+    // Add tooltip that shows on first load
+    const hasSeenTooltip = await StorageManager.getData('hasSeenTooltip', false);
+    if (hasSeenTooltip) {
+      const tooltip = createEl('div', {
+        id: 'prompt-tooltip',
+        innerHTML: 'Hover to start',
+        styles: {
+          position: 'absolute',
+          top: '-40px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          backgroundColor: '#3375b1',
+          color: 'white',
+          padding: '6px 12px',
+          borderRadius: '16px',
+          fontSize: '12px',
+          fontWeight: 'bold',
+          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.2)',
+          whiteSpace: 'nowrap',
+          opacity: '1',
+          transition: 'opacity 0.3s ease',
+          pointerEvents: 'none',
+          zIndex: '10000'
+        }
+      });
+      
+      // Add a small triangle pointer at the bottom of the tooltip
+      const tooltipPointer = createEl('div', {
+        styles: {
+          position: 'absolute',
+          bottom: '-6px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          width: '0',
+          height: '0',
+          borderLeft: '6px solid transparent',
+          borderRight: '6px solid transparent',
+          borderTop: '6px solid #3375b1'
+        }
+      });
+      
+      tooltip.appendChild(tooltipPointer);
+      container.appendChild(tooltip);
+      
+      // Hide tooltip on first hover and save that user has seen it
+      button.addEventListener('mouseenter', async () => {
+        const tooltip = document.getElementById('prompt-tooltip');
+        if (tooltip) {
+          tooltip.style.opacity = '0';
+          setTimeout(() => {
+            if (tooltip && tooltip.parentNode) {
+              tooltip.parentNode.removeChild(tooltip);
+            }
+          }, 300);
+          await StorageManager.setData('hasSeenTooltip', true);
+        }
+      }, { once: true });
+    }
+
     // Create the prompt list using refreshPromptList instead of createPromptList
     const promptList = createEl('div', {
       id: 'prompt-list',
@@ -451,8 +510,8 @@ class UIManager {
       styles: {
         position: 'sticky',
         bottom: '0',
-        backgroundColor: dark ? '#1a1a1a' : '#fff',
-        borderTop: dark ? '1px solid #333' : '1px solid #eee',
+        backgroundColor: dark ? '#151b27' : '#fff',
+        borderTop: dark ? '1px solid #2a3343' : '1px solid #eee',
         padding: '8px',
         display: 'flex',
         flexDirection: 'column',
@@ -731,17 +790,29 @@ class UIManager {
       console.error('Prompt list not found.');
       return;
     }
+    
+    // Set dark mode styling for the prompt list container itself
+    const dark = isDarkMode();
+    Object.assign(promptList.style, {
+      backgroundColor: dark ? '#151b27' : '#ffffff',
+      border: dark ? '1px solid #2a3343' : 'none',
+      boxShadow: dark ? '0 4px 20px rgba(0,0,0,0.3)' : '0 4px 20px rgba(0,0,0,0.15)'
+    });
+    
     // Clear the container.
     promptList.innerHTML = '';
-    // Create the container for prompt items.
+    
+    // Create the container for prompt items with proper dark mode
     const promptsContainer = createEl('div', {
       className: 'prompt-items-container',
       styles: {
         maxHeight: '350px',
         overflowY: 'auto',
-        marginBottom: '8px'
+        marginBottom: '8px',
+        backgroundColor: dark ? '#151b27' : '#ffffff'
       }
     });
+    
     // If prompts are provided, populate the container.
     if (Array.isArray(prompts)) {
       prompts.forEach(prompt => {
@@ -793,7 +864,9 @@ class UIManager {
         padding: '12px',
         display: 'flex',
         flexDirection: 'column',
-        gap: '8px'
+        gap: '8px',
+        backgroundColor: dark ? '#151b27' : '#ffffff',
+        borderRadius: '8px'
       }
     });
     const title = createEl('div', {
@@ -819,7 +892,7 @@ class UIManager {
       }
     });
     const contentTextarea = createEl('textarea', {
-      attributes: { placeholder: 'Prompt Content' },
+      attributes: { placeholder: 'Enter your prompt here. Use #variablename# for dynamic content' },
       styles: {
         width: '100%',
         padding: '8px',
@@ -870,6 +943,7 @@ class UIManager {
       });
       formContainer.appendChild(missingText);
     }
+    
     saveButton.addEventListener('click', async (e) => {
       e.stopPropagation();
       const titleVal = titleInput.value.trim();
@@ -942,7 +1016,9 @@ class UIManager {
         padding: '12px',
         display: 'flex',
         flexDirection: 'column',
-        gap: '8px'
+        gap: '8px',
+        backgroundColor: dark ? '#151b27' : '#ffffff',
+        borderRadius: '8px'
       }
     });
     const title = createEl('div', {
@@ -1034,7 +1110,9 @@ class UIManager {
         flexDirection: 'column',
         gap: '8px',
         width: '100%',
-        boxSizing: 'border-box'
+        boxSizing: 'border-box',
+        backgroundColor: dark ? '#151b27' : '#ffffff',
+        borderRadius: '8px'
       }
     });
     const title = createEl('div', {
@@ -1064,7 +1142,7 @@ class UIManager {
           alignItems: 'center',
           padding: '8px',
           borderRadius: '6px',
-          backgroundColor: dark ? '#1a1a1a' : '#f5f5f5',
+          backgroundColor: dark ? '#1E293B' : '#f5f5f5',
           width: '100%',
           boxSizing: 'border-box',
           gap: '8px'
@@ -1100,7 +1178,9 @@ class UIManager {
         padding: '12px',
         display: 'flex',
         flexDirection: 'column',
-        gap: '8px'
+        gap: '8px',
+        backgroundColor: dark ? '#151b27' : '#ffffff',
+        borderRadius: '8px'
       }
     });
     const titleInput = createEl('input', {
@@ -1280,7 +1360,9 @@ class UIManager {
         padding: '12px',
         display: 'flex',
         flexDirection: 'column',
-        gap: '8px'
+        gap: '8px',
+        backgroundColor: dark ? '#151b27' : '#ffffff',
+        borderRadius: '8px'
       }
     });
     const title = createEl('div', {
@@ -1304,10 +1386,6 @@ class UIManager {
             <div style="background-color: #0077B6; color: white; padding: 2px 4px; border-radius: 4px; display: inline-block; margin-bottom: 4px;">⌘ + Shift + P or Ctrl + M</div>
           </div>
           <div style="font-size: 12px;">Navigate the prompt list</div>
-          <div style="font-size: 12px;">
-            <div style="background-color: #0077B6; color: white; padding: 2px 4px; border-radius: 4px; display: inline-block; margin-bottom: 4px;">↑↓</div>
-          </div>
-          <div style="font-size: 12px;">Select a prompt</div>
           <div style="font-size: 12px;">
             <div style="background-color: #0077B6; color: white; padding: 2px 4px; border-radius: 4px; display: inline-block; margin-bottom: 4px;">Enter</div>
           </div>
@@ -1353,6 +1431,210 @@ class UIManager {
         }
       }
     });
+  }
+
+  // method to show variable input form
+  static showVariableInputForm(inputBox, promptContent, variables, promptList) {
+    // Clear the prompt list first to make room for our variable form
+    promptList.innerHTML = '';
+    
+    const dark = isDarkMode();
+    const formContainer = createEl('div', {
+      styles: {
+        padding: '12px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '12px',
+        backgroundColor: dark ? '#151b27' : '#ffffff',
+        borderRadius: '8px'
+      }
+    });
+    
+    const title = createEl('div', {
+      innerHTML: 'Variables',
+      styles: {
+        fontSize: '14px',
+        fontWeight: 'bold',
+        color: dark ? '#e1e1e1' : '#333',
+        marginBottom: '4px'
+      }
+    });
+    
+    formContainer.appendChild(title);
+    
+    // Container for variable inputs
+    const variablesContainer = createEl('div', {
+      styles: {
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '12px',
+        maxHeight: '300px',
+        overflowY: 'auto',
+        backgroundColor: dark ? '#151b27' : '#ffffff'
+      }
+    });
+    
+    // Create inputs for each variable
+    const variableValues = {};
+    variables.forEach(variable => {
+      const row = createEl('div', {
+        styles: {
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '4px'
+        }
+      });
+      
+      const label = createEl('label', {
+        innerHTML: variable,
+        styles: {
+          fontSize: '12px',
+          color: dark ? '#e1e1e1' : '#333',
+          fontWeight: 'bold'
+        }
+      });
+      
+      const input = createEl('input', {
+        attributes: { 
+          type: 'text',
+          placeholder: `${variable} value`
+        },
+        styles: {
+          width: '100%',
+          padding: '8px',
+          borderRadius: '6px',
+          border: dark ? '1px solid #444' : '1px solid #ccc',
+          backgroundColor: dark ? '#2d2d2d' : '#ffffff',
+          color: dark ? '#e1e1e1' : '#222222',
+          fontSize: '12px',
+          boxSizing: 'border-box',
+          outline: 'none' // Remove default focus outline
+        }
+      });
+      // Store the variable value when input changes
+      input.addEventListener('input', () => {
+        variableValues[variable] = input.value;
+      });
+      
+      // Also handle Enter key to submit
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          submitButton.click();
+        }
+      });
+      
+      row.append(label, input);
+      variablesContainer.appendChild(row);
+      
+      // Initialize empty values
+      variableValues[variable] = '';
+    });
+    
+    formContainer.appendChild(variablesContainer);
+    
+    // Buttons container
+    const buttonsContainer = createEl('div', {
+      styles: {
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '8px',
+        marginTop: '8px'
+      }
+    });
+    
+    // Submit button
+    const submitButton = createEl('button', {
+      innerHTML: 'Submit',
+      styles: {
+        padding: '8px',
+        backgroundColor: dark ? '#1e4976' : '#3375b1',
+        color: '#ffffff',
+        border: 'none',
+        borderRadius: '6px',
+        cursor: 'pointer',
+        fontSize: '12px',
+        transition: 'background-color 0.2s ease'
+      }
+    });
+    
+    // Return to list button
+    const returnButton = createEl('button', {
+      innerHTML: 'Back',
+      styles: {
+        padding: '8px',
+        backgroundColor: dark ? '#333' : '#e0e0e0',
+        color: dark ? '#e1e1e1' : '#333',
+        border: 'none',
+        borderRadius: '6px',
+        cursor: 'pointer',
+        fontSize: '12px',
+        transition: 'background-color 0.2s ease',
+        marginTop: '4px'
+      }
+    });
+    
+    addHoverEffect(submitButton, { backgroundColor: dark ? '#2a5c8f' : '#285d8f' });
+    addHoverEffect(returnButton, { backgroundColor: dark ? '#444' : '#ccc' });
+    
+    // Handle submit action
+    submitButton.addEventListener('click', () => {
+      // Replace variables in prompt content
+      const processedContent = PromptManager.replaceVariables(promptContent, variableValues);
+      
+      // NEW APPROACH: Create a fake prompt object that mimics what createPromptItem uses
+      const fakePrompt = {
+        title: "Variable Prompt", 
+        content: processedContent  
+      };
+      
+      // Create a prompt item just like we do for regular prompts
+      const promptItem = UIManager.createPromptItem(fakePrompt);
+      
+      // Now simulate a click on this item - this should use exactly the same code path
+      // as regular prompts
+      promptItem.click();
+      
+      // Reset the UI state for next time
+      UIManager.hidePromptList(promptList);
+      
+      // Reset the prompt list container to default state
+      setTimeout(() => {
+        StorageManager.getPrompts().then(prompts => {
+          UIManager.refreshPromptList(prompts);
+        });
+      }, 400); // Wait a bit longer than the hide animation (300ms)
+    });
+    
+    // Handle return action
+    returnButton.addEventListener('click', () => {
+      // Return to prompt list - properly rebuild the entire list
+      UIManager.refreshAndShowPromptList();
+    });
+    
+    buttonsContainer.append(submitButton, returnButton);
+    formContainer.appendChild(buttonsContainer);
+    
+    // Append the form to the prompt list
+    promptList.appendChild(formContainer);
+    
+    // Show the prompt list (which now contains our variable form)
+    UIManager.showPromptList(promptList);
+    
+    // Focus the first input field
+    const firstInput = variablesContainer.querySelector('input');
+    if (firstInput) {
+      firstInput.focus();
+    }
+  }
+  
+  // Replace variables in content with their values
+  static replaceVariables(content, variableValues) {
+    let result = content;
+    for (const [name, value] of Object.entries(variableValues)) {
+      const regex = new RegExp(`#${name}#`, 'g');
+      result = result.replace(regex, value);
+    }
+    return result;
   }
 }
 
@@ -1405,11 +1687,40 @@ class PromptManager {
       console.error(error);
     }
   }
+  
   static async insertPrompt(inputBox, content, promptList) {
-    await InputBoxHandler.insertPrompt(inputBox, content, promptList);
+    // Check if the prompt contains variables
+    const variables = PromptManager.extractVariables(content);
+    
+    if (variables.length === 0) {
+      // No variables, proceed with normal insertion
+      await InputBoxHandler.insertPrompt(inputBox, content, promptList);
+    } else {
+      // Show variable input form
+      UIManager.showVariableInputForm(inputBox, content, variables, promptList);
+    }
   }
+  
   static getInputContent(inputBox) {
     return InputBoxHandler.getInputContent(inputBox);
+  }
+  
+  // Extract variables from prompt content
+  static extractVariables(content) {
+    const variableRegex = /#([a-zA-Z0-9_]+)#/g;
+    const matches = [...content.matchAll(variableRegex)];
+    // Return unique variable names
+    return [...new Set(matches.map(match => match[1]))];
+  }
+  
+  // Replace variables in content with their values
+  static replaceVariables(content, variableValues) {
+    let result = content;
+    for (const [name, value] of Object.entries(variableValues)) {
+      const regex = new RegExp(`#${name}#`, 'g');
+      result = result.replace(regex, value);
+    }
+    return result;
   }
 }
 
@@ -1417,3 +1728,14 @@ class PromptManager {
 // Initialize the Prompt Manager
 // --------------------
 PromptManager.initialize();
+
+// Add a custom style tag to handle focus states for all inputs in the prompt manager
+const style = document.createElement('style');
+style.textContent = `
+  #prompt-list input:focus {
+    border-color: ${isDarkMode() ? '#3375b1' : '#3375b1'} !important;
+    box-shadow: 0 0 0 1px ${isDarkMode() ? 'rgba(51, 117, 177, 0.4)' : 'rgba(51, 117, 177, 0.2)'} !important;
+    outline: none !important;
+  }
+`;
+document.head.appendChild(style);
