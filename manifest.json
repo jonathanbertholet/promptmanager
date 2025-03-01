@@ -1,8 +1,8 @@
 {
     "manifest_version": 3,
-    "name": "Simple Prompt Manager - ChatGPT, Claude, Gemini, NotebookLM, Deepseek, Poe",
-    "version": "1.8",
-    "description": "The best prompt manager for AI Chatbots. Open Source & Focus on simplicity.",
+    "name": "Open Prompt Manager - ChatGPT, Claude, Gemini, NotebookLM, Deepseek, Poe",
+    "version": "1.8.5",
+    "description": "The best prompt manager for LLMs. Fully Open Source.",
     "permissions": ["storage"],
     "icons": {
       "16": "icon16.png",
@@ -24,7 +24,9 @@
           "*://claude.ai/*",
           "*://poe.com/*",
           "*://gemini.google.com/*",
-          "*://chat.deepseek.com/*"
+          "*://chat.deepseek.com/*",
+          "*://x.com/i/grok*",
+          "*://grok.com/*"
         ],
           "js": ["inputBoxHandler.js", "content.js"],
           "run_at": "document_end"

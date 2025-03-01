@@ -1,19 +1,22 @@
-# Simple Prompt Manager
+# Open Prompt Manager
 
-A lightweight Chrome extension for managing prompts across multiple AI chatbots including ChatGPT, Claude, Gemini, NotebookLM, and Poe.
+A lightweight Chrome extension for managing prompts across multiple AI chatbots including ChatGPT, Claude, Gemini, NotebookLM, Deepseek, Grok, and Poe.
 
 ## Features
 
 - 🚀 Save and organize your favorite prompts
-- 🔍 Quick search functionality
+- 🔍 Quick search functionality with keyboard navigation
 - 📝 Edit and delete prompts
 - 💾 Import/Export prompts as JSON
 - 🌓 Supports both light and dark modes
+- 🔄 Variable support with `#variable#` syntax
 - 🎯 Works with multiple AI platforms:
   - ChatGPT
   - Claude
   - Google Gemini
   - Google NotebookLM
+  - Deepseek
+  - Grok
   - Poe
 
 ## Installation
@@ -42,6 +45,18 @@ A lightweight Chrome extension for managing prompts across multiple AI chatbots 
    - Navigate through results using arrow keys
    - Press Enter to select
 
+4. **Using Variables in Prompts**
+   - Create prompts with variables using the `#variable#` syntax
+   - When using a prompt with variables, you'll be prompted to fill in values
+   - Variables allow for reusable prompt templates
+
+### Keyboard Shortcuts
+
+- **⌘ + Shift + P** (Mac) or **Ctrl + M** (Windows/Linux): Open/close prompt list
+- **↑/↓**: Navigate through prompts
+- **Enter**: Select a prompt
+- **Esc**: Close the prompt manager
+
 ### Import/Export
 
 - **Export**: Click "Export prompts" to download your prompts as a JSON file
@@ -51,7 +66,7 @@ A lightweight Chrome extension for managing prompts across multiple AI chatbots 
 
 - All prompts are stored locally in your browser
 - No data is sent to external servers
-- Your prompts sync across Chrome browsers when signed in
+- Your prompts are saved in local storage for maximum capacity
 
 ## Contributing
 

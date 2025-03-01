@@ -66,6 +66,57 @@ class InputBoxHandler {
         }
       }
   
+      // Grok (grok.com)
+      if (url.includes('grok.com')) {
+
+        
+        // First approach: Using a specific selector that targets the textarea with dir="auto"
+        const inputBox = document.querySelector('form textarea[dir="auto"]');
+        if (inputBox) {
+          console.log('Input box found: Grok (dir=auto)');
+          return inputBox;
+        }
+        
+        // Second approach: Find the placeholder span and get its sibling textarea
+        const placeholderSpan = document.querySelector('span.pointer-events-none:contains("What do you want to know?")');
+        if (placeholderSpan && placeholderSpan.parentNode) {
+          const textareaInSameParent = placeholderSpan.parentNode.querySelector('textarea');
+          if (textareaInSameParent) {
+            console.log('Input box found: Grok (via placeholder span)');
+            return textareaInSameParent;
+          }
+        }
+        
+        // Third approach: Try finding placeholder by text content with any query method
+        const allSpans = document.querySelectorAll('span');
+        for (const span of allSpans) {
+          if (span.textContent === 'What do you want to know?' && span.parentNode) {
+            const textareaInSameParent = span.parentNode.querySelector('textarea');
+            if (textareaInSameParent) {
+              console.log('Input box found: Grok (via placeholder text)');
+              return textareaInSameParent;
+            }
+          }
+        }
+        
+        // Final fallback: general form textarea
+        const fallbackInputBox = document.querySelector('form textarea');
+        if (fallbackInputBox) {
+          console.log('Input box found: Grok (fallback)');
+          return fallbackInputBox;
+        }
+      }
+      
+      // Grok on X.com (x.com/i/grok)
+      if (url.includes('x.com') && window.location.pathname.includes('/i/grok')) {
+        // Target the textarea used for Grok on X.com
+        const inputBox = document.querySelector('textarea[placeholder="Ask anything"]');
+        if (inputBox) {
+          console.log('Input box found: Grok on X.com');
+          return inputBox;
+        }
+      }
+  
       // Poe (poe.com)
       if (url.includes('poe.com')) {
         const inputBox = document.querySelector('textarea[class^="GrowingTextArea_textArea__"]');
