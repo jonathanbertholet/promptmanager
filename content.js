@@ -865,15 +865,6 @@ class PromptUIManager {
 
   static createIconButton(type, onClick) {
     let svgContent = '';
-    const ariaLabels = {
-      list: 'Show Prompt List',
-      message: 'Create New Prompt',
-      delete: 'Delete Prompt',
-      edit: 'Edit Prompt',
-      settings: 'Import/Export Prompts',
-      help: 'Show Help',
-      changelog: 'Show Changelog'
-    };
     switch (type) {
       case 'list':
         svgContent = `<svg width="14" height="14" viewBox="0 0 20 20" fill="${isDarkMode() ? '#e1e1e1' : '#666'}">
@@ -1169,31 +1160,7 @@ class PromptUIManager {
   }
 
   static showSaveErrorDialog(errorMsg) {
-    const darkMode = isDarkMode();
-    const dialog = createElementWithOptions('div', {
-      styles: {
-        position: 'fixed',
-        top: '50%',
-        left: '50%',
-        transform: 'translate(-50%, -50%)',
-        padding: '20px',
-        borderRadius: '8px',
-        boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-        zIndex: '10001',
-        maxWidth: '400px',
-        width: '90%',
-        backgroundColor: darkMode ? '#1a1a1a' : THEME_COLORS.lightBackground
-      }
-    });
-    dialog.innerHTML = `
-      <h3 style="margin-top: 0; color: ${darkMode ? THEME_COLORS.inputDarkText : '#333'}">Unable to Save Prompt</h3>
-      <p style="color: ${darkMode ? THEME_COLORS.inputDarkText : '#333'}">${errorMsg}</p>
-      <div style="text-align: right; margin-top: 15px;">
-        <button id="dialog-close" style="padding: 8px 16px; background-color: ${darkMode ? '#1e4976' : THEME_COLORS.primary}; color: #ffffff; border: none; border-radius: 6px; cursor: pointer;">Close</button>
-      </div>
-    `;
-    document.body.appendChild(dialog);
-    dialog.querySelector('#dialog-close').onclick = () => dialog.remove();
+    alert(errorMsg);
   }
 
   static createImportExportForm() {
@@ -1418,9 +1385,8 @@ class PromptUIManager {
       styles: { 
         maxHeight: '300px', 
         overflowY: 'auto', 
-        padding: '8px',
+        padding: '4px',
         borderRadius: '6px',
-        backgroundColor: darkMode ? THEME_COLORS.inputDarkBg : THEME_COLORS.inputLightBg,
         color: darkMode ? THEME_COLORS.inputDarkText : THEME_COLORS.inputLightText
       }
     });
@@ -1488,9 +1454,8 @@ class PromptUIManager {
       styles: { 
         maxHeight: '250px', 
         overflowY: 'auto', 
-        padding: '8px',
+        padding: '4px',
         borderRadius: '6px',
-        backgroundColor: darkMode ? THEME_COLORS.inputDarkBg : THEME_COLORS.inputLightBg,
         color: darkMode ? THEME_COLORS.inputDarkText : THEME_COLORS.inputLightText
       }
     });
