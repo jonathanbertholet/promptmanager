@@ -1,0 +1,166 @@
+<style>
+  /* Custom styling for bullet points using the primary color */
+  ul {
+    list-style: none;
+    margin: 0;
+    padding-left: 8px;
+  }
+  
+  ul li {
+    position: relative;
+    padding-left: 8px;
+    font-size: 14px;
+  }
+  
+  ul li::before {
+    content: "•";
+    color: #3674B5; /* Primary color */
+    position: absolute;
+    left: 0;
+    font-size: 14px;
+    line-height: 1;
+  }
+
+</style>
+
+<div style="display: flex; flex-direction: column; gap: 16px;">
+    <div>
+      <div style="font-weight: bold; margin-bottom: 4px;">Version 1.9</div>
+      <ul style="margin: 0; padding-left: 16px;">
+        <li>Change prompt order in the edit menu</li>
+        <li>Changelog view</li>
+        <li>Grok support</li>
+        <li>Revamped entire UI theme & animations</li>
+        <li>Better dark mode and animations</li>
+        <li>Cleaned up text</li>
+        <li>Improved consistency</li>
+        <li>Better instructions in the info menu</li>
+        <li>Github link</li>
+        <li>Changed name: Simple Prompt Manager -> Open Prompt Manager</li>
+        <li>Improved reliability of close conditions</li>
+        <li>Code entirely rewritten</li>
+      </ul>
+    </div>
+
+    <div>
+      <div style="font-weight: bold; margin-bottom: 4px;">Version 1.7</div>
+      <ul style="margin: 0; padding-left: 16px;">
+        <li>Code refactor : much optimized & refactored code</li>
+        <li>Prompts management : missing prompts instructions displayed in prompt button menu</li>
+        <li>Update : if no prompts present, default to new prompt menu</li>
+        <li>Bugfix : consistent UI when switching between views</li>
+        <li>Fix : Gemini : support for new input area</li>
+      </ul>
+    </div>
+
+    <div>
+      <div style="font-weight: bold; margin-bottom: 4px;">Version 1.6</div>
+      <ul style="margin: 0; padding-left: 16px;">
+        <li>Bugfix : storage manager updated, now handles *many* more prompts! Sorry about that.</li>
+        <li>Fix : windows / linux keyboard shortcut, now ctrl+m</li>
+        <li>Add : Deepseek support</li>
+        <li>Add : Legacy prompt system checkout + instructions, in case migration process does not work as expected.</li>
+      </ul>
+    </div>
+
+    <div>
+      <div style="font-weight: bold; margin-bottom: 4px;">Version 1.5.1</div>
+      <ul style="margin: 0; padding-left: 16px;">
+        <li>Bugfix - Special thanks to Hexodus on Github!</li>
+      </ul>
+    </div>
+
+    <div>
+      <div style="font-weight: bold; margin-bottom: 4px;">Version 1.5</div>
+      <ul style="margin: 0; padding-left: 16px;">
+        <li><strong>Features:</strong></li>
+        <li>Added bottom menu to the prompt list</li>
+        <li>Added shortcut to open/close prompt manager : Command + Shift + P / Ctrl + Shift +P</li>
+        <li>Import & Export prompts from the button directly</li>
+        <li>Save new prompts from the button directly</li>
+        <li>Edit or delete prompts from the button directly.</li>
+        <li><strong>Style:</strong></li>
+        <li>Added nice hover effects to selected prompt list items</li>
+        <li>General styling overhaul of the button elements (various menus, etc.)</li>
+        <li>Display keyboard navigation shortcuts in a last tab in both button & popup</li>
+        <li>Significantly improved dark mode on popup</li>
+        <li>Added dark mode on prompt button display</li>
+      </ul>
+    </div>
+
+    <div>
+      <div style="font-weight: bold; margin-bottom: 4px;">Version 1.4</div>
+      <ul style="margin: 0; padding-left: 16px;">
+        <li><strong>Features:</strong></li>
+        <li>Create new prompts straight from the prompt button</li>
+        <li>Search for prompt titles and content straight from the prompts list popup</li>
+        <li>Support for UUID when export/importing to merge prompts intelligently</li>
+        <li>Hover over button to open list (click override available)</li>
+        <li>Added Gemini support</li>
+        <li>Draggable button support</li>
+        <li><strong>Style:</strong></li>
+        <li>New logo, new title</li>
+        <li>Menubar popup redesigned</li>
+        <li>Cleaner menubar popup - hover for edit & delete</li>
+        <li>Adjusted element spacing, bottom links</li>
+        <li>Prompt button icon updated, added animations</li>
+        <li>Improved prompts button positioning</li>
+        <li>Scrollbar support in prompts list in popup and prompt button</li>
+        <li><strong>Keyboard navigation:</strong></li>
+        <li>Search field automatically selected when list is displayed - type to filter, enter to input</li>
+        <li>Navigate the prompt list results with the arrow keys</li>
+        <li>Escape to close prompt list</li>
+      </ul>
+    </div>
+
+    <div>
+      <div style="font-weight: bold; margin-bottom: 4px;">Version 1.3</div>
+      <ul style="margin: 0; padding-left: 16px;">
+        <li>Changed prompt inserter : from dropdown in inputbox to floating button</li>
+        <li>Made the extension compatible with other services : Claude, NotebookLM, Poe. Open to integrating it to additional tools (contact me!)</li>
+      </ul>
+    </div>
+
+    <div>
+      <div style="font-weight: bold; margin-bottom: 4px;">Version 1.2.2</div>
+      <ul style="margin: 0; padding-left: 16px;">
+        <li>Improved layout</li>
+      </ul>
+    </div>
+
+    <div>
+      <div style="font-weight: bold; margin-bottom: 4px;">Version 1.2.1</div>
+      <ul style="margin: 0; padding-left: 16px;">
+        <li>Refactored the code for easier future developement</li>
+      </ul>
+    </div>
+
+    <div>
+      <div style="font-weight: bold; margin-bottom: 4px;">Version 1.2</div>
+      <ul style="margin: 0; padding-left: 16px;">
+        <li>Export & import feature transitioned to json</li>
+        <li>Style optimizations</li>
+      </ul>
+    </div>
+
+    <div>
+      <div style="font-weight: bold; margin-bottom: 4px;">Version 1.1.3</div>
+      <ul style="margin: 0; padding-left: 16px;">
+        <li>Fixed chatgpt.com error on load</li>
+        <li>Updated dark mode</li>
+        <li>Updated styling</li>
+        <li>Removed superfluous links</li>
+      </ul>
+    </div>
+
+    <div>
+      <div style="font-weight: bold; margin-bottom: 4px;">Version 1.0</div>
+      <ul style="margin: 0; padding-left: 16px;">
+        <li>Added dark mode</li>
+        <li>Improved general appearance</li>
+        <li>Overall reliability improvements</li>
+        <li>Extension icon added</li>
+        <li>Initial release</li>
+      </ul>
+    </div>
+  </div>
