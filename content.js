@@ -1,26 +1,29 @@
 console.log("Prompt Manager content script loaded.");
 
 // --------------------
-// Global Style Definitions
+// Global Style Definitions & Helpers
 // --------------------
 const Colors = {
-  primary: '#3375b1',
-  hoverPrimary: '#285d8f',
-  darkBackground: '#151b27',
-  lightBackground: '#ffffff',
-  darkBorder: '#2a3343',
-  darkShadow: '0 4px 20px rgba(0,0,0,0.3)',
-  lightShadow: '0 4px 20px rgba(0,0,0,0.15)',
-  inputDarkBorder: '1px solid #444',
-  inputLightBorder: '1px solid #ccc',
-  inputDarkBg: '#2d2d2d',
-  inputLightBg: '#f5f5f5',
-  inputDarkText: '#e1e1e1',
-  inputLightText: '#222222',
-  buttonHoverDark: '#2a5c8f',
-  buttonHoverLight: '#285d8f',
-  deleteButtonDarkBg: '#333',
-  deleteButtonLightBg: '#f0f0f0'
+  primary: '#5A67D8',
+  primaryGradientStart: '#667EEA',
+  primaryGradientEnd: '#764BA2',
+  hoverPrimary: '#4C51BF',
+  darkBackground: '#1A202C',
+  lightBackground: '#F7FAFC',
+  darkBorder: '#2D3748',
+  lightBorder: '#E2E8F0',
+  darkShadow: '0 4px 20px rgba(0, 0, 0, 0.3)',
+  lightShadow: '0 4px 20px rgba(0, 0, 0, 0.15)',
+  inputDarkBorder: '1px solid #4A5568',
+  inputLightBorder: '1px solid #CBD5E0',
+  inputDarkBg: '#2D3748',
+  inputLightBg: '#FFFFFF',
+  inputDarkText: '#E2E8F0',
+  inputLightText: '#2D3748',
+  buttonHoverDark: '#434C5E',
+  buttonHoverLight: '#3C4A59',
+  deleteButtonDarkBg: '#E53E3E',
+  deleteButtonLightBg: '#F56565'
 };
 
 const Styles = {
@@ -38,165 +41,22 @@ const Styles = {
     width: '100%',
     height: '100%',
     backgroundColor: Colors.primary,
-    backgroundRepeat: 'no-repeat',
-    backgroundSize: '50%',
-    backgroundPosition: 'center',
-    borderRadius: '50%',
-    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
-    transition: 'all 0.3s ease',
-    border: 'none',
-    outline: 'none',
-    cursor: 'pointer'
-  },
-  promptList: (dark) => ({
-    position: 'absolute',
-    bottom: '50px',
-    right: '0',
-    backgroundColor: dark ? Colors.darkBackground : Colors.lightBackground,
-    border: dark ? `1px solid ${Colors.darkBorder}` : 'none',
-    padding: '6px',
-    borderRadius: '10px',
-    boxShadow: dark ? Colors.darkShadow : Colors.lightShadow,
-    display: 'none',
-    width: '260px',
-    zIndex: '10000',
-    opacity: '0',
-    transition: 'opacity 0.2s ease, transform 0.2s ease',
-    backdropFilter: 'blur(10px)'
-  }),
-  promptListItems: (dark) => ({
-    maxHeight: '350px',
-    overflowY: 'auto',
-    marginBottom: '8px',
-    backgroundColor: dark ? Colors.darkBackground : Colors.lightBackground
-  }),
-  promptListItem: (dark) => ({
-    borderRadius: '8px',
-    fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
-    fontSize: '14px',
-    color: dark ? Colors.inputDarkText : '#2c3e50',
-    cursor: 'pointer',
-    transition: 'all 0.2s ease',
-    display: 'flex',
-    alignItems: 'center',
-    backgroundColor: 'transparent',
-    border: '1px solid transparent'
-  }),
-  promptListItemHover: (dark) => ({
-    backgroundColor: dark ? '#0c172e' : '#f0f4f8',
-    border: dark ? '1px solid #555' : '1px solid #3375b1',
-    transform: 'translateY(-1px)'
-  }),
-  bottomMenu: (dark) => ({
-    position: 'sticky',
-    bottom: '0',
-    backgroundColor: dark ? Colors.darkBackground : Colors.lightBackground,
-    borderTop: dark ? `1px solid ${Colors.darkBorder}` : '1px solid #eee',
-    padding: '8px',
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '8px'
-  }),
-  searchInput: (dark) => ({
-    width: '100%',
-    padding: '6px 8px',
-    color: dark ? Colors.inputDarkText : Colors.inputLightText,
-    fontSize: '12px',
-    fontFamily: 'Helvetica, Verdana, Geneva, Tahoma, sans-serif',
-    borderRadius: '4px',
-    border: dark ? Colors.inputDarkBorder : Colors.inputLightBorder,
-    backgroundColor: dark ? Colors.inputDarkBg : Colors.inputLightBg,
-    boxSizing: 'border-box',
-    height: '28px',
-    lineHeight: '16px',
-    outline: 'none',
-    transition: 'all 0.2s ease',
-    margin: '0',
-    display: 'none'
-  }),
-  button: (dark) => ({
-    padding: '8px',
-    backgroundColor: dark ? '#1e4976' : Colors.primary,
-    width: '100%',
-    color: '#ffffff',
-    border: 'none',
-    borderRadius: '6px',
-    cursor: 'pointer',
-    fontSize: '12px',
-    transition: 'background-color 0.2s ease'
-  }),
-  inputField: (dark) => ({
-    width: '100%',
-    padding: '8px',
-    borderRadius: '6px',
-    border: dark ? Colors.inputDarkBorder : Colors.inputLightBorder,
-    backgroundColor: dark ? Colors.inputDarkBg : Colors.lightBackground,
-    color: dark ? Colors.inputDarkText : Colors.inputLightText,
-    fontSize: '12px',
-    boxSizing: 'border-box'
-  }),
-  textareaField: (dark) => ({
-    width: '100%',
-    padding: '8px',
-    borderRadius: '6px',
-    border: dark ? Colors.inputDarkBorder : Colors.inputLightBorder,
-    backgroundColor: dark ? Colors.inputDarkBg : Colors.lightBackground,
-    color: dark ? Colors.inputDarkText : Colors.inputLightText,
-    fontSize: '12px',
-    minHeight: '100px',
-    resize: 'vertical',
-    boxSizing: 'border-box'
-  }),
-  formContainer: (dark) => ({
-    padding: '12px',
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '8px',
-    backgroundColor: dark ? Colors.darkBackground : Colors.lightBackground,
-    borderRadius: '8px'
-  }),
-  title: (dark) => ({
-    fontSize: '14px',
-    fontWeight: 'bold',
-    color: dark ? Colors.inputDarkText : '#333',
-    marginBottom: '8px'
-  }),
-  menuBar: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
-    margin: '0'
-  },
-  iconButton: (dark) => ({
-    width: '24px',
-    height: '24px',
-    padding: '4px',
-    backgroundColor: 'transparent',
-    border: 'none',
-    borderRadius: '4px',
-    cursor: 'pointer',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    transition: 'background-color 0.2s ease'
-  })
+    // Background image will be set later.
+  }
 };
 
-// --------------------
-// Constants
-// --------------------
 const CLOSE_DELAY = 5000; // in milliseconds
 
-// --------------------
-// Utility Functions
-// --------------------
-/**
- * Creates a new element with options.
- * @param {string} tag The element tag.
- * @param {Object} options Options like id, className, styles, attributes, innerHTML.
- * @returns {HTMLElement}
- */
-function createEl(tag, { id, className, styles, attributes, innerHTML } = {}) {
+const SELECTORS = {
+  PROMPT_BUTTON_CONTAINER: 'prompt-button-container',
+  PROMPT_BUTTON: 'prompt-button',
+  PROMPT_LIST: 'prompt-list',
+  PROMPT_SEARCH_INPUT: 'prompt-search-input',
+  PROMPT_ITEMS_CONTAINER: 'prompt-items-container'
+};
+
+// A reusable element creator that also attaches event listeners.
+function createEl(tag, { id, className, styles, attributes, innerHTML, eventListeners } = {}) {
   const el = document.createElement(tag);
   if (id) el.id = id;
   if (className) el.className = className;
@@ -207,60 +67,347 @@ function createEl(tag, { id, className, styles, attributes, innerHTML } = {}) {
     }
   }
   if (innerHTML) el.innerHTML = innerHTML;
+  if (eventListeners) {
+    for (const event in eventListeners) {
+      el.addEventListener(event, eventListeners[event]);
+    }
+  }
   return el;
 }
 
-/**
- * Adds a simple hover effect to an element.
- * @param {HTMLElement} element The target element.
- * @param {Object} hoverStyles The styles to apply on hover.
- */
-function addHoverEffect(element, hoverStyles) {
-  const originalStyles = {};
-  for (const key in hoverStyles) {
-    originalStyles[key] = element.style[key] || '';
-  }
-  element.addEventListener('mouseover', () => {
-    Object.assign(element.style, hoverStyles);
-  });
-  element.addEventListener('mouseout', () => {
-    Object.assign(element.style, originalStyles);
+// Inject global CSS using modern design trends
+function injectGlobalStyles() {
+  const style = createEl('style');
+  style.textContent = `
+    :root {
+      --primary: ${Colors.primary};
+      --primary-gradient-start: ${Colors.primaryGradientStart};
+      --primary-gradient-end: ${Colors.primaryGradientEnd};
+      --hover-primary: ${Colors.hoverPrimary};
+      --dark-bg: ${Colors.darkBackground};
+      --light-bg: ${Colors.lightBackground};
+      --dark-border: ${Colors.darkBorder};
+      --light-border: ${Colors.lightBorder};
+      --dark-shadow: ${Colors.darkShadow};
+      --light-shadow: ${Colors.lightShadow};
+      --input-dark-border: ${Colors.inputDarkBorder};
+      --input-light-border: ${Colors.inputLightBorder};
+      --input-dark-bg: ${Colors.inputDarkBg};
+      --input-light-bg: ${Colors.inputLightBg};
+      --input-dark-text: ${Colors.inputDarkText};
+      --input-light-text: ${Colors.inputLightText};
+      --button-hover-dark: ${Colors.buttonHoverDark};
+      --button-hover-light: ${Colors.buttonHoverLight};
+      --delete-button-dark-bg: ${Colors.deleteButtonDarkBg};
+      --delete-button-light-bg: ${Colors.deleteButtonLightBg};
+      --transition-speed: 0.3s;
+      --border-radius: 8px;
+      --font-family: 'Roboto', sans-serif;
+    }
+
+    /* Apply the modern font */
+    body {
+      font-family: var(--font-family);
+    }
+
+    /* Prompt Button with gradient background, smooth scale on hover */
+    .prompt-button {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      border: none;
+      outline: none;
+      cursor: pointer;
+      background: linear-gradient(135deg, var(--primary-gradient-start), var(--primary-gradient-end));
+      box-shadow: var(--light-shadow);
+      transition: transform var(--transition-speed) ease, box-shadow var(--transition-speed) ease;
+      background-size: 50%;
+      background-position: center;
+      background-repeat: no-repeat;
+    }
+    .prompt-button:hover {
+      transform: scale(1.1);
+      box-shadow: var(--dark-shadow);
+    }
+
+    /* Prompt List container with increased padding, rounded corners, and backdrop blur */
+    .prompt-list {
+      position: absolute;
+      bottom: 50px;
+      right: 0;
+      padding: 10px;
+      border-radius: var(--border-radius);
+      display: none;
+      width: 280px;
+      z-index: 10000;
+      opacity: 0;
+      transition: opacity var(--transition-speed) ease, transform var(--transition-speed) ease;
+      backdrop-filter: blur(12px);
+    }
+    .prompt-list.light {
+      background-color: var(--light-bg);
+      border: 1px solid var(--light-border);
+      box-shadow: var(--light-shadow);
+    }
+    .prompt-list.dark {
+      background-color: var(--dark-bg);
+      border: 1px solid var(--dark-border);
+      box-shadow: var(--dark-shadow);
+    }
+
+    /* List Items styled as modern cards */
+    .prompt-list-items {
+      max-height: 350px;
+      overflow-y: auto;
+      margin-bottom: 8px;
+    }
+    .prompt-list-items.light {
+      background-color: var(--light-bg);
+    }
+    .prompt-list-items.dark {
+      background-color: var(--dark-bg);
+    }
+    .prompt-list-item {
+      border-radius: var(--border-radius);
+      font-size: 14px;
+      cursor: pointer;
+      transition: background-color var(--transition-speed) ease, transform var(--transition-speed) ease;
+      display: flex;
+      align-items: center;
+      padding: 8px 10px;
+      margin: 6px 0;
+    }
+    .prompt-list-item.light:hover {
+      background-color: #e2e8f0;
+      transform: translateY(-2px);
+    }
+    .prompt-list-item.dark:hover {
+      background-color: #2d3748;
+      transform: translateY(-2px);
+    }
+
+    /* Bottom menu with increased spacing and a refined border */
+    .bottom-menu {
+      position: sticky;
+      bottom: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      padding: 10px;
+      border-top: 1px solid var(--light-border);
+    }
+    .bottom-menu.light {
+      background-color: var(--light-bg);
+    }
+    .bottom-menu.dark {
+      background-color: var(--dark-bg);
+      border-top: 1px solid var(--dark-border);
+    }
+
+    /* Search input with comfortable padding and smooth transitions */
+    .search-input {
+      width: 100%;
+      padding: 8px;
+      font-size: 14px;
+      border-radius: 4px;
+      box-sizing: border-box;
+      height: 32px;
+      line-height: 20px;
+      outline: none;
+      transition: border-color var(--transition-speed) ease, box-shadow var(--transition-speed) ease;
+      display: none;
+    }
+    .search-input.light {
+      border: var(--input-light-border);
+      background-color: var(--input-light-bg);
+      color: var(--input-light-text);
+    }
+    .search-input.dark {
+      border: var(--input-dark-border);
+      background-color: var(--input-dark-bg);
+      color: var(--input-dark-text);
+    }
+
+    /* Form fields with consistent spacing and updated sizing */
+    .input-field, .textarea-field {
+      width: 100%;
+      padding: 10px;
+      border-radius: 6px;
+      box-sizing: border-box;
+      font-size: 14px;
+      margin-bottom: 8px;
+    }
+    .input-field.light {
+      border: var(--input-light-border);
+      background-color: var(--input-light-bg);
+      color: var(--input-light-text);
+    }
+    .input-field.dark {
+      border: var(--input-dark-border);
+      background-color: var(--input-dark-bg);
+      color: var(--input-dark-text);
+    }
+    .textarea-field.light {
+      border: var(--input-light-border);
+      background-color: var(--input-light-bg);
+      color: var(--input-light-text);
+      min-height: 120px;
+      resize: vertical;
+    }
+    .textarea-field.dark {
+      border: var(--input-dark-border);
+      background-color: var(--input-dark-bg);
+      color: var(--input-dark-text);
+      min-height: 120px;
+      resize: vertical;
+    }
+
+    /* Buttons with refined padding and smooth hover effects */
+    .button {
+      padding: 10px;
+      width: 100%;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: background-color var(--transition-speed) ease;
+      color: #fff;
+    }
+    .button.light {
+      background-color: var(--primary);
+    }
+    .button.dark {
+      background-color: var(--hover-primary);
+    }
+    .button:hover {
+      opacity: 0.9;
+    }
+
+    /* Icon buttons with increased size and subtle hover background */
+    .icon-button {
+      width: 28px;
+      height: 28px;
+      padding: 6px;
+      background-color: transparent;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background-color var(--transition-speed) ease;
+    }
+    .icon-button:hover {
+      background-color: rgba(0, 0, 0, 0.1);
+    }
+
+    /* Input focus style with a clear highlight */
+    #${SELECTORS.PROMPT_LIST} input:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 2px rgba(90, 103, 216, 0.3);
+      outline: none;
+    }
+  `;
+  document.head.appendChild(style);
+}
+injectGlobalStyles();
+
+// --------------------
+// Improved Dark Mode Handling
+// --------------------
+let currentDarkMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+if (window.matchMedia) {
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+    currentDarkMode = e.matches;
+    updateTheme();
   });
 }
-
-/**
- * Checks if the user prefers dark mode.
- * @returns {boolean}
- */
 function isDarkMode() {
-  return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+  return currentDarkMode;
+}
+function updateTheme() {
+  const promptList = document.getElementById(SELECTORS.PROMPT_LIST);
+  if (promptList) {
+    UIManager.buildPromptListContainer(); 
+  }
 }
 
 // --------------------
-// StorageManager Class
+// Event Delegation Helpers
+// --------------------
+function attachDelegatedClick(container, selector, handler) {
+  container.addEventListener('click', function(event) {
+    const target = event.target.closest(selector);
+    if (target && container.contains(target)) {
+      handler.call(target, event);
+    }
+  });
+}
+function removeAllListeners(element) {
+  const newElement = element.cloneNode(true);
+  element.parentNode.replaceChild(newElement, element);
+  return newElement;
+}
+
+// --------------------
+// Simple Event Emitter
+// --------------------
+class EventEmitter {
+  constructor() {
+    this.events = {};
+  }
+  
+  on(event, listener) {
+    if (!this.events[event]) {
+      this.events[event] = [];
+    }
+    this.events[event].push(listener);
+  }
+  
+  emit(event, ...args) {
+    if (this.events[event]) {
+      this.events[event].forEach(listener => listener(...args));
+    }
+  }
+}
+
+// --------------------
+// StorageManager Class with Error Handling & Validation
 // --------------------
 class StorageManager {
   static getData(key, defaultValue) {
     return new Promise(resolve => {
-      chrome.storage.local.get(key, data => resolve(data[key] ?? defaultValue));
+      try {
+        chrome.storage.local.get(key, data => {
+          const value = data[key];
+          resolve(value !== undefined && value !== null ? value : defaultValue);
+        });
+      } catch (error) {
+        console.error(`Error getting data for key ${key}:`, error);
+        resolve(defaultValue);
+      }
     });
   }
   static setData(key, value) {
     return new Promise(resolve => {
-      chrome.storage.local.set({ [key]: value }, resolve);
+      try {
+        chrome.storage.local.set({ [key]: value }, () => resolve());
+      } catch (error) {
+        console.error(`Error setting data for key ${key}:`, error);
+        resolve();
+      }
     });
   }
   static async getPrompts() {
-    return await StorageManager.getData('prompts', []);
+    const prompts = await StorageManager.getData('prompts', []);
+    return Array.isArray(prompts) ? prompts : [];
   }
   static async savePrompt(prompt) {
     try {
       const prompts = await StorageManager.getPrompts();
       const allPrompts = [...prompts, prompt];
-      
       await StorageManager.setData('prompts', allPrompts);
       console.log('Prompt saved successfully.');
-      // Removed cached prompt removal code
       return { success: true };
     } catch (error) {
       console.error('Error saving prompt:', error);
@@ -290,107 +437,136 @@ class StorageManager {
 }
 
 // --------------------
-// UIManager Class
+// UIManager Class (Presentation Layer)
 // --------------------
 class UIManager {
-  // Injects the floating button and prompt list container into the page.
-  static async injectPromptManagerButton(prompts) {
-    if (document.getElementById('prompt-button-container')) {
+  // Set up an event emitter to broadcast UI events
+  static eventEmitter = new EventEmitter();
+
+  // Allow external subscriptions
+  static onPromptSelect(callback) {
+    UIManager.eventEmitter.on('promptSelect', callback);
+  }
+  static emitPromptSelect(prompt) {
+    UIManager.eventEmitter.emit('promptSelect', prompt);
+  }
+
+  static injectPromptManagerButton(prompts) {
+    if (document.getElementById(SELECTORS.PROMPT_BUTTON_CONTAINER)) {
       console.log('Button container already exists.');
       return;
     }
-    const position = await StorageManager.getButtonPosition();
-    const container = createEl('div', {
-      id: 'prompt-button-container',
-      styles: Styles.promptButtonContainer(position)
+    StorageManager.getButtonPosition().then(position => {
+      const container = createEl('div', {
+        id: SELECTORS.PROMPT_BUTTON_CONTAINER,
+        styles: Styles.promptButtonContainer(position)
+      });
+      const button = createEl('button', {
+        id: SELECTORS.PROMPT_BUTTON,
+        className: 'prompt-button',
+        eventListeners: {
+          click: e => {
+            e.stopPropagation();
+            const promptList = document.getElementById(SELECTORS.PROMPT_LIST);
+            if (promptList) {
+              promptList.style.display = promptList.style.display === 'none' ? 'block' : 'none';
+            }
+          },
+          mouseenter: e => {
+            e.stopPropagation();
+            const promptList = document.getElementById(SELECTORS.PROMPT_LIST);
+            if (promptList) { promptList.style.display = 'block'; }
+          },
+          mouseleave: e => {
+            e.stopPropagation();
+            UIManager.startCloseTimer(e, document.getElementById(SELECTORS.PROMPT_LIST), button, () => {});
+          }
+        },
+        styles: Styles.promptButton
+      });
+      const iconUrl = chrome.runtime.getURL('icons/icon-button.png');
+      button.style.backgroundImage = `url(${iconUrl})`;
+      container.appendChild(button);
+      const promptList = createEl('div', {
+        id: SELECTORS.PROMPT_LIST,
+        className: `prompt-list ${isDarkMode() ? 'dark' : 'light'}`
+      });
+      container.appendChild(promptList);
+      document.body.appendChild(container);
+      
+      if (prompts.length === 0) {
+        UIManager.showPromptCreationForm();
+      } else {
+        UIManager.refreshPromptList(prompts);
+      }
+      
+      UIManager.attachButtonEvents(button, promptList, container);
+      UIManager.makeDraggable(container);
     });
-    const button = createEl('button', {
-      id: 'prompt-button',
-      styles: Styles.promptButton,
-      attributes: { title: 'Prompt Manager' }
-    });
-    const iconUrl = chrome.runtime.getURL('icons/icon-button.png');
-    button.style.backgroundImage = `url(${iconUrl})`;
-    addHoverEffect(button, { backgroundColor: isDarkMode() ? Colors.buttonHoverDark : Colors.buttonHoverLight });
-    container.appendChild(button);
-
-    // Create the prompt list using centralized styles.
-    const promptList = createEl('div', {
-      id: 'prompt-list',
-      styles: Styles.promptList(isDarkMode())
-    });
-    
-    container.appendChild(promptList);
-    document.body.appendChild(container);
-    
-    if (prompts.length === 0) {
-      // If no prompts exist, open the "create new prompt" view immediately.
-      UIManager.showPromptCreationForm();
-    } else {
-      UIManager.refreshPromptList(prompts);
-    }
-
-    UIManager.attachButtonEvents(button, promptList, container);
-    UIManager.makeDraggable(container);
   }
 
-  // Sets up click and hover events for the floating button.
   static attachButtonEvents(button, promptList, container) {
-    let closeTimer = null, isOpen = false;
+    let isOpen = false;
+    
     button.addEventListener('click', e => {
       e.stopPropagation();
       isOpen ? UIManager.hidePromptList(promptList) : UIManager.showPromptList(promptList);
       isOpen = !isOpen;
     });
+    
     button.addEventListener('mouseenter', e => {
       e.stopPropagation();
-      if (closeTimer) clearTimeout(closeTimer);
+      UIManager.cancelCloseTimer();
       UIManager.showPromptList(promptList);
       isOpen = true;
     });
+    
     button.addEventListener('mouseleave', e => {
       e.stopPropagation();
-      startCloseTimer(e);
+      UIManager.startCloseTimer(e, promptList, button, () => { isOpen = false; });
     });
+    
     promptList.addEventListener('mouseenter', () => {
-      if (closeTimer) clearTimeout(closeTimer);
+      UIManager.cancelCloseTimer();
     });
+    
     promptList.addEventListener('mouseleave', e => {
-      startCloseTimer(e);
+      UIManager.startCloseTimer(e, promptList, button, () => { isOpen = false; });
     });
+    
     document.addEventListener('click', e => {
       const isMenuAction = e.target.closest('#prompt-list') || 
-                          e.target.closest('.prompt-items-container') ||
-                          e.target.closest('button');
+                           e.target.closest(`.${SELECTORS.PROMPT_ITEMS_CONTAINER}`) ||
+                           e.target.closest('button');
       if (isOpen && !button.contains(e.target) && !promptList.contains(e.target) && !isMenuAction) {
         UIManager.hidePromptList(promptList);
         isOpen = false;
       }
     });
-    function startCloseTimer(e) {
-      if (closeTimer) clearTimeout(closeTimer);
-      closeTimer = setTimeout(() => {
-        const mouseX = e.clientX, mouseY = e.clientY;
-        const buttonRect = button.getBoundingClientRect();
-        const listRect = promptList.getBoundingClientRect();
-        const isOverButton = (mouseX >= buttonRect.left && mouseX <= buttonRect.right &&
-                              mouseY >= buttonRect.top && mouseY <= buttonRect.bottom);
-        const isOverList = (mouseX >= listRect.left && mouseX <= listRect.right &&
-                            mouseY >= listRect.top && mouseY <= listRect.bottom);
-        if (!isOverButton && !isOverList) {
-          UIManager.hidePromptList(promptList);
-          isOpen = false;
-        }
-        closeTimer = null;
-      }, CLOSE_DELAY);
+  }
+  
+  static startCloseTimer(e, promptList, button, callback) {
+    if (UIManager.closeTimer) {
+      clearTimeout(UIManager.closeTimer);
+    }
+    UIManager.closeTimer = setTimeout(() => {
+      UIManager.hidePromptList(promptList);
+      if (callback) callback();
+      UIManager.closeTimer = null;
+    }, CLOSE_DELAY);
+  }
+  
+  static cancelCloseTimer() {
+    if (UIManager.closeTimer) {
+      clearTimeout(UIManager.closeTimer);
+      UIManager.closeTimer = null;
     }
   }
-
-  // Enables drag functionality on the floating button container.
+  
   static makeDraggable(container) {
     let isDragging = false, initialX, initialY, startRight, startBottom;
     container.addEventListener('mousedown', e => {
-      if (e.target.id === 'prompt-button') {
+      if (e.target.id === SELECTORS.PROMPT_BUTTON) {
         isDragging = true;
         initialX = e.clientX;
         initialY = e.clientY;
@@ -422,36 +598,17 @@ class UIManager {
       }
     });
   }
-
-  // Creates the default prompt list view.
+  
   static createPromptList(prompts) {
-    const dark = isDarkMode();
     const promptList = createEl('div', {
-      id: 'prompt-list',
-      styles: Styles.promptList(dark)
+      id: SELECTORS.PROMPT_LIST,
+      className: `prompt-list ${isDarkMode() ? 'dark' : 'light'}`
     });
-
-    // Create a dedicated container for prompt items.
     const promptsContainer = createEl('div', {
-      className: 'prompt-items-container',
-      styles: Styles.promptListItems(dark)
+      className: `${SELECTORS.PROMPT_ITEMS_CONTAINER} prompt-list-items ${isDarkMode() ? 'dark' : 'light'}`
     });
-
-    // Append custom scrollbar styles.
-    const scrollbarStyle = createEl('style', {
-      innerHTML: `
-        #prompt-list > .prompt-items-container::-webkit-scrollbar { width: 6px; }
-        #prompt-list > .prompt-items-container::-webkit-scrollbar-track { background: ${dark ? '#1a2235' : 'transparent'}; }
-        #prompt-list > .prompt-items-container::-webkit-scrollbar-thumb { background-color: ${dark ? '#2a3343' : '#3375b1'}; border-radius: 3px; }
-      `
-    });
-    document.head.appendChild(scrollbarStyle);
-
     if (prompts.length === 0) {
-      const emptyStateDiv = createEl('div', {
-        className: 'shortcut-container',
-        innerHTML: UIManager.getEmptyStateHTML()
-      });
+      const emptyStateDiv = createEl('div', { className: 'shortcut-container', innerHTML: UIManager.getEmptyStateHTML() });
       promptsContainer.appendChild(emptyStateDiv);
     } else {
       prompts.forEach(prompt => {
@@ -463,96 +620,76 @@ class UIManager {
     promptList.appendChild(UIManager.createBottomMenu());
     return promptList;
   }
-
-  // Returns the HTML for the empty state.
+  
   static getEmptyStateHTML() {
     return `
       <div style="display: flex; flex-direction: column; gap: 2px; font-size: 12px;">
         <div>Open prompt list buttons</div>
         <div>
-          <div style="background-color: #0077B6; color: white; padding: 2px 4px; border-radius: 4px; display: inline-block; margin-bottom: 4px;">Hover/Click</div>
+          <div style="background-color: ${Colors.primary}; color: white; padding: 2px 4px; border-radius: 4px; display: inline-block; margin-bottom: 4px;">Hover/Click</div>
         </div>
         <div>Open / close prompt list</div>
         <div>
-          <div style="background-color: #0077B6; color: white; padding: 2px 4px; border-radius: 4px; display: inline-block; margin-bottom: 4px;">⌘ + Shift + P or Ctrl + M</div>
+          <div style="background-color: ${Colors.primary}; color: white; padding: 2px 4px; border-radius: 4px; display: inline-block; margin-bottom: 4px;">⌘ + Shift + P or Ctrl + M</div>
         </div>
         <div>Navigate the prompt list</div>
         <div>
-          <div style="background-color: #0077B6; color: white; padding: 2px 4px; border-radius: 4px; display: inline-block; margin-bottom: 4px;">↑↓</div>
+          <div style="background-color: ${Colors.primary}; color: white; padding: 2px 4px; border-radius: 4px; display: inline-block; margin-bottom: 4px;">↑↓</div>
         </div>
         <div>Select a prompt</div>
         <div>
-          <div style="background-color: #0077B6; color: white; padding: 2px 4px; border-radius: 4px; display: inline-block; margin-bottom: 4px;">Enter</div>
+          <div style="background-color: ${Colors.primary}; color: white; padding: 2px 4px; border-radius: 4px; display: inline-block; margin-bottom: 4px;">Enter</div>
         </div>
         <div>Close the prompt manager</div>
         <div>
-          <div style="background-color: #0077B6; color: white; padding: 2px 4px; border-radius: 4px; display: inline-block; margin-bottom: 4px;">Esc</div>
+          <div style="background-color: ${Colors.primary}; color: white; padding: 2px 4px; border-radius: 4px; display: inline-block; margin-bottom: 4px;">Esc</div>
         </div>
       </div>
     `;
   }
-
-  // Creates a single prompt item.
+  
+  // Instead of directly calling PromptManager.insertPrompt, we emit a prompt selection event.
   static createPromptItem(prompt) {
-    const dark = isDarkMode();
-    const promptItem = createEl('div', {
-      styles: Styles.promptListItem(dark)
+    const item = createEl('div', {
+      className: `prompt-list-item ${isDarkMode() ? 'dark' : 'light'}`,
+      eventListeners: {
+        click: () => {
+          UIManager.emitPromptSelect(prompt);
+        }
+      }
     });
     const textContainer = createEl('div', { styles: { flex: '1' } });
     textContainer.textContent = prompt.title;
-    promptItem.appendChild(textContainer);
-    promptItem.addEventListener('mouseover', () => {
-      Object.assign(promptItem.style, Styles.promptListItemHover(dark));
-    });
-    promptItem.addEventListener('mouseout', () => {
-      Object.assign(promptItem.style, {
-        backgroundColor: 'transparent',
-        border: '1px solid transparent',
-        transform: 'translateY(0)'
-      });
-    });
-    promptItem.addEventListener('click', async () => {
-      const inputBox = InputBoxHandler.getInputBox();
-      if (!inputBox) {
-        console.error('Input box not found.');
-        return;
-      }
-      await PromptManager.insertPrompt(inputBox, prompt.content, document.getElementById('prompt-list'));
-    });
-    promptItem.dataset.title = prompt.title.toLowerCase();
-    promptItem.dataset.content = prompt.content.toLowerCase();
-    return promptItem;
+    item.appendChild(textContainer);
+    item.dataset.title = prompt.title.toLowerCase();
+    item.dataset.content = prompt.content.toLowerCase();
+    return item;
   }
-
-  // Creates the bottom menu (search input and icon buttons).
+  
   static createBottomMenu() {
-    const dark = isDarkMode();
     const bottomMenu = createEl('div', {
-      styles: Styles.bottomMenu(dark)
+      className: `bottom-menu ${isDarkMode() ? 'dark' : 'light'}`
     });
-
     const searchInput = createEl('input', {
-      id: 'prompt-search-input',
-      attributes: { type: 'text', placeholder: 'Type to search' },
-      styles: Styles.searchInput(dark)
+      id: SELECTORS.PROMPT_SEARCH_INPUT,
+      className: `search-input ${isDarkMode() ? 'dark' : 'light'}`,
+      attributes: { type: 'text', placeholder: 'Type to search' }
     });
-
     let selectedIndex = -1;
     searchInput.addEventListener('keydown', (e) => {
-      const visiblePrompts = Array.from(document.querySelectorAll('.prompt-items-container > div'))
+      const visiblePrompts = Array.from(document.querySelectorAll(`.${SELECTORS.PROMPT_ITEMS_CONTAINER} > .prompt-list-item`))
         .filter(item => item.style.display !== 'none' && !item.classList.contains('shortcut-container'));
-      
       switch(e.key) {
         case 'ArrowDown':
           e.preventDefault();
           selectedIndex = Math.min(selectedIndex + 1, visiblePrompts.length - 1);
           if (selectedIndex === -1 && visiblePrompts.length > 0) selectedIndex = 0;
-          UIManager.updateSelection(visiblePrompts, selectedIndex, dark);
+          UIManager.updateSelection(visiblePrompts, selectedIndex);
           break;
         case 'ArrowUp':
           e.preventDefault();
           selectedIndex = Math.max(selectedIndex - 1, -1);
-          UIManager.updateSelection(visiblePrompts, selectedIndex, dark);
+          UIManager.updateSelection(visiblePrompts, selectedIndex);
           break;
         case 'Enter':
           e.preventDefault();
@@ -565,84 +702,53 @@ class UIManager {
         case 'Escape':
           e.preventDefault();
           selectedIndex = -1;
-          UIManager.updateSelection(visiblePrompts, selectedIndex, dark);
-          UIManager.hidePromptList(document.getElementById('prompt-list'));
+          UIManager.updateSelection(visiblePrompts, selectedIndex);
+          UIManager.hidePromptList(document.getElementById(SELECTORS.PROMPT_LIST));
           break;
       }
     });
     searchInput.addEventListener('input', (e) => {
       const searchTerm = e.target.value.toLowerCase();
-      const promptsContainer = document.querySelector('.prompt-items-container');
+      const promptsContainer = document.querySelector(`.${SELECTORS.PROMPT_ITEMS_CONTAINER}`);
       if (!promptsContainer) return;
       const promptItems = promptsContainer.children;
       selectedIndex = -1;
       Array.from(promptItems).forEach(item => {
         const shouldShow = item.dataset.title.includes(searchTerm) || item.dataset.content.includes(searchTerm);
         item.style.display = shouldShow ? 'flex' : 'none';
-        item.style.backgroundColor = '';
       });
     });
-
-    const saveButton = createEl('button', {
-      innerHTML: 'Save prompt',
-      styles: Styles.button(dark)
-    });
-    addHoverEffect(saveButton, { backgroundColor: dark ? Colors.buttonHoverDark : Colors.buttonHoverLight });
-    const inputBox = InputBoxHandler.getInputBox();
-    if (inputBox) {
-      const content = PromptManager.getInputContent(inputBox);
-      saveButton.style.display = content.trim() ? 'block' : 'none';
-    }
-    saveButton.addEventListener('click', () => {
-      const inputBox = InputBoxHandler.getInputBox();
-      if (inputBox) {
-        const content = PromptManager.getInputContent(inputBox);
-        if (content.trim()) {
-          saveButton.style.display = 'none';
-          searchInput.style.display = 'none';
-          const titleInputDiv = UIManager.createTitleInputDiv(content);
-          document.getElementById('prompt-list').appendChild(titleInputDiv);
-        } else {
-          alert('Input is empty. Please enter some text before saving.');
-        }
-      }
-    });
-    const menuBar = UIManager.createMenuBar(dark);
+    const menuBar = UIManager.createMenuBar();
     bottomMenu.appendChild(searchInput);
     bottomMenu.appendChild(menuBar);
     return bottomMenu;
   }
-
-  // Creates the menu bar with icon buttons.
-  static createMenuBar(dark) {
-    const menuBar = createEl('div', {
-      styles: Styles.menuBar
-    });
-    const promptListButton = UIManager.createIconButton('list', dark, () => {
+  
+  static createMenuBar() {
+    const menuBar = createEl('div', { styles: { display: 'flex', alignItems: 'center', gap: '8px', margin: '0' } });
+    const promptListButton = UIManager.createIconButton('list', () => {
       UIManager.refreshAndShowPromptList();
     });
-    const messageButton = UIManager.createIconButton('message', dark, () => {
+    const messageButton = UIManager.createIconButton('message', () => {
       UIManager.showPromptCreationForm();
     });
-    const editButton = UIManager.createIconButton('edit', dark, () => {
+    const editButton = UIManager.createIconButton('edit', () => {
       UIManager.showEditView();
     });
-    const settingsButton = UIManager.createIconButton('settings', dark, e => {
+    const settingsButton = UIManager.createIconButton('settings', e => {
       e.stopPropagation();
       UIManager.showImportExportForm();
     });
-    const helpButton = UIManager.createIconButton('help', dark, e => {
+    const helpButton = UIManager.createIconButton('help', e => {
       e.stopPropagation();
       UIManager.showHelp();
     });
     menuBar.append(promptListButton, messageButton, editButton, settingsButton, helpButton);
     return menuBar;
   }
-
-  // Creates an icon button based on type.
-  static createIconButton(type, dark, onClick) {
+  
+  static createIconButton(type, onClick) {
     let svgContent = '';
-    // Map button types to descriptive ARIA labels.
     const ariaLabels = {
       list: 'Show Prompt List',
       message: 'Create New Prompt',
@@ -651,35 +757,34 @@ class UIManager {
       settings: 'Import/Export Prompts',
       help: 'Show Help'
     };
-    
     switch (type) {
       case 'list':
-        svgContent = `<svg width="14" height="14" viewBox="0 0 20 20" fill="${dark ? '#e1e1e1' : '#666'}">
+        svgContent = `<svg width="14" height="14" viewBox="0 0 20 20" fill="${isDarkMode() ? '#e1e1e1' : '#666'}">
                         <path d="M4 4h2v2H4V4zm0 5h2v2H4V9zm0 5h2v2H4v-2zm4-10h12v2H8V4zm0 5h12v2H8V9zm0 5h12v2H8v-2z"/>
                       </svg>`;
         break;
       case 'message':
-        svgContent = `<svg width="14" height="14" viewBox="0 0 20 20" fill="${dark ? '#e1e1e1' : '#666'}">
+        svgContent = `<svg width="14" height="14" viewBox="0 0 20 20" fill="${isDarkMode() ? '#e1e1e1' : '#666'}">
                         <path d="M2 5.5C2 4.11929 3.11929 3 4.5 3H15.5C16.8807 3 18 4.11929 18 5.5V12.5C18 13.8807 16.8807 15 15.5 15H11.5L8 18.5L4.5 15H4.5C3.11929 15 2 13.8807 2 12.5V5.5Z"/>
                       </svg>`;
         break;
       case 'delete':
-        svgContent = `<svg width="14" height="14" viewBox="0 0 20 20" fill="${dark ? '#e1e1e1' : '#666'}">
+        svgContent = `<svg width="14" height="14" viewBox="0 0 20 20" fill="${isDarkMode() ? '#e1e1e1' : '#666'}">
                         <path d="M6 2h8v2h4v2H2V4h4V2zm1 0h6v2H7V2zm-3 4h12l-1 12H5L4 6z"/>
                       </svg>`;
         break;
       case 'edit':
-        svgContent = `<svg width="14" height="14" viewBox="0 0 20 20" fill="${dark ? '#e1e1e1' : '#666'}">
+        svgContent = `<svg width="14" height="14" viewBox="0 0 20 20" fill="${isDarkMode() ? '#e1e1e1' : '#666'}">
                         <path d="M13.586 3.586a2 2 0 112.828 2.828l-8.793 8.793-3.536.707.707-3.536 8.794-8.792z"/>
                       </svg>`;
         break;
       case 'settings':
-        svgContent = `<svg width="14" height="14" viewBox="0 0 24 24" fill="${dark ? '#e1e1e1' : '#666'}">
+        svgContent = `<svg width="14" height="14" viewBox="0 0 24 24" fill="${isDarkMode() ? '#e1e1e1' : '#666'}">
                         <path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92-1.31-2.92-2.92-2.92z"/>
                       </svg>`;
         break;
       case 'help':
-        svgContent = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="${dark ? '#e1e1e1' : '#666'}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        svgContent = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="${isDarkMode() ? '#e1e1e1' : '#666'}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <circle cx="12" cy="12" r="10"></circle>
                         <line x1="12" y1="16" x2="12" y2="12"></line>
                         <line x1="12" y1="8" x2="12" y2="8"></line>
@@ -687,28 +792,21 @@ class UIManager {
         break;
     }
     const btn = createEl('button', {
-      styles: Styles.iconButton(dark),
+      className: 'icon-button',
+      eventListeners: {
+        click: onClick
+      },
       innerHTML: svgContent
     });
-    addHoverEffect(btn, { backgroundColor: dark ? Colors.deleteButtonDarkBg : Colors.deleteButtonLightBg });
-    btn.addEventListener('click', onClick);
     return btn;
   }
-
-  // Shows the prompt list view (with animation) and focuses the search input.
+  
   static showPromptList(promptList) {
     if (!promptList) return;
-    const itemsContainer = promptList.querySelector('.prompt-items-container');
+    const itemsContainer = promptList.querySelector(`.${SELECTORS.PROMPT_ITEMS_CONTAINER}`);
     if (itemsContainer) {
-      itemsContainer.querySelectorAll('div').forEach(item => {
-        Object.assign(item.style, {
-          display: 'flex',
-          padding: '2px 4px',
-          margin: '4px 0',
-          borderRadius: '8px',
-          backgroundColor: 'transparent',
-          border: '1px solid transparent'
-        });
+      Array.from(itemsContainer.children).forEach(item => {
+        item.style.display = 'flex';
       });
     }
     promptList.style.display = 'block';
@@ -718,54 +816,36 @@ class UIManager {
       UIManager.focusSearchInput();
     }, 0);
   }
-
-  // Hides the prompt list view (with animation) and resets items' styles.
+  
   static hidePromptList(promptList) {
     if (!promptList) return;
     promptList.style.opacity = '0';
-    const searchInput = document.getElementById('prompt-search-input');
+    const searchInput = document.getElementById(SELECTORS.PROMPT_SEARCH_INPUT);
     if (searchInput) searchInput.value = '';
     setTimeout(() => {
       if (promptList) {
         promptList.style.display = 'none';
-        const itemsContainer = promptList.querySelector('.prompt-items-container');
+        const itemsContainer = promptList.querySelector(`.${SELECTORS.PROMPT_ITEMS_CONTAINER}`);
         if (itemsContainer) {
-          itemsContainer.querySelectorAll('div').forEach(item => {
-            Object.assign(item.style, {
-              display: 'flex',
-              padding: '8px 12px',
-              margin: '4px 0',
-              borderRadius: '8px',
-              backgroundColor: 'transparent',
-              border: '1px solid transparent'
-            });
+          Array.from(itemsContainer.children).forEach(item => {
+            item.style.display = 'flex';
           });
         }
       }
     }, 300);
   }
-
+  
   static buildPromptListContainer(prompts = null) {
-    const promptList = document.getElementById('prompt-list');
+    const promptList = document.getElementById(SELECTORS.PROMPT_LIST);
     if (!promptList) {
       console.error('Prompt list not found.');
       return;
     }
-    
-    const dark = isDarkMode();
-    Object.assign(promptList.style, {
-      backgroundColor: dark ? Colors.darkBackground : Colors.lightBackground,
-      border: dark ? `1px solid ${Colors.darkBorder}` : 'none',
-      boxShadow: dark ? Colors.darkShadow : Colors.lightShadow
-    });
-    
+    promptList.className = `prompt-list ${isDarkMode() ? 'dark' : 'light'}`;
     promptList.innerHTML = '';
-    
     const promptsContainer = createEl('div', {
-      className: 'prompt-items-container',
-      styles: Styles.promptListItems(dark)
+      className: `${SELECTORS.PROMPT_ITEMS_CONTAINER} prompt-list-items ${isDarkMode() ? 'dark' : 'light'}`
     });
-    
     if (Array.isArray(prompts)) {
       prompts.forEach(prompt => {
         const promptItem = UIManager.createPromptItem(prompt);
@@ -775,76 +855,125 @@ class UIManager {
     promptList.appendChild(promptsContainer);
     promptList.appendChild(UIManager.createBottomMenu());
   }
-
+  
   static refreshPromptList(prompts) {
     UIManager.buildPromptListContainer(prompts);
-    const searchInput = document.getElementById('prompt-search-input');
+    const searchInput = document.getElementById(SELECTORS.PROMPT_SEARCH_INPUT);
     if (searchInput) {
       searchInput.style.display = 'block';
     }
   }
-
+  
   static resetPromptListContainer() {
     UIManager.buildPromptListContainer();
   }
-
+  
   static focusSearchInput() {
-    const searchInput = document.getElementById('prompt-search-input');
+    const searchInput = document.getElementById(SELECTORS.PROMPT_SEARCH_INPUT);
     if (searchInput) {
+      searchInput.className = `search-input ${isDarkMode() ? 'dark' : 'light'}`;
       window.requestAnimationFrame(() => {
         searchInput.focus();
         searchInput.select();
       });
     }
   }
-
-  static createTitleInputDiv(content) {
-    return UIManager.createPromptCreationForm(content);
+  
+  static showPromptCreationForm() {
+    const promptList = document.getElementById(SELECTORS.PROMPT_LIST);
+    if (!promptList) return;
+    UIManager.resetPromptListContainer();
+    const searchInput = promptList.querySelector(`#${SELECTORS.PROMPT_SEARCH_INPUT}`);
+    if (searchInput) searchInput.style.display = 'none';
+    StorageManager.getPrompts().then(prompts => {
+      const creationForm = UIManager.createPromptCreationForm('', prompts.length === 0);
+      promptList.insertBefore(creationForm, promptList.firstChild);
+      const titleInput = creationForm.querySelector('input');
+      if (titleInput) titleInput.focus();
+    });
   }
-
-  static createPromptCreationForm(prefillContent = '', showMissingNote = false) {
+  
+  // Now accepts an onSubmit callback for variable handling.
+  static showVariableInputForm(inputBox, promptContent, variables, promptList, onSubmit) {
+    promptList.innerHTML = '';
     const dark = isDarkMode();
-    const searchInput = document.getElementById('prompt-search-input');
+    const formContainer = createEl('div', {
+      className: `form-container ${dark ? 'dark' : 'light'}`,
+      styles: { padding: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }
+    });
+    const variablesContainer = createEl('div', {
+      styles: { display: 'flex', flexDirection: 'column', gap: '12px', maxHeight: '300px', overflowY: 'auto' }
+    });
+    const variableValues = {};
+    variables.forEach(variable => {
+      const row = createEl('div', { styles: { display: 'flex', flexDirection: 'column', gap: '4px' } });
+      const label = createEl('label', {
+        innerHTML: variable,
+        styles: { fontSize: '12px', fontWeight: 'bold', color: dark ? Colors.inputDarkText : '#333' }
+      });
+      const input = createEl('input', {
+        attributes: { type: 'text', placeholder: `${variable} value` },
+        className: `input-field ${dark ? 'dark' : 'light'}`
+      });
+      input.addEventListener('input', () => {
+        variableValues[variable] = input.value;
+      });
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') { submitButton.click(); }
+      });
+      row.append(label, input);
+      variablesContainer.appendChild(row);
+      variableValues[variable] = '';
+    });
+    formContainer.appendChild(variablesContainer);
+    const buttonsContainer = createEl('div', { styles: { display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '8px' } });
+    const submitButton = createEl('button', {
+      innerHTML: 'Submit',
+      className: `button ${isDarkMode() ? 'dark' : 'light'}`
+    });
+    submitButton.addEventListener('click', () => {
+      onSubmit(variableValues);
+    });
+    const returnButton = createEl('button', {
+      innerHTML: 'Back',
+      className: `button ${isDarkMode() ? 'dark' : 'light'}`,
+      styles: { 
+        marginTop: '4px', 
+        backgroundColor: isDarkMode() ? '#4A5568' : '#CBD5E0', 
+        color: isDarkMode() ? Colors.inputDarkText : '#333' 
+      }
+    });
+    returnButton.addEventListener('click', () => {
+      UIManager.refreshAndShowPromptList();
+    });
+    buttonsContainer.append(submitButton, returnButton);
+    formContainer.appendChild(buttonsContainer);
+    promptList.appendChild(formContainer);
+    UIManager.showPromptList(promptList);
+    const firstInput = variablesContainer.querySelector('input');
+    if (firstInput) { firstInput.focus(); }
+  }
+  
+  static createPromptCreationForm(prefillContent = '', showMissingNote = false) {
+    const searchInput = document.getElementById(SELECTORS.PROMPT_SEARCH_INPUT);
     if (searchInput) searchInput.style.display = 'none';
     const formContainer = createEl('div', {
-      styles: Styles.formContainer(dark)
-    });
-    const title = createEl('div', {
-      innerHTML: 'Create New Prompt',
-      styles: Styles.title(dark)
+      className: `form-container ${isDarkMode() ? 'dark' : 'light'}`,
+      styles: { padding: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }
     });
     const titleInput = createEl('input', {
       attributes: { placeholder: 'Prompt Title' },
-      styles: Styles.inputField(dark)
+      className: `input-field ${isDarkMode() ? 'dark' : 'light'}`
     });
     const contentTextarea = createEl('textarea', {
-      attributes: { placeholder: 'Enter your prompt here. Use #variablename# for dynamic content' },
-      styles: Styles.textareaField(dark)
+      attributes: { placeholder: 'Add variables with #name#' },
+      className: `textarea-field ${isDarkMode() ? 'dark' : 'light'}`
     });
     contentTextarea.value = prefillContent;
     const saveButton = createEl('button', {
-      innerHTML: 'Save Prompt',
-      styles: Styles.button(dark)
+      innerHTML: 'Create',
+      className: `button ${isDarkMode() ? 'dark' : 'light'}`
     });
-    addHoverEffect(saveButton, { backgroundColor: dark ? Colors.buttonHoverDark : Colors.buttonHoverLight });
-    const buttonContainer = createEl('div', {
-      styles: { display: 'flex', gap: '8px', marginTop: '8px' }
-    });
-    buttonContainer.appendChild(saveButton);
-    formContainer.append(title, titleInput, contentTextarea, buttonContainer);
-    if (showMissingNote) {
-      const missingText = createEl('div', {
-        styles: {
-          marginTop: '8px',
-          fontSize: '12px',
-          fontFamily: 'Helvetica, Verdana, Geneva, Tahoma, sans-serif',
-          color: dark ? Colors.inputDarkText : '#333'
-        },
-        innerHTML: '<strong>Prompts missing?</strong><br>Fix available : click the extension icon in the menu bar for instructions'
-      });
-      formContainer.appendChild(missingText);
-    }
-    
     saveButton.addEventListener('click', async (e) => {
       e.stopPropagation();
       const titleVal = titleInput.value.trim();
@@ -858,13 +987,22 @@ class UIManager {
         UIManager.showSaveErrorDialog(result.error);
         return;
       }
-      const prompts = await StorageManager.getPrompts();
-      UIManager.refreshAndShowPromptList();
+      StorageManager.getPrompts().then(prompts => {
+        UIManager.refreshAndShowPromptList();
+      });
     });
+    formContainer.append(titleInput, contentTextarea, saveButton);
+    if (showMissingNote) {
+      const missingText = createEl('div', {
+        styles: { marginTop: '8px', fontSize: '12px', color: isDarkMode() ? Colors.inputDarkText : '#333' },
+        innerHTML: '<strong>Prompts missing?</strong><br>Fix available : click the extension icon in the menu bar for instructions'
+      });
+      formContainer.appendChild(missingText);
+    }
     formContainer.addEventListener('click', e => e.stopPropagation());
     return formContainer;
   }
-
+  
   static showSaveErrorDialog(errorMsg) {
     const dark = isDarkMode();
     const dialog = createEl('div', {
@@ -873,13 +1011,13 @@ class UIManager {
         top: '50%',
         left: '50%',
         transform: 'translate(-50%, -50%)',
-        backgroundColor: dark ? '#1a1a1a' : Colors.lightBackground,
         padding: '20px',
         borderRadius: '8px',
         boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
         zIndex: '10001',
         maxWidth: '400px',
-        width: '90%'
+        width: '90%',
+        backgroundColor: dark ? '#1a1a1a' : Colors.lightBackground
       }
     });
     dialog.innerHTML = `
@@ -892,23 +1030,19 @@ class UIManager {
     document.body.appendChild(dialog);
     dialog.querySelector('#dialog-close').onclick = () => dialog.remove();
   }
-
+  
   static createImportExportForm() {
     const dark = isDarkMode();
-    const searchInput = document.getElementById('prompt-search-input');
+    const searchInput = document.getElementById(SELECTORS.PROMPT_SEARCH_INPUT);
     if (searchInput) searchInput.style.display = 'none';
     const formContainer = createEl('div', {
-      styles: Styles.formContainer(dark)
-    });
-    const title = createEl('div', {
-      innerHTML: 'Import/Export Prompts',
-      styles: Styles.title(dark)
+      className: `form-container ${dark ? 'dark' : 'light'}`,
+      styles: { padding: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }
     });
     const exportButton = createEl('button', {
       innerHTML: 'Export Prompts',
-      styles: Styles.button(dark)
+      className: `button ${dark ? 'dark' : 'light'}`
     });
-    addHoverEffect(exportButton, { backgroundColor: dark ? Colors.buttonHoverDark : Colors.buttonHoverLight });
     exportButton.addEventListener('click', async (e) => {
       e.stopPropagation();
       const prompts = await StorageManager.getPrompts();
@@ -925,9 +1059,9 @@ class UIManager {
     });
     const importButton = createEl('button', {
       innerHTML: 'Import Prompts',
-      styles: Object.assign({}, Styles.button(dark), { marginTop: '8px' })
+      className: `button ${dark ? 'dark' : 'light'}`,
+      styles: { marginTop: '8px' }
     });
-    addHoverEffect(importButton, { backgroundColor: dark ? Colors.buttonHoverDark : Colors.buttonHoverLight });
     importButton.addEventListener('click', async (e) => {
       e.stopPropagation();
       const fileInput = createEl('input', { attributes: { type: 'file', accept: '.json' } });
@@ -949,141 +1083,139 @@ class UIManager {
       });
       fileInput.click();
     });
-    formContainer.append(title, exportButton, importButton);
+    formContainer.append(exportButton, importButton);
     return formContainer;
   }
-
+  
+  // EDIT VIEW with Drag & Drop Reordering
   static async createEditView() {
     const dark = isDarkMode();
     const prompts = await StorageManager.getPrompts();
     const editContainer = createEl('div', {
-      styles: Styles.formContainer(dark)
-    });
-    const title = createEl('div', {
-      innerHTML: 'Edit Prompts',
-      styles: Styles.title(dark)
+      className: `form-container ${dark ? 'dark' : 'light'}`,
+      styles: { padding: '10px', display: 'flex', flexDirection: 'column' }
     });
     const promptsContainer = createEl('div', {
-      styles: {
-        maxHeight: '300px',
-        overflowY: 'auto',
-        width: '100%',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '4px'
-      }
+      className: `${SELECTORS.PROMPT_ITEMS_CONTAINER} prompt-list-items ${dark ? 'dark' : 'light'}`,
+      styles: { maxHeight: '350px', overflowY: 'auto', marginBottom: '8px' }
     });
     prompts.forEach((prompt, index) => {
       const promptItem = createEl('div', {
-        styles: {
-          display: 'flex',
-          alignItems: 'center',
-          padding: '8px',
-          borderRadius: '6px',
-          backgroundColor: dark ? '#1E293B' : '#f5f5f5',
-          width: '100%',
-          boxSizing: 'border-box',
-          gap: '8px'
-        }
+        className: `prompt-list-item ${dark ? 'dark' : 'light'}`,
+        styles: { justifyContent: 'space-between' }
       });
-      const promptTitle = createEl('div', {
-        styles: { flex: '1', fontSize: '12px', color: dark ? Colors.inputDarkText : '#333' }
+      // Make the item draggable and store its index
+      promptItem.setAttribute('draggable', 'true');
+      promptItem.dataset.index = index;
+      promptItem.addEventListener('dragstart', (e) => {
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', index);
+        promptItem.classList.add('dragging');
       });
-      promptTitle.textContent = prompt.title;
-      const editIcon = UIManager.createIconButton('edit', dark, () => {
+      promptItem.addEventListener('dragend', (e) => {
+        promptItem.classList.remove('dragging');
+      });
+      promptItem.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+      });
+      promptItem.addEventListener('drop', (e) => {
+        e.preventDefault();
+        const draggedIndex = e.dataTransfer.getData('text/plain');
+        const targetIndex = promptItem.dataset.index;
+        if (draggedIndex === targetIndex) return;
+        // Reorder prompts array: remove dragged item and insert it at the drop position.
+        const newPrompts = [...prompts];
+        const [movedPrompt] = newPrompts.splice(draggedIndex, 1);
+        newPrompts.splice(targetIndex, 0, movedPrompt);
+        StorageManager.setData('prompts', newPrompts).then(() => {
+          UIManager.showEditView();
+        });
+      });
+      
+      const textContainer = createEl('div', { styles: { flex: '1' } });
+      textContainer.textContent = prompt.title;
+      const actionButtons = createEl('div', {
+        styles: { display: 'flex', gap: '4px' }
+      });
+      const editIcon = UIManager.createIconButton('edit', () => {
         UIManager.showEditForm(prompt, index);
       });
-      const deleteIcon = UIManager.createIconButton('delete', dark, () => {
+      const deleteIcon = UIManager.createIconButton('delete', () => {
         if (confirm(`Are you sure you want to delete "${prompt.title}"?`)) {
           UIManager.deletePrompt(index);
         }
       });
-      promptItem.append(promptTitle, editIcon, deleteIcon);
+      actionButtons.append(editIcon, deleteIcon);
+      promptItem.append(textContainer, actionButtons);
       promptsContainer.appendChild(promptItem);
     });
-    editContainer.append(title, promptsContainer);
+    editContainer.append(promptsContainer);
     return editContainer;
   }
-
+  
   static async showEditForm(prompt, index) {
     const dark = isDarkMode();
-    const promptList = document.getElementById('prompt-list');
+    const promptList = document.getElementById(SELECTORS.PROMPT_LIST);
     if (!promptList) return;
     UIManager.resetPromptListContainer();
     const editForm = createEl('div', {
-      styles: Styles.formContainer(dark)
+      className: `form-container ${dark ? 'dark' : 'light'}`,
+      styles: { padding: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }
     });
-    const titleInput = createEl('input', {
-      styles: Styles.inputField(dark)
-    });
-    titleInput.value = prompt.title;
     const contentTextarea = createEl('textarea', {
-      styles: Styles.textareaField(dark)
+      className: `textarea-field ${dark ? 'dark' : 'light'}`
     });
     contentTextarea.value = prompt.content;
     const saveButton = createEl('button', {
       innerHTML: 'Save Changes',
-      styles: Styles.button(dark)
+      className: `button ${dark ? 'dark' : 'light'}`
     });
     saveButton.addEventListener('click', async (e) => {
       e.stopPropagation();
       const prompts = await StorageManager.getPrompts();
       prompts[index] = {
-        title: titleInput.value.trim(),
+        title: prompt.title,
         content: contentTextarea.value.trim()
       };
       await StorageManager.setData('prompts', prompts);
       UIManager.showEditView();
     });
-    editForm.append(titleInput, contentTextarea, saveButton);
+    editForm.append(contentTextarea, saveButton);
     editForm.addEventListener('click', e => e.stopPropagation());
     promptList.insertBefore(editForm, promptList.firstChild);
   }
-
+  
   static async deletePrompt(index) {
     const prompts = await StorageManager.getPrompts();
     prompts.splice(index, 1);
     await StorageManager.setData('prompts', prompts);
-    const promptList = document.getElementById('prompt-list');
+    const promptList = document.getElementById(SELECTORS.PROMPT_LIST);
     if (promptList) {
       UIManager.resetPromptListContainer();
+      UIManager.showEditView();
     }
   }
-
+  
   static refreshAndShowPromptList() {
     (async () => {
       const prompts = await StorageManager.getPrompts();
       UIManager.refreshPromptList(prompts);
-      const promptList = document.getElementById('prompt-list');
+      const promptList = document.getElementById(SELECTORS.PROMPT_LIST);
       if (promptList) UIManager.showPromptList(promptList);
     })();
   }
-
-  static async showPromptCreationForm() {
-    const promptList = document.getElementById('prompt-list');
-    if (!promptList) return;
-    UIManager.resetPromptListContainer();
-    const searchInput = promptList.querySelector('#prompt-search-input');
-    if (searchInput) {
-      searchInput.style.display = 'none';
-    }
-    const prompts = await StorageManager.getPrompts();
-    const creationForm = UIManager.createPromptCreationForm('', prompts.length === 0);
-    promptList.insertBefore(creationForm, promptList.firstChild);
-    const titleInput = creationForm.querySelector('input');
-    if (titleInput) titleInput.focus();
-  }
-
+  
   static showImportExportForm() {
-    const promptList = document.getElementById('prompt-list');
+    const promptList = document.getElementById(SELECTORS.PROMPT_LIST);
     if (!promptList) return;
     UIManager.resetPromptListContainer();
     const importExportForm = UIManager.createImportExportForm();
     promptList.insertBefore(importExportForm, promptList.firstChild);
   }
-
+  
   static showEditView() {
-    const promptList = document.getElementById('prompt-list');
+    const promptList = document.getElementById(SELECTORS.PROMPT_LIST);
     if (!promptList) return;
     UIManager.resetPromptListContainer();
     (async () => {
@@ -1091,62 +1223,56 @@ class UIManager {
       promptList.insertBefore(editView, promptList.firstChild);
     })();
   }
-
+  
   static showHelp() {
-    const promptList = document.getElementById('prompt-list');
+    const promptList = document.getElementById(SELECTORS.PROMPT_LIST);
     if (!promptList) return;
     UIManager.resetPromptListContainer();
     const dark = isDarkMode();
     const helpContainer = createEl('div', {
-      styles: Styles.formContainer(dark)
-    });
-    const title = createEl('div', {
-      innerHTML: 'Keyboard Shortcuts',
-      styles: Styles.title(dark)
+      className: `form-container ${dark ? 'dark' : 'light'}`,
+      styles: { padding: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }
     });
     const content = createEl('div', {
       innerHTML: `
         <div style="display: flex; flex-direction: column; gap: 2px; font-size: 12px;">
           <div>Open prompt list buttons</div>
           <div>
-            <div style="background-color: #0077B6; color: white; padding: 2px 4px; border-radius: 4px; display: inline-block; margin-bottom: 4px;">Hover/Click</div>
+            <div style="background-color: ${Colors.primary}; color: white; padding: 2px 4px; border-radius: 4px; display: inline-block; margin-bottom: 4px;">Hover/Click</div>
           </div>
           <div>Open / close prompt list</div>
           <div>
-            <div style="background-color: #0077B6; color: white; padding: 2px 4px; border-radius: 4px; display: inline-block; margin-bottom: 4px;">⌘ + Shift + P or Ctrl + M</div>
+            <div style="background-color: ${Colors.primary}; color: white; padding: 2px 4px; border-radius: 4px; display: inline-block; margin-bottom: 4px;">⌘ + Shift + P or Ctrl + M</div>
           </div>
           <div>Navigate the prompt list</div>
           <div>
-            <div style="background-color: #0077B6; color: white; padding: 2px 4px; border-radius: 4px; display: inline-block; margin-bottom: 4px;">Arrow Keys + Enter to submit</div>
+            <div style="background-color: ${Colors.primary}; color: white; padding: 2px 4px; border-radius: 4px; display: inline-block; margin-bottom: 4px;">↑ ↓ + Enter</div>
           </div>
           <div>Close the prompt manager</div>
           <div>
-            <div style="background-color: #0077B6; color: white; padding: 2px 4px; border-radius: 4px; display: inline-block; margin-bottom: 4px;">Esc</div>
+            <div style="background-color: ${Colors.primary}; color: white; padding: 2px 4px; border-radius: 4px; display: inline-block; margin-bottom: 4px;">Esc</div>
           </div>
         </div>
       `
     });
-    helpContainer.append(title, content);
+    helpContainer.append(content);
     promptList.insertBefore(helpContainer, promptList.firstChild);
   }
-
-  static updateSelection(visiblePrompts, selectedIndex, dark = isDarkMode()) {
+  
+  static updateSelection(visiblePrompts, selectedIndex) {
     visiblePrompts.forEach((item, index) => {
-      Object.assign(item.style, {
-        backgroundColor: 'transparent',
-        border: '1px solid transparent',
-        transform: 'translateY(0)'
-      });
-      
+      item.style.backgroundColor = 'transparent';
+      item.style.border = '1px solid transparent';
+      item.style.transform = 'translateY(0)';
       if (index === selectedIndex) {
-        Object.assign(item.style, Styles.promptListItemHover(dark));
-        
+        item.style.backgroundColor = isDarkMode() ? '#0c172e' : '#f0f4f8';
+        item.style.border = isDarkMode() ? '1px solid #555' : '1px solid #3375b1';
+        item.style.transform = 'translateY(-1px)';
         const container = item.parentElement;
         const itemTop = item.offsetTop;
         const itemBottom = itemTop + item.offsetHeight;
         const containerTop = container.scrollTop;
         const containerBottom = containerTop + container.offsetHeight;
-        
         if (itemTop < containerTop) {
           container.scrollTop = itemTop;
         } else if (itemBottom > containerBottom) {
@@ -1155,212 +1281,22 @@ class UIManager {
       }
     });
   }
-
-  // method to show variable input form
-  static showVariableInputForm(inputBox, promptContent, variables, promptList) {
-    promptList.innerHTML = '';
-    
-    const dark = isDarkMode();
-    const formContainer = createEl('div', {
-      styles: Styles.formContainer(dark)
-    });
-    
-    const title = createEl('div', {
-      innerHTML: 'Variables',
-      styles: Styles.title(dark)
-    });
-    
-    formContainer.appendChild(title);
-    
-    const variablesContainer = createEl('div', {
-      styles: {
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '12px',
-        maxHeight: '300px',
-        overflowY: 'auto',
-        backgroundColor: dark ? Colors.darkBackground : Colors.lightBackground
-      }
-    });
-    
-    const variableValues = {};
-    variables.forEach(variable => {
-      const row = createEl('div', {
-        styles: {
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '4px'
-        }
-      });
-      
-      const label = createEl('label', {
-        innerHTML: variable,
-        styles: {
-          fontSize: '12px',
-          color: dark ? Colors.inputDarkText : '#333',
-          fontWeight: 'bold'
-        }
-      });
-      
-      const input = createEl('input', {
-        attributes: { 
-          type: 'text',
-          placeholder: `${variable} value`
-        },
-        styles: Styles.inputField(dark)
-      });
-      input.addEventListener('input', () => {
-        variableValues[variable] = input.value;
-      });
-      
-      input.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') {
-          submitButton.click();
-        }
-      });
-      
-      row.append(label, input);
-      variablesContainer.appendChild(row);
-      
-      variableValues[variable] = '';
-    });
-    
-    formContainer.appendChild(variablesContainer);
-    
-    const buttonsContainer = createEl('div', {
-      styles: { display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '8px' }
-    });
-    
-    const submitButton = createEl('button', {
-      innerHTML: 'Submit',
-      styles: Styles.button(isDarkMode())
-    });
-    
-    const returnButton = createEl('button', {
-      innerHTML: 'Back',
-      styles: Object.assign({}, Styles.button(isDarkMode()), { backgroundColor: isDarkMode() ? Colors.deleteButtonDarkBg : Colors.deleteButtonLightBg, marginTop: '4px', color: isDarkMode() ? Colors.inputDarkText : '#333' })
-    });
-    
-    addHoverEffect(submitButton, { backgroundColor: isDarkMode() ? Colors.buttonHoverDark : Colors.buttonHoverLight });
-    addHoverEffect(returnButton, { backgroundColor: isDarkMode() ? '#444' : '#ccc' });
-    
-    submitButton.addEventListener('click', () => {
-      const processedContent = PromptManager.replaceVariables(promptContent, variableValues);
-      const fakePrompt = {
-        title: "Variable Prompt", 
-        content: processedContent  
-      };
-      const promptItem = UIManager.createPromptItem(fakePrompt);
-      promptItem.click();
-      UIManager.hidePromptList(promptList);
-      setTimeout(() => {
-        StorageManager.getPrompts().then(prompts => {
-          UIManager.refreshPromptList(prompts);
-        });
-      }, 400);
-    });
-    
-    returnButton.addEventListener('click', () => {
-      UIManager.refreshAndShowPromptList();
-    });
-    
-    buttonsContainer.append(submitButton, returnButton);
-    formContainer.appendChild(buttonsContainer);
-    promptList.appendChild(formContainer);
-    UIManager.showPromptList(promptList);
-    const firstInput = variablesContainer.querySelector('input');
-    if (firstInput) {
-      firstInput.focus();
-    }
-  }
 }
 
 // --------------------
-// PromptManager Class
+// PromptManager Class (Logic Layer)
 // --------------------
 class PromptManager {
-  static initialized = false;
+  // Focus solely on prompt data operations.
   
-  static async initialize() {
-    if (PromptManager.initialized) {
-      console.log('PromptManager already initialized, skipping.');
-      return;
-    }
-    
-    try {
-      PromptManager.initialized = true;
-      
-      await InputBoxHandler.waitForInputBox();
-      console.log('Input box found.');
-      // Removed checkForCachedPrompt call
-      
-      const prompts = await StorageManager.getPrompts();
-      UIManager.injectPromptManagerButton(prompts);
-      
-      let observerTimeout = null;
-      const observer = new MutationObserver(async (mutations) => {
-        if (document.getElementById('prompt-button-container')) {
-          return;
-        }
-        if (observerTimeout) clearTimeout(observerTimeout);
-        observerTimeout = setTimeout(async () => {
-          const inputBox = InputBoxHandler.getInputBox();
-          if (inputBox && !document.getElementById('prompt-button-container')) {
-            console.log('Reinjecting prompt manager button via MutationObserver.');
-            const updatedPrompts = await StorageManager.getPrompts();
-            UIManager.injectPromptManagerButton(updatedPrompts);
-          }
-        }, 300);
-      });
-      
-      const chatContainer = document.querySelector('main') || document.body;
-      observer.observe(chatContainer, { childList: true, subtree: true });
-      
-      StorageManager.onChange(async (changes, area) => {
-        if (area === 'local' && changes.prompts) {
-          console.log('Prompts updated in storage.');
-          UIManager.refreshPromptList(changes.prompts.newValue);
-        }
-      });
-      
-      document.addEventListener('keydown', async (e) => {
-        const shortcut = await StorageManager.getKeyboardShortcut();
-        const modifierPressed = e[shortcut.modifier];
-        const shiftPressed = shortcut.requiresShift ? e.shiftKey : true;
-        if (modifierPressed && shiftPressed && e.key.toLowerCase() === shortcut.key.toLowerCase()) {
-          e.preventDefault();
-          const promptList = document.getElementById('prompt-list');
-          if (promptList) {
-            promptList.style.display === 'none' ? UIManager.showPromptList(promptList) : UIManager.hidePromptList(promptList);
-          }
-        }
-      });
-    } catch (error) {
-      console.error('Error initializing PromptManager:', error);
-      PromptManager.initialized = false;
-    }
-  }
-  
-  static async insertPrompt(inputBox, content, promptList) {
-    const variables = PromptManager.extractVariables(content);
-    
-    if (variables.length === 0) {
-      await InputBoxHandler.insertPrompt(inputBox, content, promptList);
-    } else {
-      UIManager.showVariableInputForm(inputBox, content, variables, promptList);
-    }
-  }
-  
-  static getInputContent(inputBox) {
-    return InputBoxHandler.getInputContent(inputBox);
-  }
-  
+  // Extract variables from prompt content.
   static extractVariables(content) {
     const variableRegex = /#([a-zA-Z0-9_]+)#/g;
     const matches = [...content.matchAll(variableRegex)];
     return [...new Set(matches.map(match => match[1]))];
   }
   
+  // Replace variables in prompt content.
   static replaceVariables(content, variableValues) {
     let result = content;
     for (const [name, value] of Object.entries(variableValues)) {
@@ -1369,22 +1305,117 @@ class PromptManager {
     }
     return result;
   }
+  
+  // (Optional) Add additional prompt data validation methods here.
+  
+  // Retain insertPrompt for backward compatibility if needed.
+  static async insertPrompt(inputBox, content, promptList) {
+    const variables = PromptManager.extractVariables(content);
+    if (variables.length === 0) {
+      await InputBoxHandler.insertPrompt(inputBox, content, promptList);
+    } else {
+      console.error('Prompts with variables should be handled by PromptController.');
+    }
+  }
 }
 
 // --------------------
-// Initialize the Prompt Manager
+// PromptController (Mediator between UI and Prompt Data)
+// --------------------
+class PromptController {
+  constructor(uiManager, promptManager) {
+    this.uiManager = uiManager;
+    this.promptManager = promptManager;
+    this.bindEvents();
+    this.initialize();
+  }
+  
+  // Bind UI events to prompt data operations.
+  bindEvents() {
+    UIManager.onPromptSelect(async (prompt) => {
+      const inputBox = InputBoxHandler.getInputBox();
+      if (!inputBox) {
+        console.error('Input box not found.');
+        return;
+      }
+      const variables = this.promptManager.extractVariables(prompt.content);
+      const promptList = document.getElementById(SELECTORS.PROMPT_LIST);
+      if (variables.length === 0) {
+        await InputBoxHandler.insertPrompt(inputBox, prompt.content, promptList);
+        UIManager.hidePromptList(promptList);
+      } else {
+        // Show variable input form and process variables on submission.
+        UIManager.showVariableInputForm(inputBox, prompt.content, variables, promptList, async (variableValues) => {
+          const processedContent = this.promptManager.replaceVariables(prompt.content, variableValues);
+          await InputBoxHandler.insertPrompt(inputBox, processedContent, promptList);
+          UIManager.hidePromptList(promptList);
+          
+          // Just rebuild the list but don't show it - will be ready for next hover
+          setTimeout(() => {
+            StorageManager.getPrompts().then(prompts => {
+              UIManager.refreshPromptList(prompts);
+            });
+          }, 300);
+        });
+      }
+    });
+  }
+  
+  // Handle extension initialization, DOM observation, and keyboard shortcuts.
+  async initialize() {
+    try {
+      await InputBoxHandler.waitForInputBox();
+      console.log('Input box found.');
+      const prompts = await StorageManager.getPrompts();
+      UIManager.injectPromptManagerButton(prompts);
+      
+      // Set up DOM observation to reinject UI if needed.
+      let observerTimeout = null;
+      const observer = new MutationObserver(async (mutations) => {
+        if (document.getElementById(SELECTORS.PROMPT_BUTTON_CONTAINER)) { return; }
+        if (observerTimeout) clearTimeout(observerTimeout);
+        observerTimeout = setTimeout(async () => {
+          const inputBox = InputBoxHandler.getInputBox();
+          if (inputBox && !document.getElementById(SELECTORS.PROMPT_BUTTON_CONTAINER)) {
+            console.log('Reinjecting prompt manager button via MutationObserver.');
+            const updatedPrompts = await StorageManager.getPrompts();
+            UIManager.injectPromptManagerButton(updatedPrompts);
+          }
+        }, 300);
+      });
+      const chatContainer = document.querySelector('main') || document.body;
+      observer.observe(chatContainer, { childList: true, subtree: true });
+      
+      // Listen for storage changes to update prompts.
+      StorageManager.onChange(async (changes, area) => {
+        if (area === 'local' && changes.prompts) {
+          console.log('Prompts updated in storage.');
+          UIManager.refreshPromptList(changes.prompts.newValue);
+        }
+      });
+      
+      // Keyboard shortcut handling.
+      document.addEventListener('keydown', async (e) => {
+        const shortcut = await StorageManager.getKeyboardShortcut();
+        const modifierPressed = e[shortcut.modifier];
+        const shiftPressed = shortcut.requiresShift ? e.shiftKey : true;
+        if (modifierPressed && shiftPressed && e.key.toLowerCase() === shortcut.key.toLowerCase()) {
+          e.preventDefault();
+          const promptList = document.getElementById(SELECTORS.PROMPT_LIST);
+          if (promptList) {
+            promptList.style.display === 'none' ? UIManager.showPromptList(promptList) : UIManager.hidePromptList(promptList);
+          }
+        }
+      });
+    } catch (error) {
+      console.error('Error initializing extension:', error);
+    }
+  }
+}
+
+// --------------------
+// Initialize the Extension via PromptController
 // --------------------
 setTimeout(() => {
-  PromptManager.initialize();
+  new PromptController(UIManager, PromptManager);
 }, 200);
-
-// Add custom style for input focus
-const style = document.createElement('style');
-style.textContent = `
-  #prompt-list input:focus {
-    border-color: ${isDarkMode() ? '#3375b1' : '#3375b1'} !important;
-    box-shadow: 0 0 0 1px ${isDarkMode() ? 'rgba(51, 117, 177, 0.4)' : 'rgba(51, 117, 177, 0.2)'} !important;
-    outline: none !important;
-  }
-`;
-document.head.appendChild(style);
