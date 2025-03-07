@@ -102,6 +102,15 @@ function applyTheme(el) {
 }
 
 /**
+ * Updates the theme for the entire document by toggling a global class on the body.
+ * Should be called whenever the system color scheme changes.
+ */
+function updateAllThemeElements() {
+  document.body.classList.toggle('dark', isDarkMode());
+  document.body.classList.toggle('light', !isDarkMode());
+}
+
+/**
  * Shows an element with a transition.
  * @param {HTMLElement} el 
  */
@@ -156,12 +165,22 @@ function injectGlobalStyles() {
       --input-light-text: ${THEME_COLORS.inputLightText};
       --button-hover-dark: ${THEME_COLORS.buttonHoverDark};
       --button-hover-light: ${THEME_COLORS.buttonHoverLight};
-      --delete-button-dark-bg: ${THEME_COLORS.deleteButtonDarkBg};
-      --delete-button-light-bg: ${THEME_COLORS.deleteButtonLightBg};
       --transition-speed: 0.3s;
       --border-radius: 8px;
       --font-family: 'Roboto', sans-serif;
     }
+    
+    /* New scrollbar styling for our specific containers - apparently, firefox styling works best?*/
+    .prompt-list *,
+    .prompt-list-items,
+    #${SELECTORS.PROMPT_LIST} *,
+    .${SELECTORS.PROMPT_ITEMS_CONTAINER},
+    #info-content,
+    #changelog-content {
+      scrollbar-width: auto !important;
+      scrollbar-color: ${THEME_COLORS.primary}90 transparent !important;
+    }
+    
     body {
       font-family: var(--font-family);
     }
@@ -442,6 +461,7 @@ let isDarkModeActive = window.matchMedia && window.matchMedia('(prefers-color-sc
 if (window.matchMedia) {
   window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
     isDarkModeActive = e.matches;
+    updateAllThemeElements();
     PromptUIManager.updateThemeForUI();
   });
 }
@@ -490,6 +510,11 @@ class PromptStorageManager {
     return new Promise(resolve => {
       try {
         chrome.storage.local.get(key, data => {
+          if (chrome.runtime.lastError) {
+            console.warn(`Storage get error: ${chrome.runtime.lastError.message}`);
+            resolve(defaultValue);
+            return;
+          }
           const value = data[key];
           resolve(value !== undefined && value !== null ? value : defaultValue);
         });
@@ -503,10 +528,24 @@ class PromptStorageManager {
   static setData(key, value) {
     return new Promise(resolve => {
       try {
-        chrome.storage.local.set({ [key]: value }, () => resolve());
+        // Check if extension context is still valid before proceeding
+        if (!chrome.runtime || !chrome.storage) {
+          console.warn('Extension context appears to be invalid');
+          resolve(false);
+          return;
+        }
+        
+        chrome.storage.local.set({ [key]: value }, () => {
+          if (chrome.runtime.lastError) {
+            console.warn(`Storage set error: ${chrome.runtime.lastError.message}`);
+            resolve(false);
+            return;
+          }
+          resolve(true);
+        });
       } catch (error) {
         console.error(`Error setting data for key ${key}:`, error);
-        resolve();
+        resolve(false);
       }
     });
   }
@@ -518,6 +557,10 @@ class PromptStorageManager {
 
   static async savePrompt(prompt) {
     try {
+      // Assign a uuid if the prompt doesn't have one
+      if (!prompt.uuid) {
+        prompt.uuid = crypto.randomUUID();
+      }
       const prompts = await PromptStorageManager.getPrompts();
       const allPrompts = [...prompts, prompt];
       await PromptStorageManager.setData('prompts', allPrompts);
@@ -529,6 +572,65 @@ class PromptStorageManager {
     }
   }
 
+  /**
+   * Merges imported prompts with the existing ones based on uuid.
+   * - If an imported prompt lacks a uuid, it is assigned one.
+   * - If an imported prompt's uuid matches an existing prompt, the existing prompt is updated.
+   * - Otherwise, the imported prompt is appended.
+   * @param {Array} importedPrompts 
+   * @returns {Array} The merged prompts array.
+   */
+  static async mergeImportedPrompts(importedPrompts) {
+    let existingPrompts = await PromptStorageManager.getPrompts();
+    // Create a lookup of existing prompts by uuid
+    const existingByUuid = {};
+    existingPrompts.forEach(prompt => {
+      if (prompt.uuid) {
+        existingByUuid[prompt.uuid] = prompt;
+      }
+    });
+    
+    importedPrompts.forEach(imported => {
+      // Handle old format with 'id' instead of 'uuid'
+      if (imported.id && !imported.uuid) {
+        imported.uuid = imported.id;
+        delete imported.id;
+      }
+      
+      // Remove createdAt if present (from old format)
+      if (imported.createdAt) {
+        delete imported.createdAt;
+      }
+      
+      // Assign uuid if missing
+      if (!imported.uuid) {
+        imported.uuid = crypto.randomUUID();
+      }
+      
+      if (existingByUuid[imported.uuid]) {
+        // Update the existing prompt with the imported one
+        const index = existingPrompts.findIndex(p => p.uuid === imported.uuid);
+        if (index !== -1) {
+          existingPrompts[index] = imported;
+        }
+      } else {
+        // Append new prompt
+        existingPrompts.push(imported);
+      }
+    });
+    
+    // Ensure all prompts have a uuid
+    existingPrompts = existingPrompts.map(prompt => {
+      if (!prompt.uuid) {
+        prompt.uuid = crypto.randomUUID();
+      }
+      return prompt;
+    });
+    
+    await PromptStorageManager.setData('prompts', existingPrompts);
+    return existingPrompts;
+  }
+
   static onChange(callback) {
     chrome.storage.onChanged.addListener(callback);
   }
@@ -538,7 +640,18 @@ class PromptStorageManager {
   }
 
   static async saveButtonPosition(position) {
-    return await PromptStorageManager.setData('buttonPosition', position);
+    try {
+      // Only try to save if the position actually changed
+      const currentPosition = await PromptStorageManager.getButtonPosition();
+      if (currentPosition.x === position.x && currentPosition.y === position.y) {
+        return true; // No change, no need to save
+      }
+      
+      return await PromptStorageManager.setData('buttonPosition', position);
+    } catch (error) {
+      console.warn('Failed to save button position:', error);
+      return false;
+    }
   }
 
   static async getKeyboardShortcut() {
@@ -664,6 +777,13 @@ class PromptUIManager {
 
   static makeDraggable(container) {
     let isDragging = false, initialX, initialY, startRight, startBottom;
+    let lastSavedPosition = { x: 0, y: 0 };
+    
+    // Try to get initial position from storage
+    PromptStorageManager.getButtonPosition().then(position => {
+      lastSavedPosition = { ...position };
+    });
+    
     container.addEventListener('mousedown', e => {
       if (e.target.id === SELECTORS.PROMPT_BUTTON) {
         isDragging = true;
@@ -674,6 +794,7 @@ class PromptUIManager {
         container.style.transition = 'none';
       }
     });
+    
     document.addEventListener('mousemove', e => {
       if (isDragging) {
         const deltaX = initialX - e.clientX;
@@ -686,33 +807,53 @@ class PromptUIManager {
         container.style.bottom = `${newY}px`;
       }
     });
+    
     document.addEventListener('mouseup', async () => {
       if (isDragging) {
         isDragging = false;
         container.style.transition = 'all 0.3s ease';
-        await PromptStorageManager.saveButtonPosition({
+        
+        // Get the new position
+        const newPosition = {
           x: parseInt(container.style.right, 10),
           y: parseInt(container.style.bottom, 10)
-        });
+        };
+        
+        // Only save if position has changed significantly
+        if (Math.abs(newPosition.x - lastSavedPosition.x) > 5 || 
+            Math.abs(newPosition.y - lastSavedPosition.y) > 5) {
+          const success = await PromptStorageManager.saveButtonPosition(newPosition);
+          if (success) {
+            lastSavedPosition = { ...newPosition };
+          } else {
+            // Position failed to save, consider reverting UI
+            console.warn('Position save failed, but keeping UI in new position');
+          }
+        }
       }
     });
   }
 
-  static createPromptList(prompts) {
-    const promptListEl = createElementWithOptions('div', {
-      id: SELECTORS.PROMPT_LIST,
-      className: `prompt-list ${isDarkMode() ? 'dark' : 'light'}`
-    });
+  static refreshPromptList(prompts) {
+    PromptUIManager.buildPromptListContainer(prompts);
+    const searchInput = document.getElementById(SELECTORS.PROMPT_SEARCH_INPUT);
+    if (searchInput) {
+      searchInput.style.display = 'block';
+    }
+  }
+
+  static buildPromptListContainer(prompts = null) {
+    const promptListEl = document.getElementById(SELECTORS.PROMPT_LIST);
+    if (!promptListEl) {
+      console.error('Prompt list not found.');
+      return;
+    }
+    applyTheme(promptListEl);
+    promptListEl.innerHTML = '';
     const promptsContainer = createElementWithOptions('div', {
       className: `${SELECTORS.PROMPT_ITEMS_CONTAINER} prompt-list-items ${isDarkMode() ? 'dark' : 'light'}`
     });
-    if (prompts.length === 0) {
-      const emptyStateDiv = createElementWithOptions('div', { 
-        className: 'shortcut-container', 
-        innerHTML: PromptUIManager.getEmptyStateHTML() 
-      });
-      promptsContainer.appendChild(emptyStateDiv);
-    } else {
+    if (Array.isArray(prompts)) {
       prompts.forEach(prompt => {
         const promptItem = PromptUIManager.createPromptItem(prompt);
         promptsContainer.appendChild(promptItem);
@@ -720,34 +861,20 @@ class PromptUIManager {
     }
     promptListEl.appendChild(promptsContainer);
     promptListEl.appendChild(PromptUIManager.createBottomMenu());
-    return promptListEl;
   }
 
-  static getEmptyStateHTML() {
-    return `
-      <div style="display: flex; flex-direction: column; gap: 2px; font-size: 12px;">
-        <div>Open prompt list buttons</div>
-        <div>
-          <div style="background-color: ${THEME_COLORS.primary}; color: white; padding: 2px 4px; border-radius: 4px; display: inline-block; margin-bottom: 4px;">Hover/Click</div>
-        </div>
-        <div>Open / close prompt list</div>
-        <div>
-          <div style="background-color: ${THEME_COLORS.primary}; color: white; padding: 2px 4px; border-radius: 4px; display: inline-block; margin-bottom: 4px;">⌘ + Shift + P or Ctrl + M</div>
-        </div>
-        <div>Navigate the prompt list</div>
-        <div>
-          <div style="background-color: ${THEME_COLORS.primary}; color: white; padding: 2px 4px; border-radius: 4px; display: inline-block; margin-bottom: 4px;">↑↓</div>
-        </div>
-        <div>Select a prompt</div>
-        <div>
-          <div style="background-color: ${THEME_COLORS.primary}; color: white; padding: 2px 4px; border-radius: 4px; display: inline-block; margin-bottom: 4px;">Enter</div>
-        </div>
-        <div>Close the prompt manager</div>
-        <div>
-          <div style="background-color: ${THEME_COLORS.primary}; color: white; padding: 2px 4px; border-radius: 4px; display: inline-block; margin-bottom: 4px;">Esc</div>
-        </div>
-      </div>
-    `;
+  static resetPromptListContainer() {
+    const promptListEl = document.getElementById(SELECTORS.PROMPT_LIST);
+    const wasVisible = promptListEl && promptListEl.classList.contains('visible');
+    PromptUIManager.buildPromptListContainer();
+    if (wasVisible) {
+      const updatedPromptListEl = document.getElementById(SELECTORS.PROMPT_LIST);
+      if (updatedPromptListEl) {
+        updatedPromptListEl.style.display = 'block';
+        void updatedPromptListEl.offsetHeight;
+        updatedPromptListEl.classList.add('visible');
+      }
+    }
   }
 
   static createPromptItem(prompt) {
@@ -977,54 +1104,27 @@ class PromptUIManager {
   }
 
   static updateThemeForUI() {
-    const promptListEl = document.getElementById(SELECTORS.PROMPT_LIST);
-    if (promptListEl) {
-      applyTheme(promptListEl);
-      // Update nested elements if needed.
-    }
-  }
-
-  static refreshPromptList(prompts) {
-    PromptUIManager.buildPromptListContainer(prompts);
-    const searchInput = document.getElementById(SELECTORS.PROMPT_SEARCH_INPUT);
-    if (searchInput) {
-      searchInput.style.display = 'block';
-    }
-  }
-
-  static buildPromptListContainer(prompts = null) {
-    const promptListEl = document.getElementById(SELECTORS.PROMPT_LIST);
-    if (!promptListEl) {
-      console.error('Prompt list not found.');
-      return;
-    }
-    applyTheme(promptListEl);
-    promptListEl.innerHTML = '';
-    const promptsContainer = createElementWithOptions('div', {
-      className: `${SELECTORS.PROMPT_ITEMS_CONTAINER} prompt-list-items ${isDarkMode() ? 'dark' : 'light'}`
-    });
-    if (Array.isArray(prompts)) {
-      prompts.forEach(prompt => {
-        const promptItem = PromptUIManager.createPromptItem(prompt);
-        promptsContainer.appendChild(promptItem);
-      });
-    }
-    promptListEl.appendChild(promptsContainer);
-    promptListEl.appendChild(PromptUIManager.createBottomMenu());
-  }
-
-  static resetPromptListContainer() {
-    const promptListEl = document.getElementById(SELECTORS.PROMPT_LIST);
-    const wasVisible = promptListEl && promptListEl.classList.contains('visible');
-    PromptUIManager.buildPromptListContainer();
-    if (wasVisible) {
-      const updatedPromptListEl = document.getElementById(SELECTORS.PROMPT_LIST);
-      if (updatedPromptListEl) {
-        updatedPromptListEl.style.display = 'block';
-        void updatedPromptListEl.offsetHeight;
-        updatedPromptListEl.classList.add('visible');
+    // Simplified global theme update by toggling classes on body
+    document.body.classList.toggle('dark', isDarkMode());
+    document.body.classList.toggle('light', !isDarkMode());
+    
+    // Update button container styling if necessary
+    const buttonContainer = document.getElementById(SELECTORS.PROMPT_BUTTON_CONTAINER);
+    if (buttonContainer) {
+      const promptButton = buttonContainer.querySelector(`.${SELECTORS.PROMPT_BUTTON}`);
+      if (promptButton) {
+        promptButton.style.boxShadow = isDarkMode() ? THEME_COLORS.darkShadow : THEME_COLORS.lightShadow;
       }
     }
+  }
+
+  static refreshAndShowPromptList() {
+    (async () => {
+      const prompts = await PromptStorageManager.getPrompts();
+      PromptUIManager.refreshPromptList(prompts);
+      const promptListEl = document.getElementById(SELECTORS.PROMPT_LIST);
+      if (promptListEl) PromptUIManager.showPromptList(promptListEl);
+    })();
   }
 
   static focusSearchInput() {
@@ -1121,13 +1221,13 @@ class PromptUIManager {
       className: `input-field ${isDarkMode() ? 'dark' : 'light'}`
     });
     const contentTextarea = createElementWithOptions('textarea', {
-      attributes: { placeholder: 'Add variables with #name#' },
+      attributes: { placeholder: 'Enter your prompt here. Add variables with #examplevariable#' },
       className: `textarea-field ${isDarkMode() ? 'dark' : 'light'}`,
       styles: { minHeight: '220px' }
     });
     contentTextarea.value = prefillContent;
     const saveButton = createElementWithOptions('button', {
-      innerHTML: 'Create',
+      innerHTML: 'Create Prompt',
       className: `button ${isDarkMode() ? 'dark' : 'light'}`
     });
     saveButton.addEventListener('click', async (e) => {
@@ -1186,8 +1286,6 @@ class PromptUIManager {
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-      exportButton.textContent = 'Prompts exported!';
-      setTimeout(() => exportButton.textContent = 'Export Prompts', 2000);
     });
     const importButton = createElementWithOptions('button', {
       innerHTML: 'Import Prompts',
@@ -1202,10 +1300,11 @@ class PromptUIManager {
         if (file) {
           try {
             const text = await file.text();
-            const prompts = JSON.parse(text);
-            if (!Array.isArray(prompts)) throw new Error('Invalid format');
-            await PromptStorageManager.setData('prompts', prompts);
-            PromptUIManager.refreshPromptList(prompts);
+            const importedPrompts = JSON.parse(text);
+            if (!Array.isArray(importedPrompts)) throw new Error('Invalid format');
+            // Merge imported prompts with the existing ones using uuid logic
+            const mergedPrompts = await PromptStorageManager.mergeImportedPrompts(importedPrompts);
+            PromptUIManager.refreshPromptList(mergedPrompts);
             importButton.textContent = 'Import successful!';
             setTimeout(() => importButton.textContent = 'Import Prompts', 2000);
           } catch (error) {
@@ -1313,7 +1412,8 @@ class PromptUIManager {
       const prompts = await PromptStorageManager.getPrompts();
       prompts[index] = {
         title: titleInput.value.trim(),
-        content: contentTextarea.value.trim()
+        content: contentTextarea.value.trim(),
+        uuid: prompt.uuid // Preserve the uuid when editing
       };
       await PromptStorageManager.setData('prompts', prompts);
       PromptUIManager.showEditView();
@@ -1333,15 +1433,6 @@ class PromptUIManager {
       PromptUIManager.resetPromptListContainer();
       PromptUIManager.showEditView();
     }
-  }
-
-  static refreshAndShowPromptList() {
-    (async () => {
-      const prompts = await PromptStorageManager.getPrompts();
-      PromptUIManager.refreshPromptList(prompts);
-      const promptListEl = document.getElementById(SELECTORS.PROMPT_LIST);
-      if (promptListEl) PromptUIManager.showPromptList(promptListEl);
-    })();
   }
 
   static showImportExportForm() {

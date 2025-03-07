@@ -1,8 +1,8 @@
 {
     "manifest_version": 3,
-    "name": "Open Prompt Manager - ChatGPT, Claude, Gemini, Grok, Deepseek, NotebookLM",
-    "version": "1.9",
-    "description": "The best prompt manager for LLMs. Fully Open Source.",
+    "name": "Open Prompt Manager",
+    "version": "1.9.1",
+    "description": "The best prompt manager for all LLMs. Fully Open Source.",
     "permissions": ["storage"],
     "icons": {
       "16": "icon16.png",
@@ -26,7 +26,8 @@
           "*://gemini.google.com/*",
           "*://chat.deepseek.com/*",
           "*://x.com/i/grok*",
-          "*://grok.com/*"
+          "*://grok.com/*",
+          "*://copilot.microsoft.com/*"
         ],
           "js": ["inputBoxHandler.js", "content.js"],
           "run_at": "document_end"

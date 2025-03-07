@@ -3,22 +3,29 @@
   ul {
     list-style: none;
     margin: 0;
-    padding-left: 8px;
+    padding-left: 0;
   }
   
   ul li {
     position: relative;
-    padding-left: 8px;
+    padding-left: 20px;
     font-size: 14px;
+    margin-bottom: 4px;
+    line-height: 1.4;
   }
   
   ul li::before {
     content: "•";
     color: #3674B5; /* Primary color */
     position: absolute;
-    left: 0;
-    font-size: 14px;
-    line-height: 1;
+    left: 5px;
+    font-size: 24px; /* Increased bullet size from 18px to 24px */
+    line-height: 1; /* Adjusted line-height to better align with text */
+  }
+  
+  /* Keep consistent spacing for nested lists */
+  ul ul {
+    padding-left: 10px;
   }
 
 </style>
@@ -26,25 +33,25 @@
 <div style="display: flex; flex-direction: column; gap: 16px;">
     <div>
       <div style="font-weight: bold; margin-bottom: 4px;">Version 1.9</div>
-      <ul style="margin: 0; padding-left: 16px;">
+      <ul>
+        <li>Prompt variables! Insert dynamic values intuitively on the go. Create prompt variable using #'s</li>
+        <li>Tooltip added for onboarding, "Hover to Start" for first time users</li>
         <li>Change prompt order in the edit menu</li>
         <li>Changelog view</li>
-        <li>Grok support</li>
-        <li>Revamped entire UI theme & animations</li>
-        <li>Better dark mode and animations</li>
+        <li>Grok and Copilot support</li>
+        <li>Revamped entire UI theme & animations, including dark mode</li>
         <li>Cleaned up text</li>
-        <li>Improved consistency</li>
         <li>Better instructions in the info menu</li>
         <li>Github link</li>
         <li>Changed name: Simple Prompt Manager -> Open Prompt Manager</li>
-        <li>Improved reliability of close conditions</li>
-        <li>Code entirely rewritten</li>
+        <li>Code almost entirely rewritten</li>
+        <li>Squashed various bugs for improved reliability</li>
       </ul>
     </div>
 
     <div>
       <div style="font-weight: bold; margin-bottom: 4px;">Version 1.7</div>
-      <ul style="margin: 0; padding-left: 16px;">
+      <ul>
         <li>Code refactor : much optimized & refactored code</li>
         <li>Prompts management : missing prompts instructions displayed in prompt button menu</li>
         <li>Update : if no prompts present, default to new prompt menu</li>
@@ -55,7 +62,7 @@
 
     <div>
       <div style="font-weight: bold; margin-bottom: 4px;">Version 1.6</div>
-      <ul style="margin: 0; padding-left: 16px;">
+      <ul>
         <li>Bugfix : storage manager updated, now handles *many* more prompts! Sorry about that.</li>
         <li>Fix : windows / linux keyboard shortcut, now ctrl+m</li>
         <li>Add : Deepseek support</li>
@@ -65,14 +72,14 @@
 
     <div>
       <div style="font-weight: bold; margin-bottom: 4px;">Version 1.5.1</div>
-      <ul style="margin: 0; padding-left: 16px;">
+      <ul>
         <li>Bugfix - Special thanks to Hexodus on Github!</li>
       </ul>
     </div>
 
     <div>
       <div style="font-weight: bold; margin-bottom: 4px;">Version 1.5</div>
-      <ul style="margin: 0; padding-left: 16px;">
+      <ul>
         <li><strong>Features:</strong></li>
         <li>Added bottom menu to the prompt list</li>
         <li>Added shortcut to open/close prompt manager : Command + Shift + P / Ctrl + Shift +P</li>
@@ -90,7 +97,7 @@
 
     <div>
       <div style="font-weight: bold; margin-bottom: 4px;">Version 1.4</div>
-      <ul style="margin: 0; padding-left: 16px;">
+      <ul>
         <li><strong>Features:</strong></li>
         <li>Create new prompts straight from the prompt button</li>
         <li>Search for prompt titles and content straight from the prompts list popup</li>
@@ -115,7 +122,7 @@
 
     <div>
       <div style="font-weight: bold; margin-bottom: 4px;">Version 1.3</div>
-      <ul style="margin: 0; padding-left: 16px;">
+      <ul>
         <li>Changed prompt inserter : from dropdown in inputbox to floating button</li>
         <li>Made the extension compatible with other services : Claude, NotebookLM, Poe. Open to integrating it to additional tools (contact me!)</li>
       </ul>
@@ -123,21 +130,21 @@
 
     <div>
       <div style="font-weight: bold; margin-bottom: 4px;">Version 1.2.2</div>
-      <ul style="margin: 0; padding-left: 16px;">
+      <ul>
         <li>Improved layout</li>
       </ul>
     </div>
 
     <div>
       <div style="font-weight: bold; margin-bottom: 4px;">Version 1.2.1</div>
-      <ul style="margin: 0; padding-left: 16px;">
+      <ul>
         <li>Refactored the code for easier future developement</li>
       </ul>
     </div>
 
     <div>
       <div style="font-weight: bold; margin-bottom: 4px;">Version 1.2</div>
-      <ul style="margin: 0; padding-left: 16px;">
+      <ul>
         <li>Export & import feature transitioned to json</li>
         <li>Style optimizations</li>
       </ul>
@@ -145,7 +152,7 @@
 
     <div>
       <div style="font-weight: bold; margin-bottom: 4px;">Version 1.1.3</div>
-      <ul style="margin: 0; padding-left: 16px;">
+      <ul>
         <li>Fixed chatgpt.com error on load</li>
         <li>Updated dark mode</li>
         <li>Updated styling</li>
@@ -155,7 +162,7 @@
 
     <div>
       <div style="font-weight: bold; margin-bottom: 4px;">Version 1.0</div>
-      <ul style="margin: 0; padding-left: 16px;">
+      <ul>
         <li>Added dark mode</li>
         <li>Improved general appearance</li>
         <li>Overall reliability improvements</li>

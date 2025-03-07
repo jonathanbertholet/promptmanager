@@ -66,6 +66,15 @@ class InputBoxHandler {
         }
       }
   
+      // Microsoft Copilot (copilot.microsoft.com)
+      if (url.includes('copilot.microsoft.com')) {
+        const inputBox = document.querySelector('#userInput');
+        if (inputBox) {
+          console.log('Input box found: Microsoft Copilot');
+          return inputBox;
+        }
+      }
+  
       // Grok (grok.com)
       if (url.includes('grok.com')) {
 
@@ -217,7 +226,7 @@ class InputBoxHandler {
         }
   
         // Hide the prompt list after inserting the prompt
-        UIManager.hidePromptList(promptList);
+        PromptUIManager.hidePromptList(promptList);
       } catch (error) {
         console.error('Error inserting prompt:', error);
       }

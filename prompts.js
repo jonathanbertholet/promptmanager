@@ -3,8 +3,8 @@
 import { generateUUID } from './utils.js';
 
 // Update the constants
-const CHROME_STORAGE_LIMIT = 10485760; // Chrome local storage total limit (10MB)
-const CHROME_STORAGE_ITEM_LIMIT = 10485760; // Chrome local storage per-item limit (10MB)
+const CHROME_STORAGE_LIMIT = Number.MAX_SAFE_INTEGER; // Remove practical storage limit
+const CHROME_STORAGE_ITEM_LIMIT = Number.MAX_SAFE_INTEGER; // Remove practical storage limit
 const PROMPT_OVERHEAD = 50; // Estimated overhead for prompt metadata
 
 // Add this function to check storage usage
@@ -57,28 +57,49 @@ async function migrateFromSyncToLocal() {
   }
 }
 
-// Helper function to merge prompts arrays, handling duplicates
+// Update the mergePrompts function to handle both formats
 function mergePrompts(localPrompts, syncPrompts) {
-  // Create a map of existing prompts by ID
-  const promptsMap = new Map(
-    localPrompts.map(p => [p.id, p])
-  );
+  // Create a map of existing prompts by ID/UUID
+  const promptsMap = new Map();
+  
+  // Add local prompts to the map
+  localPrompts.forEach(prompt => {
+    // Handle both id and uuid formats
+    const identifier = prompt.uuid || prompt.id;
+    if (identifier) {
+      promptsMap.set(identifier, prompt);
+    }
+  });
   
   // Merge sync prompts, updating if newer version exists
   syncPrompts.forEach(syncPrompt => {
-    if (syncPrompt.id) {
-      if (promptsMap.has(syncPrompt.id)) {
+    // Handle both id and uuid formats
+    const identifier = syncPrompt.uuid || syncPrompt.id;
+    
+    if (identifier) {
+      // Convert id to uuid if needed
+      if (syncPrompt.id && !syncPrompt.uuid) {
+        syncPrompt.uuid = syncPrompt.id;
+        delete syncPrompt.id;
+      }
+      
+      // Remove createdAt if present (from old format)
+      if (syncPrompt.createdAt) {
+        delete syncPrompt.createdAt;
+      }
+      
+      if (promptsMap.has(identifier)) {
         // Update existing prompt if sync version is newer
-        const localPrompt = promptsMap.get(syncPrompt.id);
+        const localPrompt = promptsMap.get(identifier);
         const localDate = localPrompt.updatedAt || localPrompt.createdAt;
         const syncDate = syncPrompt.updatedAt || syncPrompt.createdAt;
         
         if (new Date(syncDate) > new Date(localDate)) {
-          promptsMap.set(syncPrompt.id, syncPrompt);
+          promptsMap.set(identifier, syncPrompt);
         }
       } else {
         // Add new prompt
-        promptsMap.set(syncPrompt.id, syncPrompt);
+        promptsMap.set(identifier, syncPrompt);
       }
     }
   });
@@ -87,27 +108,13 @@ function mergePrompts(localPrompts, syncPrompts) {
   return Array.from(promptsMap.values());
 }
 
-// Modify the loadPrompts function to include migration
-export function loadPrompts() {
-  // First perform migration if needed
-  migrateFromSyncToLocal().then(() => {
-    // Then load prompts from local storage
-    chrome.storage.local.get('prompts', data => {
-      const prompts = data.prompts || [];
-      displayPrompts(prompts);
-      
-      // Check for cached prompts on load
-      checkForCachedPrompt();
-    });
-  });
-}
-
+// Update the addPrompt function to use uuid instead of id
 export async function addPrompt(title, content) {
   if (!title || !content) return;
   
   try {
     const prompt = { 
-      id: generateUUID(),
+      uuid: generateUUID(), // Use uuid instead of id
       title, 
       content,
       createdAt: new Date().toISOString()
@@ -117,193 +124,35 @@ export async function addPrompt(title, content) {
     const data = await chrome.storage.local.get('prompts');
     const prompts = data.prompts || [];
     
-    // Calculate size of all prompts including the new one
+    // Add the new prompt
     const allPrompts = [...prompts, prompt];
-    const totalSize = new TextEncoder().encode(JSON.stringify(allPrompts)).length;
     
-    // Check total storage limit
-    if (totalSize > CHROME_STORAGE_LIMIT) {
-      window.localStorage.setItem('popupCachedPrompt', JSON.stringify(prompt));
-      throw new Error(`Total storage limit exceeded. The prompts require ${Math.round(totalSize/1024)}KB, but only ${Math.round(CHROME_STORAGE_LIMIT/1024)}KB is available.`);
-    }
-
     // Save all prompts as a single item
     await chrome.storage.local.set({ prompts: allPrompts });
-    
-    // Clear any cached prompt
-    window.localStorage.removeItem('popupCachedPrompt');
-    
-    // Refresh display
-    loadPrompts();
     
     // Reset form
     document.getElementById('prompt-title').value = '';
     document.getElementById('prompt-content').value = '';
+    
+    // Reload prompts to update the display
+    loadPrompts();
 
   } catch (error) {
     console.error('Error saving prompt:', error);
-    
-    // Cache the prompt if it wasn't already cached
-    if (!window.localStorage.getItem('popupCachedPrompt')) {
-      window.localStorage.setItem('popupCachedPrompt', JSON.stringify({ title, content }));
-    }
-    
-    showErrorDialog(error.message);
   }
 }
 
-// Update the showErrorDialog function to show storage usage
-async function showErrorDialog(message) {
-  const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-  const usage = await getStorageUsage();
-  
-  const dialog = document.createElement('div');
-  Object.assign(dialog.style, {
-    position: 'fixed',
-    top: '50%',
-    left: '50%',
-    transform: 'translate(-50%, -50%)',
-    backgroundColor: isDark ? '#1a1a1a' : '#ffffff',
-    padding: '20px',
-    borderRadius: '8px',
-    boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-    zIndex: '10001',
-    maxWidth: '400px',
-    width: '90%'
-  });
-
-  dialog.innerHTML = `
-    <h3 style="margin-top: 0; color: ${isDark ? '#e1e1e1' : '#333'}">Unable to Save Prompt</h3>
-    <p style="color: ${isDark ? '#e1e1e1' : '#333'}">${message}</p>
-    <div style="
-      margin: 15px 0;
-      padding: 10px;
-      background: ${isDark ? '#2a2a2a' : '#f5f5f5'};
-      border-radius: 4px;
-    ">
-      <p style="color: ${isDark ? '#e1e1e1' : '#333'}; margin: 0 0 8px 0;">
-        Storage Usage: ${usage.percentage}%
-      </p>
-      <div style="
-        height: 8px;
-        background: ${isDark ? '#444' : '#ddd'};
-        border-radius: 4px;
-        overflow: hidden;
-      ">
-        <div style="
-          width: ${usage.percentage}%;
-          height: 100%;
-          background: ${usage.percentage > 90 ? '#ff4444' : '#3375b1'};
-          transition: width 0.3s ease;
-        "></div>
-      </div>
-      <p style="color: ${isDark ? '#999' : '#666'}; font-size: 12px; margin: 8px 0 0 0;">
-        ${(usage.used / 1024).toFixed(1)}KB used of ${(usage.total / 1024).toFixed(1)}KB total
-      </p>
-      <p style="color: ${isDark ? '#999' : '#666'}; font-size: 12px; margin: 4px 0 0 0;">
-        Maximum prompt size: 10MB
-      </p>
-    </div>
-    <p style="color: ${isDark ? '#e1e1e1' : '#333'}">Your prompt has been temporarily cached. You can try:</p>
-    <ul style="color: ${isDark ? '#e1e1e1' : '#333'}">
-      <li>Shortening the prompt content (must be under 10MB per prompt)</li>
-      <li>Splitting the prompt into multiple smaller prompts</li>
-      <li>Exporting your prompts and using local storage instead</li>
-    </ul>
-    <div style="text-align: right; margin-top: 15px;">
-      <button id="dialog-close" style="
-        padding: 8px 16px;
-        background-color: ${isDark ? '#1e4976' : '#3375b1'};
-        color: #ffffff;
-        border: none;
-        border-radius: 6px;
-        cursor: pointer
-      ">Close</button>
-    </div>
-  `;
-
-  document.body.appendChild(dialog);
-
-  // Close dialog handler
-  dialog.querySelector('#dialog-close').onclick = () => {
-    dialog.remove();
-  };
-}
-
-// Update the checkForCachedPrompt function to use the popup-specific key
-function checkForCachedPrompt() {
-  const cachedPrompt = window.localStorage.getItem('popupCachedPrompt');
-  if (cachedPrompt) {
-    try {
-      const prompt = JSON.parse(cachedPrompt);
-      const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-      
-      const dialog = document.createElement('div');
-      Object.assign(dialog.style, {
-        position: 'fixed',
-        top: '50%',
-        left: '50%',
-        transform: 'translate(-50%, -50%)',
-        backgroundColor: isDark ? '#1a1a1a' : '#ffffff',
-        padding: '20px',
-        borderRadius: '8px',
-        boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-        zIndex: '10001',
-        maxWidth: '400px',
-        width: '90%'
-      });
-
-      dialog.innerHTML = `
-        <h3 style="margin-top: 0; color: ${isDark ? '#e1e1e1' : '#333'}">Recovered Unsaved Prompt</h3>
-        <p style="color: ${isDark ? '#e1e1e1' : '#333'}">A prompt that couldn't be saved was found:</p>
-        <p style="color: ${isDark ? '#e1e1e1' : '#333'}"><strong>Title:</strong> ${prompt.title}</p>
-        <div style="text-align: right; margin-top: 15px;">
-          <button id="dialog-retry" style="
-            padding: 8px 16px;
-            backgroundColor: ${isDark ? '#1e4976' : '#3375b1'};
-            color: #ffffff;
-            border: none;
-            borderRadius: 6px;
-            cursor: pointer;
-            marginRight: 8px;
-          ">Try Saving Again</button>
-          <button id="dialog-discard" style="
-            padding: 8px 16px;
-            backgroundColor: ${isDark ? '#444' : '#ddd'};
-            color: ${isDark ? '#fff' : '#333'};
-            border: none;
-            borderRadius: 6px;
-            cursor: pointer;
-          ">Discard</button>
-        </div>
-      `;
-
-      document.body.appendChild(dialog);
-
-      // Add button handlers
-      dialog.querySelector('#dialog-retry').onclick = () => {
-        dialog.remove();
-        // Pre-fill the form with cached prompt
-        document.getElementById('prompt-title').value = prompt.title;
-        document.getElementById('prompt-content').value = prompt.content;
-      };
-
-      dialog.querySelector('#dialog-discard').onclick = () => {
-        window.localStorage.removeItem('popupCachedPrompt');
-        dialog.remove();
-      };
-
-    } catch (error) {
-      console.error('Error handling cached prompt:', error);
-      window.localStorage.removeItem('popupCachedPrompt');
-    }
-  }
-}
-
+// Update the updatePrompt function to handle both formats
 export function updatePrompt(index, title, content) {
   chrome.storage.local.get('prompts', data => {
     const prompts = data.prompts || [];
     if (index >= 0 && index < prompts.length) {
+      // Ensure prompt has uuid instead of id
+      if (prompts[index].id && !prompts[index].uuid) {
+        prompts[index].uuid = prompts[index].id;
+        delete prompts[index].id;
+      }
+      
       prompts[index] = { 
         ...prompts[index],
         title, 
@@ -398,6 +247,62 @@ export function displayPrompts(prompts) {
     });
   
     promptList.appendChild(li);
+  });
+}
+
+// Add a function to ensure all prompts have uuid
+export async function normalizePromptFormat() {
+  try {
+    const data = await chrome.storage.local.get('prompts');
+    const prompts = data.prompts || [];
+    
+    let needsUpdate = false;
+    
+    // Convert prompts to use uuid instead of id
+    const normalizedPrompts = prompts.map(prompt => {
+      let updated = {...prompt};
+      
+      // Convert id to uuid if needed
+      if (updated.id && !updated.uuid) {
+        updated.uuid = updated.id;
+        delete updated.id;
+        needsUpdate = true;
+      }
+      
+      // Ensure uuid exists
+      if (!updated.uuid) {
+        updated.uuid = generateUUID();
+        needsUpdate = true;
+      }
+      
+      return updated;
+    });
+    
+    // Only update storage if changes were made
+    if (needsUpdate) {
+      await chrome.storage.local.set({ prompts: normalizedPrompts });
+      console.log('Normalized prompt format to use uuid');
+    }
+    
+    return normalizedPrompts;
+  } catch (error) {
+    console.error('Error normalizing prompt format:', error);
+    return null;
+  }
+}
+
+// Update the loadPrompts function to normalize prompt format
+export function loadPrompts() {
+  // First perform migration if needed
+  migrateFromSyncToLocal().then(() => {
+    // Then normalize prompt format
+    normalizePromptFormat().then(() => {
+      // Then load prompts from local storage
+      chrome.storage.local.get('prompts', data => {
+        const prompts = data.prompts || [];
+        displayPrompts(prompts);
+      });
+    });
   });
 }
   
