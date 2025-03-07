@@ -75,3 +75,9 @@ Found a bug or want to contribute? Visit our [GitHub repository](https://github.
 ## License
 
 This project is open source and available under the MIT License.
+
+## Attributions
+
+Thanks to HideMaru for the nice icon!
+
+<a href="https://www.flaticon.com/free-icons/chatbot" title="chatbot icons">Chatbot icons created by HideMaru - Flaticon</a>
