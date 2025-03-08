@@ -1,12 +1,12 @@
 <style>
   /* Custom styling for bullet points using the primary color */
-  ul {
+  .opm-changelog ul {
     list-style: none;
     margin: 0;
     padding-left: 0;
   }
   
-  ul li {
+  .opm-changelog ul li {
     position: relative;
     padding-left: 20px;
     font-size: 14px;
@@ -14,7 +14,7 @@
     line-height: 1.4;
   }
   
-  ul li::before {
+  .opm-changelog ul li::before {
     content: "•";
     color: #3674B5; /* Primary color */
     position: absolute;
@@ -24,19 +24,22 @@
   }
   
   /* Keep consistent spacing for nested lists */
-  ul ul {
+  .opm-changelog ul ul {
     padding-left: 10px;
   }
 
 </style>
 
-<div style="display: flex; flex-direction: column; gap: 16px;">
+<div class="opm-changelog" style="display: flex; flex-direction: column; gap: 16px;">
     <div>
       <div style="font-weight: bold; margin-bottom: 4px;">Version 1.9.2</div>
       <ul>
-        <li>Refactored parts of code</li>
+        <li>Code refactor</li>
         <li>Onboarding flow fix</li>
         <li>Various bug fixes</li>
+        <li>Centralized keyboard navigation code</li>
+        <li>Tweaked spacing accross the UI</li>
+        <li>Started work on settings view</li>
       </ul>
     </div>
 
