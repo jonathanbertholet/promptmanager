@@ -1,7 +1,7 @@
 {
     "manifest_version": 3,
     "name": "Open Prompt Manager",
-    "version": "1.9.1",
+    "version": "1.9.2",
     "description": "The best prompt manager for all LLMs. Fully Open Source.",
     "permissions": ["storage"],
     "icons": {

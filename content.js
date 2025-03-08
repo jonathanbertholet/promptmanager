@@ -824,7 +824,7 @@ class PromptUIManager {
   // Creates the menu bar with action buttons
   static createMenuBar() {
     const bar = createEl('div', { styles: { display: 'flex', alignItems: 'center', gap: '8px' } });
-    const btns = ['list', 'message', 'edit', 'settings', 'help', 'changelog', 'settings-cog'];
+    const btns = ['list', 'message', 'edit', 'settings', 'help', 'changelog'];
     const actions = {
       list: e => { e.stopPropagation(); PromptUIManager.refreshAndShowPromptList(); },
       message: e => { e.stopPropagation(); PromptUIManager.showPromptCreationForm(); },
@@ -999,9 +999,44 @@ class PromptUIManager {
     form.append(titleIn, contentArea, saveBtn);
     if (showMissing) {
       const missing = createEl('div', {
-        styles: { marginTop: '8px', fontSize: '12px', color: getMode() === 'dark' ? THEME_COLORS.inputDarkText : '#333' },
-        innerHTML: '<strong>Prompts missing?</strong><br>Click the extension icon for instructions'
+        styles: {
+          marginTop: '4px',
+          padding: '8px 12px',
+          borderRadius: '6px',
+          backgroundColor: getMode() === 'dark' ? '#2D3748' : '#EDF2F7',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '10px',
+          fontSize: '12px'
+        }
       });
+
+      // Create question mark icon container
+      const iconContainer = createEl('div', {
+        styles: {
+          width: '20px',
+          height: '20px',
+          borderRadius: '50%',
+          backgroundColor: THEME_COLORS.primary,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          flexShrink: 0
+        },
+        innerHTML: `<span style="color: white; font-weight: bold; font-size: 14px">?</span>`
+      });
+
+      // Create text content
+      const textContent = createEl('div', {
+        styles: {
+          fontSize: '11px',
+          color: getMode() === 'dark' ? THEME_COLORS.inputDarkText : '#333',
+          lineHeight: '1.4'
+        },
+        innerHTML: '<strong>Create your first prompt</strong><br>Get started'
+      });
+
+      missing.append(iconContainer, textContent);
       form.appendChild(missing);
     }
     form.addEventListener('click', e => e.stopPropagation());
