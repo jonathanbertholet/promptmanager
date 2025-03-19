@@ -6,7 +6,7 @@ document.addEventListener('DOMContentLoaded', () => {
     console.log('DOM Content Loaded'); // Debug line
     const exportButton = document.getElementById('export-sync-prompts');
     console.log('Export button found:', exportButton); // Debug line
-    
+
     exportButton.addEventListener('click', () => {
         console.log('Export button clicked'); // Debug line
         exportSyncPrompts();

@@ -1,7 +1,7 @@
 {
     "manifest_version": 3,
     "name": "Open Prompt Manager",
-    "version": "1.9.2",
+    "version": "1.9.3",
     "description": "The best prompt manager for all LLMs. Fully Open Source.",
     "permissions": ["storage"],
     "icons": {
@@ -27,7 +27,8 @@
           "*://chat.deepseek.com/*",
           "*://x.com/i/grok*",
           "*://grok.com/*",
-          "*://copilot.microsoft.com/*"
+          "*://copilot.microsoft.com/*",
+          "*://apps.abacus.ai/chatllm/*"
         ],
           "js": ["inputBoxHandler.js", "content.js"],
           "run_at": "document_end"
