@@ -14,7 +14,7 @@ async function getStorageUsage() {
   const used = new TextEncoder().encode(JSON.stringify(prompts)).length;
   const total = CHROME_STORAGE_LIMIT;
   const percentage = Math.round((used / total) * 100);
-  
+
   return {
     used,
     total,
@@ -35,17 +35,17 @@ async function migrateFromSyncToLocal() {
     const syncData = await chrome.storage.sync.get('prompts');
     if (syncData.prompts && syncData.prompts.length > 0) {
       console.log('Found prompts in sync storage, copying to local storage...');
-      
+
       // Get existing local prompts (if any)
       const localData = await chrome.storage.local.get('prompts');
       const localPrompts = localData.prompts || [];
-      
+
       // Merge prompts, keeping the newer version if duplicates exist
       const mergedPrompts = mergePrompts(localPrompts, syncData.prompts);
-      
+
       // Save to local storage
       await chrome.storage.local.set({ prompts: mergedPrompts });
-      
+
       console.log('Migration complete:', mergedPrompts.length, 'prompts copied to local storage');
     }
 
@@ -61,7 +61,7 @@ async function migrateFromSyncToLocal() {
 function mergePrompts(localPrompts, syncPrompts) {
   // Create a map of existing prompts by ID/UUID
   const promptsMap = new Map();
-  
+
   // Add local prompts to the map
   localPrompts.forEach(prompt => {
     // Handle both id and uuid formats
@@ -70,30 +70,30 @@ function mergePrompts(localPrompts, syncPrompts) {
       promptsMap.set(identifier, prompt);
     }
   });
-  
+
   // Merge sync prompts, updating if newer version exists
   syncPrompts.forEach(syncPrompt => {
     // Handle both id and uuid formats
     const identifier = syncPrompt.uuid || syncPrompt.id;
-    
+
     if (identifier) {
       // Convert id to uuid if needed
       if (syncPrompt.id && !syncPrompt.uuid) {
         syncPrompt.uuid = syncPrompt.id;
         delete syncPrompt.id;
       }
-      
+
       // Remove createdAt if present (from old format)
       if (syncPrompt.createdAt) {
         delete syncPrompt.createdAt;
       }
-      
+
       if (promptsMap.has(identifier)) {
         // Update existing prompt if sync version is newer
         const localPrompt = promptsMap.get(identifier);
         const localDate = localPrompt.updatedAt || localPrompt.createdAt;
         const syncDate = syncPrompt.updatedAt || syncPrompt.createdAt;
-        
+
         if (new Date(syncDate) > new Date(localDate)) {
           promptsMap.set(identifier, syncPrompt);
         }
@@ -103,7 +103,7 @@ function mergePrompts(localPrompts, syncPrompts) {
       }
     }
   });
-  
+
   // Convert map back to array
   return Array.from(promptsMap.values());
 }
@@ -111,11 +111,11 @@ function mergePrompts(localPrompts, syncPrompts) {
 // Update the addPrompt function to use uuid instead of id
 export async function addPrompt(title, content) {
   if (!title || !content) return;
-  
+
   try {
-    const prompt = { 
+    const prompt = {
       uuid: generateUUID(), // Use uuid instead of id
-      title, 
+      title,
       content,
       createdAt: new Date().toISOString()
     };
@@ -123,17 +123,17 @@ export async function addPrompt(title, content) {
     // Get current prompts first
     const data = await chrome.storage.local.get('prompts');
     const prompts = data.prompts || [];
-    
+
     // Add the new prompt
     const allPrompts = [...prompts, prompt];
-    
+
     // Save all prompts as a single item
     await chrome.storage.local.set({ prompts: allPrompts });
-    
+
     // Reset form
     document.getElementById('prompt-title').value = '';
     document.getElementById('prompt-content').value = '';
-    
+
     // Reload prompts to update the display
     loadPrompts();
 
@@ -152,10 +152,10 @@ export function updatePrompt(index, title, content) {
         prompts[index].uuid = prompts[index].id;
         delete prompts[index].id;
       }
-      
-      prompts[index] = { 
+
+      prompts[index] = {
         ...prompts[index],
-        title, 
+        title,
         content,
         updatedAt: new Date().toISOString()
       };
@@ -163,7 +163,7 @@ export function updatePrompt(index, title, content) {
     }
   });
 }
-  
+
 export function deletePrompt(index) {
   chrome.storage.local.get('prompts', data => {
     const prompts = data.prompts || [];
@@ -171,7 +171,7 @@ export function deletePrompt(index) {
     chrome.storage.local.set({ prompts }, loadPrompts);
   });
 }
-  
+
 export function editPrompt(index) {
   chrome.storage.local.get('prompts', data => {
     const prompts = data.prompts || [];
@@ -185,7 +185,7 @@ export function editPrompt(index) {
     }
   });
 }
-  
+
 export function displayPrompts(prompts) {
   const promptList = document.getElementById('prompt-list');
   const emptyState = document.getElementById('empty-state');
@@ -200,7 +200,7 @@ export function displayPrompts(prompts) {
   emptyState.style.display = 'none';
   prompts.forEach((prompt, index) => {
     const li = document.createElement('li');
-  
+
     const titleSpan = document.createElement('span');
     titleSpan.textContent = prompt.title;
     titleSpan.style.margin = '2px';
@@ -208,7 +208,7 @@ export function displayPrompts(prompts) {
     titleSpan.style.verticalAlign = 'middle';
     titleSpan.style.display = 'inline-block';
     li.appendChild(titleSpan);
-  
+
     const editBtn = document.createElement('button');
     const editImg = document.createElement('img');
     editImg.src = 'icons/edit-icon.png';
@@ -222,7 +222,7 @@ export function displayPrompts(prompts) {
     editBtn.appendChild(editImg);
     editBtn.addEventListener('click', () => editPrompt(index));
     li.appendChild(editBtn);
-  
+
     const delBtn = document.createElement('button');
     const delImg = document.createElement('img');
     delImg.src = 'icons/delete-icon.png';
@@ -245,7 +245,7 @@ export function displayPrompts(prompts) {
       editBtn.style.display = 'none';
       delBtn.style.display = 'none';
     });
-  
+
     promptList.appendChild(li);
   });
 }
@@ -255,35 +255,35 @@ export async function normalizePromptFormat() {
   try {
     const data = await chrome.storage.local.get('prompts');
     const prompts = data.prompts || [];
-    
+
     let needsUpdate = false;
-    
+
     // Convert prompts to use uuid instead of id
     const normalizedPrompts = prompts.map(prompt => {
-      let updated = {...prompt};
-      
+      let updated = { ...prompt };
+
       // Convert id to uuid if needed
       if (updated.id && !updated.uuid) {
         updated.uuid = updated.id;
         delete updated.id;
         needsUpdate = true;
       }
-      
+
       // Ensure uuid exists
       if (!updated.uuid) {
         updated.uuid = generateUUID();
         needsUpdate = true;
       }
-      
+
       return updated;
     });
-    
+
     // Only update storage if changes were made
     if (needsUpdate) {
       await chrome.storage.local.set({ prompts: normalizedPrompts });
       console.log('Normalized prompt format to use uuid');
     }
-    
+
     return normalizedPrompts;
   } catch (error) {
     console.error('Error normalizing prompt format:', error);
@@ -305,5 +305,5 @@ export function loadPrompts() {
     });
   });
 }
-  
+
 

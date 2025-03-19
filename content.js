@@ -532,7 +532,7 @@ class PromptStorageManager {
   static async getOnboardingCompleted() {
     return await PromptStorageManager.getData('onboardingCompleted', false);
   }
-  
+
   // Mark onboarding as completed
   static async setOnboardingCompleted() {
     return await PromptStorageManager.setData('onboardingCompleted', true);
@@ -542,21 +542,21 @@ class PromptStorageManager {
 /* Icon SVGs */
 const ICON_COLOR = () => (getMode() === 'dark' ? '#e1e1e1' : '#666');
 const ICON_SVGS = {
-  list: `<svg width="14" height="14" viewBox="0 0 20 20" fill="${ICON_COLOR()}"><path d="M4 4h2v2H4V4zm0 5h2v2H4V9zm0 5h2v2H4v-2zm4-10h12v2H8V4zm0 5h12v2H8V9zm0 5h12v2H8v-2z"/></svg>`,
-  message: `<svg width="14" height="14" viewBox="0 0 20 20" fill="${ICON_COLOR()}"><path d="M2 5.5C2 4.11929 3.11929 3 4.5 3H15.5C16.8807 3 18 4.11929 18 5.5V12.5C18 13.8807 16.8807 15 15.5 15H11.5L8 18.5L4.5 15H4.5C3.11929 15 2 13.8807 2 12.5V5.5Z"/></svg>`,
-  delete: `<svg width="14" height="14" viewBox="0 0 20 20" fill="${ICON_COLOR()}"><path d="M6 2h8v2h4v2H2V4h4V2zm1 0h6v2H7V2zm-3 4h12l-1 12H5L4 6z"/></svg>`,
-  edit: `<svg width="14" height="14" viewBox="0 0 20 20" fill="${ICON_COLOR()}"><path d="M13.586 3.586a2 2 0 112.828 2.828l-8.793 8.793-3.536.707.707-3.536 8.794-8.792z"/></svg>`,
-  settings: `<svg width="14" height="14" viewBox="0 0 24 24" fill="${ICON_COLOR()}"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92-1.31-2.92-2.92-2.92z"/></svg>`,
-  'settings-cog': `<svg width="14" height="14" viewBox="0 0 20 20" fill="${ICON_COLOR()}"><path d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z"/></svg>`,
-  help: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="${ICON_COLOR()}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12" y2="8"></line></svg>`,
-  changelog: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="${ICON_COLOR()}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>`
+  list: `<img src="${chrome.runtime.getURL('icons/list_16dp_1F1F1F_FILL0_wght400_GRAD0_opsz20.svg')}" width="16" height="16" alt="List Prompts" title="List Prompts">`,
+  add: `<img src="${chrome.runtime.getURL('icons/add_16dp_1F1F1F_FILL0_wght400_GRAD0_opsz20.svg')}" width="16" height="16" alt="Add Prompt" title="Add Prompt">`,
+  delete: `<img src="${chrome.runtime.getURL('icons/delete_16dp_1F1F1F_FILL0_wght400_GRAD0_opsz20.svg')}" width="16" height="16" alt="Delete" title="Delete">`,
+  edit: `<img src="${chrome.runtime.getURL('icons/edit_16dp_1F1F1F_FILL0_wght400_GRAD0_opsz20.svg')}" width="16" height="16" alt="Edit" title="Edit">`,
+  settings: `<img src="${chrome.runtime.getURL('icons/settings_16dp_1F1F1F_FILL0_wght400_GRAD0_opsz20.svg')}" width="16" height="16" alt="Settings" title="Settings">`,
+  import_export: `<img src="${chrome.runtime.getURL('icons/backup_16dp_1F1F1F_FILL0_wght400_GRAD0_opsz20.svg')}" width="16" height="16" alt="Import/Export" title="Import/Export">`,
+  help: `<img src="${chrome.runtime.getURL('icons/info_16dp_1F1F1F_FILL0_wght400_GRAD0_opsz20.svg')}" width="16" height="16" alt="Help" title="Help">`,
+  changelog: `<img src="${chrome.runtime.getURL('icons/description_16dp_1F1F1F_FILL0_wght400_GRAD0_opsz20.svg')}" width="16" height="16" alt="Changelog" title="Changelog">`,
 };
 
 /* UI Manager - Handles all UI-related operations and interactions */
 class PromptUIManager {
   // Event bus for handling prompt selection events
   static eventBus = new EventBus();
-  
+
   // Event subscription methods
   static onPromptSelect(cb) { this.eventBus.on('promptSelect', cb); }
   static emitPromptSelect(prompt) { this.eventBus.emit('promptSelect', prompt); }
@@ -572,14 +572,14 @@ class PromptUIManager {
       const listEl = createEl('div', { id: SELECTORS.PROMPT_LIST, className: `prompt-list ${getMode()}` });
       container.appendChild(listEl);
       document.body.appendChild(container);
-      
+
       // Always refresh the prompt list initially, regardless of whether it's empty
       PromptUIManager.refreshPromptList(prompts);
-      
+
       // Setup event handlers
       PromptUIManager.attachButtonEvents(button, listEl, container, prompts);
       PromptUIManager.makeDraggable(container);
-      
+
       // Check if onboarding should be shown
       PromptUIManager.checkAndShowOnboarding(container);
     });
@@ -592,15 +592,15 @@ class PromptUIManager {
       PromptUIManager.showOnboardingPopup(container);
     }
   }
-  
+
   // Create and show the onboarding popup
   static showOnboardingPopup(container) {
     // Remove any existing popup first
     const existingPopup = document.getElementById(SELECTORS.ONBOARDING_POPUP);
     if (existingPopup) existingPopup.remove();
-    
+
     // Create the popup with solid primary color instead of gradient
-    const popup = createEl('div', { 
+    const popup = createEl('div', {
       id: SELECTORS.ONBOARDING_POPUP,
       className: `onboarding-popup ${getMode()}`,
       styles: {
@@ -610,7 +610,7 @@ class PromptUIManager {
         transform: 'translateX(-50%)',
         backgroundColor: `${THEME_COLORS.primary}dd`,
         color: 'white',
-        padding: '6px 10px',  
+        padding: '6px 10px',
         borderRadius: '6px',
         fontSize: '13px',
         fontWeight: 'bold',
@@ -622,7 +622,7 @@ class PromptUIManager {
       },
       innerHTML: 'Hover to Start'
     });
-    
+
     // Add a little triangle pointing down with primary color
     const triangle = createEl('div', {
       styles: {
@@ -637,10 +637,10 @@ class PromptUIManager {
         borderTop: `5px solid ${THEME_COLORS.primary}dd`
       }
     });
-    
+
     popup.appendChild(triangle);
     container.appendChild(popup);
-        
+
     // Automatically hide after 10 seconds
     setTimeout(() => {
       if (popup && popup.parentNode) {
@@ -655,13 +655,13 @@ class PromptUIManager {
   // Attaches click and hover events to the prompt button
   static attachButtonEvents(button, listEl, container, prompts) {
     let isOpen = false;
-    
+
     // Shared handler for starting the close timer
     const startCloseTimerHandler = (e) => {
       if (e) e.stopPropagation();
       PromptUIManager.startCloseTimer(e, listEl, () => (isOpen = false));
     };
-    
+
     // Toggle list on click
     button.addEventListener('click', e => {
       e.stopPropagation();
@@ -673,10 +673,10 @@ class PromptUIManager {
     button.addEventListener('mouseenter', async e => {
       e.stopPropagation();
       PromptUIManager.cancelCloseTimer();
-      
+
       // Get current prompts instead of using a stale reference
       const currentPrompts = await PromptStorageManager.getPrompts();
-      
+
       // If no prompts exist, show the creation form instead of the prompt list
       if (currentPrompts.length === 0) {
         PromptUIManager.showPromptCreationForm();
@@ -701,9 +701,9 @@ class PromptUIManager {
         e.target.closest('.form-container') ||
         e.target.closest('.button') ||
         button.contains(e.target);
-      if (isOpen && !isMenu) { 
-        PromptUIManager.hidePromptList(listEl); 
-        isOpen = false; 
+      if (isOpen && !isMenu) {
+        PromptUIManager.hidePromptList(listEl);
+        isOpen = false;
       }
     });
   }
@@ -718,7 +718,7 @@ class PromptUIManager {
   // Makes the prompt button draggable and saves its position - simplified version
   static makeDraggable(container) {
     let pos = { x: 0, y: 0 };
-    
+
     // Load the initial position
     PromptStorageManager.getButtonPosition().then(savedPos => {
       pos = savedPos;
@@ -727,11 +727,11 @@ class PromptUIManager {
         bottom: `${pos.y}px`
       });
     });
-    
+
     // Single mousedown event with all logic contained
     container.addEventListener('mousedown', startEvent => {
       if (startEvent.target.id !== SELECTORS.PROMPT_BUTTON) return;
-      
+
       // Initial values
       const startX = startEvent.clientX;
       const startY = startEvent.clientY;
@@ -758,7 +758,7 @@ class PromptUIManager {
         const newPos = {
           x: parseInt(container.style.right, 10),
           y: parseInt(container.style.bottom, 10)
-        };        
+        };
         // Only save if position changed significantly
         if (Math.abs(newPos.x - pos.x) > 5 || Math.abs(newPos.y - pos.y) > 5) {
           PromptStorageManager.saveButtonPosition(newPos)
@@ -857,15 +857,15 @@ class PromptUIManager {
   // Creates the menu bar with action buttons
   static createMenuBar() {
     const bar = createEl('div', { styles: { display: 'flex', alignItems: 'center', gap: '8px' } });
-    const btns = ['list', 'message', 'edit', 'settings', 'help', 'changelog'];
+    const btns = ['list', 'add', 'edit', 'settings', 'import_export', 'help', 'changelog'];
     const actions = {
       list: e => { e.stopPropagation(); PromptUIManager.refreshAndShowPromptList(); },
-      message: e => { e.stopPropagation(); PromptUIManager.showPromptCreationForm(); },
+      add: e => { e.stopPropagation(); PromptUIManager.showPromptCreationForm(); },
       edit: e => { e.stopPropagation(); PromptUIManager.showEditView(); },
-      settings: e => { e.stopPropagation(); PromptUIManager.showImportExportForm(); },
+      settings: e => { e.stopPropagation(); PromptUIManager.showSettingsForm(); },
+      import_export: e => { e.stopPropagation(); PromptUIManager.showImportExportForm(); },
       help: e => { e.stopPropagation(); PromptUIManager.showHelp(); },
       changelog: e => { e.stopPropagation(); PromptUIManager.showChangelog(); },
-      'settings-cog': e => { e.stopPropagation(); PromptUIManager.showSettingsForm(); }
     };
     btns.forEach(type => bar.appendChild(PromptUIManager.createIconButton(type, actions[type])));
     return bar;
@@ -881,18 +881,18 @@ class PromptUIManager {
     if (!listEl) return;
     showEl(listEl);
     listEl.classList.add('visible');
-    
+
     // separate event listeners for navigation within the prompt list and container-wide Escape key handling
     document.addEventListener('keydown', PromptUIManager.handleKeyNavigation);
     document.addEventListener('keydown', PromptUIManager.handleGlobalEscape);
-    
+
     const first = listEl.querySelector('.prompt-list-item');
     if (first) setTimeout(() => first.focus(), 50);
     PromptUIManager.focusSearchInput();
-    
+
     // Mark onboarding as completed when the user opens the prompt list
     PromptStorageManager.setOnboardingCompleted();
-    
+
     // Remove the onboarding popup if it exists
     const popup = document.getElementById(SELECTORS.ONBOARDING_POPUP);
     if (popup) popup.remove();
@@ -1067,16 +1067,16 @@ class PromptUIManager {
     return form;
   }
 
-    // Shows the import/export form
-    static showImportExportForm() {
-      const list = document.getElementById(SELECTORS.PROMPT_LIST);
-      if (!list) return;
-      PromptUIManager.showPromptList(list);
-      PromptUIManager.resetPromptListContainer();
-      const form = PromptUIManager.createImportExportForm();
-      list.insertBefore(form, list.firstChild);
-    }
-  
+  // Shows the import/export form
+  static showImportExportForm() {
+    const list = document.getElementById(SELECTORS.PROMPT_LIST);
+    if (!list) return;
+    PromptUIManager.showPromptList(list);
+    PromptUIManager.resetPromptListContainer();
+    const form = PromptUIManager.createImportExportForm();
+    list.insertBefore(form, list.firstChild);
+  }
+
   // Edit view for prompt list items
   static async createEditView() {
     const dark = isDarkMode();
@@ -1084,13 +1084,13 @@ class PromptUIManager {
     const container = createEl('div', { className: `form-container ${getMode()}`, styles: { padding: '0', display: 'flex', flexDirection: 'column' } });
     const promptsContainer = createEl('div', { className: `${SELECTORS.PROMPT_ITEMS_CONTAINER} prompt-list-items ${getMode()}`, styles: { maxHeight: '350px', overflowY: 'auto', marginBottom: '4px' } });
     prompts.forEach((p, idx) => {
-      const item = createEl('div', { 
-        className: `prompt-list-item ${getMode()}`, 
-        styles: { 
+      const item = createEl('div', {
+        className: `prompt-list-item ${getMode()}`,
+        styles: {
           justifyContent: 'space-between',
           padding: '4px 10px',  // Increased horizontal padding while keeping vertical padding
           margin: '6px 0'      // Explicitly set the same margin
-        } 
+        }
       });
       item.setAttribute('draggable', 'true');
       item.dataset.index = idx;
@@ -1237,9 +1237,9 @@ class PromptUIManager {
   static handleKeyboardNavigation(e, context = 'list') {
     const list = document.getElementById(SELECTORS.PROMPT_LIST);
     if (!list || !list.classList.contains('visible')) return;
-    
+
     PromptUIManager.cancelCloseTimer();
-    
+
     // Handle Escape key globally 
     if (e.key === 'Escape') {
       e.preventDefault();
@@ -1257,7 +1257,7 @@ class PromptUIManager {
       PromptUIManager.hidePromptList(list);
       return;
     }
-    
+
     // Get items based on context
     let items = [];
     if (context === 'search') {
@@ -1268,12 +1268,12 @@ class PromptUIManager {
     } else {
       items = Array.from(list.querySelectorAll('.prompt-list-item'));
     }
-    
+
     if (items.length === 0) return;
-    
+
     // Get current index based on context
     let idx = context === 'search' ? PromptUIManager.selectedSearchIndex : items.indexOf(document.activeElement);
-    
+
     if (e.key === 'ArrowDown') {
       e.preventDefault();
       if (context === 'search') {
