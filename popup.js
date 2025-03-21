@@ -1,8 +1,7 @@
 // popup.js
 
 import { loadPrompts, addPrompt, updatePrompt } from './prompts.js';
-import { exportPrompts, importPrompts} from './importExport.js';
-import { initLinks } from './links.js';
+import { exportPrompts, importPrompts } from './importExport.js';
 
 document.addEventListener('DOMContentLoaded', () => {
   const form = document.getElementById('prompt-form');
@@ -60,7 +59,4 @@ document.addEventListener('DOMContentLoaded', () => {
     const file = event.target.files[0];
     if (file) importPrompts(file);
   });
-
-  // Initialize external links
-  initLinks();
 });
