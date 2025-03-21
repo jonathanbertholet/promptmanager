@@ -540,16 +540,19 @@ class PromptStorageManager {
 }
 
 /* Icon SVGs */
-const ICON_COLOR = () => (getMode() === 'dark' ? '#e1e1e1' : '#666');
+// Get theme color for icons based on current mode
+const ICON_COLOR = () => (getMode() === 'dark' ? '#e1e1e1' : '#3674B5');
+
+// Define SVG icons with theme color
 const ICON_SVGS = {
-  list: `<img src="${chrome.runtime.getURL('icons/list_16dp_1F1F1F_FILL0_wght400_GRAD0_opsz20.svg')}" width="16" height="16" alt="List Prompts" title="List Prompts">`,
-  add: `<img src="${chrome.runtime.getURL('icons/add_16dp_1F1F1F_FILL0_wght400_GRAD0_opsz20.svg')}" width="16" height="16" alt="Add Prompt" title="Add Prompt">`,
-  delete: `<img src="${chrome.runtime.getURL('icons/delete_16dp_1F1F1F_FILL0_wght400_GRAD0_opsz20.svg')}" width="16" height="16" alt="Delete" title="Delete">`,
-  edit: `<img src="${chrome.runtime.getURL('icons/edit_16dp_1F1F1F_FILL0_wght400_GRAD0_opsz20.svg')}" width="16" height="16" alt="Edit" title="Edit">`,
-  settings: `<img src="${chrome.runtime.getURL('icons/settings_16dp_1F1F1F_FILL0_wght400_GRAD0_opsz20.svg')}" width="16" height="16" alt="Settings" title="Settings">`,
-  import_export: `<img src="${chrome.runtime.getURL('icons/backup_16dp_1F1F1F_FILL0_wght400_GRAD0_opsz20.svg')}" width="16" height="16" alt="Import/Export" title="Import/Export">`,
-  help: `<img src="${chrome.runtime.getURL('icons/info_16dp_1F1F1F_FILL0_wght400_GRAD0_opsz20.svg')}" width="16" height="16" alt="Help" title="Help">`,
-  changelog: `<img src="${chrome.runtime.getURL('icons/description_16dp_1F1F1F_FILL0_wght400_GRAD0_opsz20.svg')}" width="16" height="16" alt="Changelog" title="Changelog">`,
+  list: `<img src="${chrome.runtime.getURL('icons/list.svg')}" width="16" height="16" alt="List Prompts" title="List Prompts" style="filter: ${getMode() === 'dark' ? 'invert(93%) sepia(0%) saturate(0%) hue-rotate(213deg) brightness(107%) contrast(87%)' : 'invert(37%) sepia(74%) saturate(380%) hue-rotate(175deg) brightness(93%) contrast(88%)'}">`,
+  add: `<img src="${chrome.runtime.getURL('icons/new.svg')}" width="16" height="16" alt="Add Prompt" title="Add Prompt" style="filter: ${getMode() === 'dark' ? 'invert(93%) sepia(0%) saturate(0%) hue-rotate(213deg) brightness(107%) contrast(87%)' : 'invert(37%) sepia(74%) saturate(380%) hue-rotate(175deg) brightness(93%) contrast(88%)'}">`,
+  delete: `<img src="${chrome.runtime.getURL('icons/delete.svg')}" width="16" height="16" alt="Delete" title="Delete" style="filter: ${getMode() === 'dark' ? 'invert(93%) sepia(0%) saturate(0%) hue-rotate(213deg) brightness(107%) contrast(87%)' : 'invert(37%) sepia(74%) saturate(380%) hue-rotate(175deg) brightness(93%) contrast(88%)'}">`,
+  edit: `<img src="${chrome.runtime.getURL('icons/edit.svg')}" width="16" height="16" alt="Edit" title="Edit" style="filter: ${getMode() === 'dark' ? 'invert(93%) sepia(0%) saturate(0%) hue-rotate(213deg) brightness(107%) contrast(87%)' : 'invert(37%) sepia(74%) saturate(380%) hue-rotate(175deg) brightness(93%) contrast(88%)'}">`,
+  settings: `<img src="${chrome.runtime.getURL('icons/settings.svg')}" width="16" height="16" alt="Settings" title="Settings" style="filter: ${getMode() === 'dark' ? 'invert(93%) sepia(0%) saturate(0%) hue-rotate(213deg) brightness(107%) contrast(87%)' : 'invert(37%) sepia(74%) saturate(380%) hue-rotate(175deg) brightness(93%) contrast(88%)'}">`,
+  import_export: `<img src="${chrome.runtime.getURL('icons/import.svg')}" width="16" height="16" alt="Import/Export" title="Import/Export" style="filter: ${getMode() === 'dark' ? 'invert(93%) sepia(0%) saturate(0%) hue-rotate(213deg) brightness(107%) contrast(87%)' : 'invert(37%) sepia(74%) saturate(380%) hue-rotate(175deg) brightness(93%) contrast(88%)'}">`,
+  help: `<img src="${chrome.runtime.getURL('icons/help.svg')}" width="16" height="16" alt="Help" title="Help" style="filter: ${getMode() === 'dark' ? 'invert(93%) sepia(0%) saturate(0%) hue-rotate(213deg) brightness(107%) contrast(87%)' : 'invert(37%) sepia(74%) saturate(380%) hue-rotate(175deg) brightness(93%) contrast(88%)'}">`,
+  changelog: `<img src="${chrome.runtime.getURL('icons/notes.svg')}" width="16" height="16" alt="Changelog" title="Changelog" style="filter: ${getMode() === 'dark' ? 'invert(93%) sepia(0%) saturate(0%) hue-rotate(213deg) brightness(107%) contrast(87%)' : 'invert(37%) sepia(74%) saturate(380%) hue-rotate(175deg) brightness(93%) contrast(88%)'}">`,
 };
 
 /* UI Manager - Handles all UI-related operations and interactions */
@@ -826,11 +829,11 @@ class PromptUIManager {
       styles: { display: 'flex', flexDirection: 'column', gap: '10px', padding: '10px 10px 5px 10px', borderTop: '1px solid var(--light-border)' }
     });
 
-    // Create search input
+    // Create search input 
     const search = createEl('input', {
       id: SELECTORS.PROMPT_SEARCH_INPUT,
       className: `search-input ${getMode()}`,
-      attributes: { type: 'text', placeholder: 'Type to search' }
+      attributes: { type: 'text', placeholder: 'Type to search', style: 'border-radius: 4px;' }
     });
 
     // Use the unified keyboard handler for search
@@ -857,7 +860,7 @@ class PromptUIManager {
   // Creates the menu bar with action buttons
   static createMenuBar() {
     const bar = createEl('div', { styles: { display: 'flex', alignItems: 'center', gap: '8px' } });
-    const btns = ['list', 'add', 'edit', 'settings', 'import_export', 'help', 'changelog'];
+    const btns = ['list', 'add', 'edit', 'import_export', 'help', 'changelog'/*, 'settings'*/];
     const actions = {
       list: e => { e.stopPropagation(); PromptUIManager.refreshAndShowPromptList(); },
       add: e => { e.stopPropagation(); PromptUIManager.showPromptCreationForm(); },
@@ -883,7 +886,7 @@ class PromptUIManager {
     listEl.classList.add('visible');
 
     // separate event listeners for navigation within the prompt list and container-wide Escape key handling
-    document.addEventListener('keydown', PromptUIManager.handleKeyNavigation);
+    document.addEventListener('keydown', PromptUIManager.handleKeyboardNavigation);
     document.addEventListener('keydown', PromptUIManager.handleGlobalEscape);
 
     const first = listEl.querySelector('.prompt-list-item');
@@ -904,24 +907,127 @@ class PromptUIManager {
     hideEl(listEl);
     const input = document.getElementById(SELECTORS.PROMPT_SEARCH_INPUT);
     if (input) input.value = '';
-    document.removeEventListener('keydown', PromptUIManager.handleKeyNavigation);
+    document.removeEventListener('keydown', PromptUIManager.handleKeyboardNavigation);
     document.removeEventListener('keydown', PromptUIManager.handleGlobalEscape);
   }
 
-  // Handles keyboard navigation in the prompt list
-  static handleKeyNavigation(e) {
-    PromptUIManager.handleKeyboardNavigation(e, 'list');
+  // Unified keyboard navigation handler
+  static handleKeyboardNavigation(e, context = 'list') {
+    const list = document.getElementById(SELECTORS.PROMPT_LIST);
+    if (!list || !list.classList.contains('visible')) return;
+
+    PromptUIManager.cancelCloseTimer();
+
+    // Escape key is now handled by handleGlobalEscape
+    // Get items based on context
+    let items = [];
+    if (context === 'search') {
+      const container = document.querySelector(`.${SELECTORS.PROMPT_ITEMS_CONTAINER}`);
+      if (!container) return;
+      items = Array.from(container.querySelectorAll('.prompt-list-item'))
+        .filter(item => item.style.display !== 'none' && !item.classList.contains('shortcut-container'));
+    } else {
+      items = Array.from(list.querySelectorAll('.prompt-list-item'));
+    }
+
+    if (items.length === 0) return;
+
+    // Get current index based on context
+    let idx = context === 'search' ? PromptUIManager.selectedSearchIndex : items.indexOf(document.activeElement);
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      if (context === 'search') {
+        PromptUIManager.selectedSearchIndex = Math.min(PromptUIManager.selectedSearchIndex + 1, items.length - 1) || 0;
+        PromptUIManager.updateSelection(items, PromptUIManager.selectedSearchIndex);
+      } else {
+        items[(idx === -1 || idx === items.length - 1) ? 0 : idx + 1].focus();
+      }
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      if (context === 'search') {
+        PromptUIManager.selectedSearchIndex = Math.max(PromptUIManager.selectedSearchIndex - 1, -1);
+        PromptUIManager.updateSelection(items, PromptUIManager.selectedSearchIndex);
+      } else {
+        items[(idx <= 0) ? items.length - 1 : idx - 1].focus();
+      }
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      if (context === 'search') {
+        if (PromptUIManager.selectedSearchIndex >= 0 && PromptUIManager.selectedSearchIndex < items.length) {
+          items[PromptUIManager.selectedSearchIndex].click();
+        } else if (items.length === 1) {
+          items[0].click();
+        }
+      } else if (idx !== -1) {
+        items[idx].click();
+      }
+    }
+  }
+
+  // Enhanced method to handle Escape globally with search reset functionality
+  static handleGlobalEscape(e) {
+    if (e.key === 'Escape') {
+      const listEl = document.getElementById(SELECTORS.PROMPT_LIST);
+      if (listEl && listEl.classList.contains('visible')) {
+        e.preventDefault();
+        
+        // Reset search selection if needed
+        PromptUIManager.selectedSearchIndex = -1;
+        const container = document.querySelector(`.${SELECTORS.PROMPT_ITEMS_CONTAINER}`);
+        if (container) {
+          const items = Array.from(container.querySelectorAll('.prompt-list-item'))
+            .filter(item => item.style.display !== 'none' && !item.classList.contains('shortcut-container'));
+          PromptUIManager.updateSelection(items, -1);
+        }
+        
+        // Hide the prompt list
+        PromptUIManager.hidePromptList(listEl);
+      }
+    }
   }
 
   // Updates theme-related UI elements
   static updateThemeForUI() {
+    // Update body classes
     document.body.classList.toggle('dark', isDarkMode());
     document.body.classList.toggle('light', !isDarkMode());
+
+    // Update all theme-dependent elements
+    const themeElements = document.querySelectorAll([
+        '.prompt-list',
+        '.prompt-list-items',
+        '.prompt-list-item',
+        '.search-input',
+        '.input-field',
+        '.textarea-field',
+        '.button',
+        '.toggle-switch',
+        '.form-container',
+        '.bottom-menu'
+    ].join(','));
+
+    themeElements.forEach(el => {
+        el.classList.remove('light', 'dark');
+        el.classList.add(getMode());
+    });
+
+    // Update button shadow
     const container = document.getElementById(SELECTORS.PROMPT_BUTTON_CONTAINER);
     if (container) {
-      const btn = container.querySelector(`.${SELECTORS.PROMPT_BUTTON}`);
-      if (btn) btn.style.boxShadow = isDarkMode() ? THEME_COLORS.darkShadow : THEME_COLORS.lightShadow;
+        const btn = container.querySelector(`.${SELECTORS.PROMPT_BUTTON}`);
+        if (btn) {
+            btn.style.boxShadow = isDarkMode() ? THEME_COLORS.darkShadow : THEME_COLORS.lightShadow;
+        }
     }
+
+    // Update icon colors
+    const icons = document.querySelectorAll('.icon-button img');
+    icons.forEach(icon => {
+        icon.style.filter = isDarkMode() 
+            ? 'invert(93%) sepia(0%) saturate(0%) hue-rotate(213deg) brightness(107%) contrast(87%)'
+            : 'invert(37%) sepia(74%) saturate(380%) hue-rotate(175deg) brightness(93%) contrast(88%)';
+    });
   }
 
   // Refreshes and shows the prompt list
@@ -1000,7 +1106,7 @@ class PromptUIManager {
     const search = document.getElementById(SELECTORS.PROMPT_SEARCH_INPUT);
     if (search) search.style.display = 'none';
     const form = createEl('div', { className: `form-container ${getMode()}`, styles: { padding: '0', display: 'flex', flexDirection: 'column', gap: '8px' } });
-    const titleIn = createEl('input', { attributes: { placeholder: 'Prompt Title' }, className: `input-field ${getMode()}` });
+    const titleIn = createEl('input', { attributes: { placeholder: 'Prompt Title' }, className: `input-field ${getMode()}`, styles: { borderRadius: '4px' } });
     const contentArea = createEl('textarea', {
       attributes: { placeholder: 'Enter your prompt here. Add variables with #examplevariable#' },
       className: `textarea-field ${getMode()}`,
@@ -1215,7 +1321,7 @@ class PromptUIManager {
     return form;
   }
 
-  // Updates the selection in the prompt list
+  // Updates the selection in the prompt list during keyboard navigation
   static updateSelection(items, selIndex) {
     items.forEach((item, idx) => {
       item.style.backgroundColor = '';
@@ -1231,89 +1337,8 @@ class PromptUIManager {
     });
   }
 
-  static selectedSearchIndex = -1; // Add this class property
-
-  // Unified keyboard navigation handler
-  static handleKeyboardNavigation(e, context = 'list') {
-    const list = document.getElementById(SELECTORS.PROMPT_LIST);
-    if (!list || !list.classList.contains('visible')) return;
-
-    PromptUIManager.cancelCloseTimer();
-
-    // Handle Escape key globally 
-    if (e.key === 'Escape') {
-      e.preventDefault();
-      // Reset any selection in search context
-      if (context === 'search') {
-        PromptUIManager.selectedSearchIndex = -1;
-        const container = document.querySelector(`.${SELECTORS.PROMPT_ITEMS_CONTAINER}`);
-        if (container) {
-          const items = Array.from(container.querySelectorAll('.prompt-list-item'))
-            .filter(item => item.style.display !== 'none' && !item.classList.contains('shortcut-container'));
-          PromptUIManager.updateSelection(items, -1);
-        }
-      }
-      // Always hide the prompt list on Escape
-      PromptUIManager.hidePromptList(list);
-      return;
-    }
-
-    // Get items based on context
-    let items = [];
-    if (context === 'search') {
-      const container = document.querySelector(`.${SELECTORS.PROMPT_ITEMS_CONTAINER}`);
-      if (!container) return;
-      items = Array.from(container.querySelectorAll('.prompt-list-item'))
-        .filter(item => item.style.display !== 'none' && !item.classList.contains('shortcut-container'));
-    } else {
-      items = Array.from(list.querySelectorAll('.prompt-list-item'));
-    }
-
-    if (items.length === 0) return;
-
-    // Get current index based on context
-    let idx = context === 'search' ? PromptUIManager.selectedSearchIndex : items.indexOf(document.activeElement);
-
-    if (e.key === 'ArrowDown') {
-      e.preventDefault();
-      if (context === 'search') {
-        PromptUIManager.selectedSearchIndex = Math.min(PromptUIManager.selectedSearchIndex + 1, items.length - 1) || 0;
-        PromptUIManager.updateSelection(items, PromptUIManager.selectedSearchIndex);
-      } else {
-        items[(idx === -1 || idx === items.length - 1) ? 0 : idx + 1].focus();
-      }
-    } else if (e.key === 'ArrowUp') {
-      e.preventDefault();
-      if (context === 'search') {
-        PromptUIManager.selectedSearchIndex = Math.max(PromptUIManager.selectedSearchIndex - 1, -1);
-        PromptUIManager.updateSelection(items, PromptUIManager.selectedSearchIndex);
-      } else {
-        items[(idx <= 0) ? items.length - 1 : idx - 1].focus();
-      }
-    } else if (e.key === 'Enter') {
-      e.preventDefault();
-      if (context === 'search') {
-        if (PromptUIManager.selectedSearchIndex >= 0 && PromptUIManager.selectedSearchIndex < items.length) {
-          items[PromptUIManager.selectedSearchIndex].click();
-        } else if (items.length === 1) {
-          items[0].click();
-        }
-      } else if (idx !== -1) {
-        items[idx].click();
-      }
-    }
-  }
-
-  //   method to handle Escape globally
-  static handleGlobalEscape(e) {
-    if (e.key === 'Escape') {
-      const listEl = document.getElementById(SELECTORS.PROMPT_LIST);
-      if (listEl && listEl.classList.contains('visible')) {
-        e.preventDefault();
-        PromptUIManager.hidePromptList(listEl);
-      }
-    }
-  }
+  // Class property to store the selected search index
+  static selectedSearchIndex = -1;
 }
 
 /* Prompt Processor */
