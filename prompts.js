@@ -7,7 +7,7 @@ const CHROME_STORAGE_LIMIT = Number.MAX_SAFE_INTEGER; // Remove practical storag
 const CHROME_STORAGE_ITEM_LIMIT = Number.MAX_SAFE_INTEGER; // Remove practical storage limit
 const PROMPT_OVERHEAD = 50; // Estimated overhead for prompt metadata
 
-// Add this function to check storage usage
+// check storage usage
 async function getStorageUsage() {
   const data = await chrome.storage.local.get('prompts');
   const prompts = data.prompts || [];

@@ -479,7 +479,7 @@ class PromptStorageManager {
     });
   }
 
-  // Get all saved prompts, ensuring return value is always an array
+  // Get all saved prompts, ensuring return value is an array
   static async getPrompts() { const p = await PromptStorageManager.getData('prompts', []); return Array.isArray(p) ? p : []; }
 
   // Save a new prompt, generating UUID if needed
@@ -602,7 +602,7 @@ class PromptUIManager {
     const existingPopup = document.getElementById(SELECTORS.ONBOARDING_POPUP);
     if (existingPopup) existingPopup.remove();
 
-    // Create the popup with solid primary color instead of gradient
+    // Create the popup with solid primary color 
     const popup = createEl('div', {
       id: SELECTORS.ONBOARDING_POPUP,
       className: `onboarding-popup ${getMode()}`,
@@ -626,7 +626,7 @@ class PromptUIManager {
       innerHTML: 'Hover to Start'
     });
 
-    // Add a little triangle pointing down with primary color
+    // little triangle pointing down with primary color
     const triangle = createEl('div', {
       styles: {
         position: 'absolute',
@@ -1361,68 +1361,106 @@ class PromptProcessor {
   }
 }
 
-/* Prompt Mediator */
+/* Prompt Mediator - Coordinates interactions between UI, storage, and prompt processing
+ * Handles:
+ * - Event binding for prompt selection and variable replacement
+ * - Initialization of UI components and observers
+ * - Keyboard shortcut handling
+ * - Storage change monitoring
+ */
 class PromptMediator {
   constructor(ui, processor) {
     this.ui = ui;
     this.processor = processor;
+    this.eventBus = new EventBus();
     this.bindEvents();
     this.initialize();
   }
+
+  // Bind event handlers for prompt selection and variable processing
   bindEvents() {
-    PromptUIManager.onPromptSelect(async prompt => {
+    this.eventBus.on('promptSelect', async prompt => {
       const inputBox = InputBoxHandler.getInputBox();
       if (!inputBox) { console.error('Input box not found.'); return; }
+
+      // Extract variables from prompt content
       const vars = this.processor.extractVariables(prompt.content);
       const listEl = document.getElementById(SELECTORS.PROMPT_LIST);
+
+      // Handle prompts with and without variables differently
       if (vars.length === 0) {
+        // For prompts without variables, insert directly
         await InputBoxHandler.insertPrompt(inputBox, prompt.content, listEl);
         PromptUIManager.hidePromptList(listEl);
       } else {
+        // For prompts with variables, show input form and process values
         PromptUIManager.showVariableInputForm(inputBox, prompt.content, vars, listEl, async values => {
           const processed = this.processor.replaceVariables(prompt.content, values);
           await InputBoxHandler.insertPrompt(inputBox, processed, listEl);
           PromptUIManager.hidePromptList(listEl);
+          // Refresh prompt list after short delay
           setTimeout(() => { PromptStorageManager.getPrompts().then(prompts => { PromptUIManager.refreshPromptList(prompts); }); }, 300);
         });
       }
     });
+    
+    // Expose event emission method for UI components
+    PromptUIManager.onPromptSelect = (prompt) => this.eventBus.emit('promptSelect', prompt);
   }
+
+  // Initialize extension components and set up observers
   async initialize() {
     try {
+      // Wait for input box to be available before proceeding
       await InputBoxHandler.waitForInputBox();
       const prompts = await PromptStorageManager.getPrompts();
       PromptUIManager.injectPromptManagerButton(prompts);
-      let observerTimeout = null;
-      const target = document.querySelector('main') || document.body;
-      const observer = new MutationObserver(async () => {
-        if (document.getElementById(SELECTORS.PROMPT_BUTTON_CONTAINER)) return;
-        if (observerTimeout) clearTimeout(observerTimeout);
-        observerTimeout = setTimeout(async () => {
-          const inputBox = InputBoxHandler.getInputBox();
-          if (inputBox && !document.getElementById(SELECTORS.PROMPT_BUTTON_CONTAINER)) {
-            const updated = await PromptStorageManager.getPrompts();
-            PromptUIManager.injectPromptManagerButton(updated);
-          }
-        }, 300);
-      });
-      observer.observe(target, { childList: true, subtree: true });
-      PromptStorageManager.onChange(async (changes, area) => {
-        if (area === 'local' && changes.prompts) {
-          PromptUIManager.refreshPromptList(changes.prompts.newValue);
-        }
-      });
-      document.addEventListener('keydown', async e => {
-        const shortcut = await PromptStorageManager.getKeyboardShortcut();
-        if (e[shortcut.modifier] && (shortcut.requiresShift ? e.shiftKey : true) && e.key.toLowerCase() === shortcut.key.toLowerCase()) {
-          e.preventDefault();
-          const listEl = document.getElementById(SELECTORS.PROMPT_LIST);
-          if (listEl) listEl.classList.contains('visible') ? PromptUIManager.hidePromptList(listEl) : PromptUIManager.showPromptList(listEl);
-        }
-      });
+
+      this.setupMutationObserver();
+      this.setupStorageChangeMonitor();
+      this.setupKeyboardShortcuts();
     } catch (err) { console.error('Error initializing extension:', err); }
+  }
+  
+  // Extract mutation observer to its own method
+  setupMutationObserver() {
+    let observerTimeout = null;
+    const target = document.querySelector('main') || document.body;
+    const observer = new MutationObserver(async () => {
+      if (document.getElementById(SELECTORS.PROMPT_BUTTON_CONTAINER)) return;
+      if (observerTimeout) clearTimeout(observerTimeout);
+      observerTimeout = setTimeout(async () => {
+        const inputBox = InputBoxHandler.getInputBox();
+        if (inputBox && !document.getElementById(SELECTORS.PROMPT_BUTTON_CONTAINER)) {
+          const updated = await PromptStorageManager.getPrompts();
+          PromptUIManager.injectPromptManagerButton(updated);
+        }
+      }, 300);
+    });
+    observer.observe(target, { childList: true, subtree: true });
+  }
+  
+  // Extract storage change monitor to its own method  
+  setupStorageChangeMonitor() {
+    PromptStorageManager.onChange(async (changes, area) => {
+      if (area === 'local' && changes.prompts) {
+        PromptUIManager.refreshPromptList(changes.prompts.newValue);
+      }
+    });
+  }
+  
+  // Extract keyboard shortcut handler to its own method
+  setupKeyboardShortcuts() {
+    document.addEventListener('keydown', async e => {
+      const shortcut = await PromptStorageManager.getKeyboardShortcut();
+      if (e[shortcut.modifier] && (shortcut.requiresShift ? e.shiftKey : true) && e.key.toLowerCase() === shortcut.key.toLowerCase()) {
+        e.preventDefault();
+        const listEl = document.getElementById(SELECTORS.PROMPT_LIST);
+        if (listEl) listEl.classList.contains('visible') ? PromptUIManager.hidePromptList(listEl) : PromptUIManager.showPromptList(listEl);
+      }
+    });
   }
 }
 
 /* Initialize the extension */
-setTimeout(() => { new PromptMediator(PromptUIManager, PromptProcessor); }, 200);
+setTimeout(() => { new PromptMediator(PromptUIManager, PromptProcessor); }, 100);
