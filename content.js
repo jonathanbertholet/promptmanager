@@ -18,11 +18,29 @@ const UI_STYLES = {
     width: '40px', height: '40px',
     userSelect: 'none',
   }),
-  promptButtonStyle: { width: '100%', height: '100%', backgroundColor: THEME_COLORS.primary }
+  promptButtonStyle: { width: '100%', height: '100%', backgroundColor: THEME_COLORS.primary },
+  hotCornerStyle: {
+    position: 'fixed',
+    bottom: '0',
+    right: '0',
+    width: '40px',
+    height: '40px',
+    zIndex: '9999',
+    pointerEvents: 'none'
+  },
+  hotCornerActiveZone: {
+    position: 'fixed',
+    bottom: '0',
+    right: '0',
+    width: '60px',
+    height: '60px',
+    zIndex: '9998',
+    backgroundColor: 'transparent'
+  }
 };
 
 // Time delay for auto close
-const PROMPT_CLOSE_DELAY = 5000;
+const PROMPT_CLOSE_DELAY = 10000;
 
 // Selectors for DOM elements
 const SELECTORS = {
@@ -56,7 +74,7 @@ const hideEl = el => {
     el.style.display = 'none';
     const items = el.querySelector(`.${SELECTORS.PROMPT_ITEMS_CONTAINER}`);
     if (items) Array.from(items.children).forEach(i => i.style.display = 'flex');
-  }, 200); // 200ms delay for smooth transition for closing container
+  }, 200);
 };
 
 /* ============================================================================
@@ -89,7 +107,7 @@ function injectGlobalStyles() {
       --font-family: 'Roboto', sans-serif;
     }
     
-    /* New scrollbar styling for our specific containers - apparently, firefox styling works best?*/
+    /* New scrollbar styling for our specific containers */
     .prompt-list *,
     .prompt-list-items,
     #${SELECTORS.PROMPT_LIST} *,
@@ -356,7 +374,7 @@ function injectGlobalStyles() {
       box-shadow: 0 0 0 2px rgba(90, 103, 216, 0.3);
       outline: none;
     }
-    /* Keyboard navigation styling - matches hover styling */
+    /* Keyboard navigation styling */
     .prompt-list-item.keyboard-selected {
       background-color: var(--dark-bg);
       transform: translateY(-2px);
@@ -369,52 +387,17 @@ function injectGlobalStyles() {
       background-color: #2d3748;
       transform: translateY(-2px);
     }
-    
-    /* Allow both hover and keyboard selection to work together */
-    .prompt-list-item:hover,
-    .prompt-list-item.keyboard-selected:hover {
-      background-color: var(--dark-bg);
-      transform: translateY(-2px);
-    }
-    .prompt-list-item.light:hover,
-    .prompt-list-item.light.keyboard-selected:hover {
-      background-color: #e2e8f0;
-      transform: translateY(-2px);
-    }
-    .prompt-list-item.dark:hover,
-    .prompt-list-item.dark.keyboard-selected:hover {
-      background-color: #2d3748;
-      transform: translateY(-2px);
-    }
-    
-    /* Make keyboard focus match hover styling for prompt items */
-    .prompt-list-item:focus,
-    .prompt-list-item:focus-visible {
-      outline: none;
-    }
-    .prompt-list-item.light:focus,
-    .prompt-list-item.light:focus-visible {
-      background-color: #e2e8f0;
-      transform: translateY(-2px);
-    }
-    .prompt-list-item.dark:focus,
-    .prompt-list-item.dark:focus-visible {
-      background-color: #2d3748;
-      transform: translateY(-2px);
-    }
-    /* Ensure the prompt-list stays visible during keyboard navigation */
+    /* Ensure prompt list stays visible during keyboard navigation */
     .prompt-list.visible:focus-within {
       display: block;
       opacity: 1;
       transform: translateY(0);
     }
-    
     /* Onboarding animation */
     @keyframes onboarding-bounce {
       0%, 100% { transform: translateX(-50%) translateY(0); }
       50% { transform: translateX(-50%) translateY(-5px); }
     }
-    
     /* Responsive styles for onboarding popup */
     @media (max-width: 768px) {
       #${SELECTORS.ONBOARDING_POPUP} {
@@ -422,14 +405,22 @@ function injectGlobalStyles() {
         padding: 6px 10px;
       }
     }
+    /* Hot corner styling */
+    #hot-corner-indicator {
+      opacity: 0.7;
+      transition: opacity 0.3s ease, border-width 0.3s ease, border-color 0.3s ease;
+    }
+    #hot-corner-container:hover #hot-corner-indicator {
+      opacity: 1;
+    }
   `;
   document.head.appendChild(styleEl);
 }
 injectGlobalStyles();
 
-// Dark Mode Handling - Initialize based on system preference
+// Dark Mode Handling
 let isDarkModeActive = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-if (window.matchMedia) { //listen for theme changes
+if (window.matchMedia) {
   window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
     isDarkModeActive = e.matches;
     document.body.classList.toggle('dark', isDarkMode());
@@ -446,15 +437,8 @@ class EventBus {
   emit(evt, ...args) { (this.events[evt] || []).forEach(fn => fn(...args)); }
 }
 
-/* Storage Manager - Handles all chrome.storage operations and data management
- * methods for:
- * - Getting/setting data from chrome.storage
- * - Managing prompts (get, save, merge imported)
- * - Managing button position and keyboard shortcuts
- * - Handling storage change events
- */
+/* Storage Manager */
 class PromptStorageManager {
-  // Get data from chrome storage with fallback default value
   static getData(key, def) {
     return new Promise(resolve => {
       try {
@@ -465,8 +449,6 @@ class PromptStorageManager {
       } catch (err) { console.error(err); resolve(def); }
     });
   }
-
-  // Save data to chrome storage
   static setData(key, value) {
     return new Promise(resolve => {
       try {
@@ -478,11 +460,7 @@ class PromptStorageManager {
       } catch (err) { console.error(err); resolve(false); }
     });
   }
-
-  // Get all saved prompts, ensuring return value is an array
   static async getPrompts() { const p = await PromptStorageManager.getData('prompts', []); return Array.isArray(p) ? p : []; }
-
-  // Save a new prompt, generating UUID if needed
   static async savePrompt(prompt) {
     if (!prompt.uuid) prompt.uuid = crypto.randomUUID();
     const prompts = await PromptStorageManager.getPrompts();
@@ -490,11 +468,8 @@ class PromptStorageManager {
     await PromptStorageManager.setData('prompts', prompts);
     return { success: true };
   }
-
-  // Merge imported prompts with existing ones, handling duplicates and missing UUIDs
   static async mergeImportedPrompts(imported) {
     let prompts = await PromptStorageManager.getPrompts();
-    const byUuid = Object.fromEntries(prompts.filter(p => p.uuid).map(p => [p.uuid, p]));
     imported.forEach(im => {
       if (im.id && !im.uuid) { im.uuid = im.id; delete im.id; }
       delete im.createdAt;
@@ -506,19 +481,13 @@ class PromptStorageManager {
     await PromptStorageManager.setData('prompts', prompts);
     return prompts;
   }
-
-  // Register callback for storage changes
   static onChange(cb) { chrome.storage.onChanged.addListener(cb); }
-
-  // Get the floating button position
   static async getButtonPosition() { return await PromptStorageManager.getData('buttonPosition', { x: 75, y: 100 }); }
   static async saveButtonPosition(pos) {
     const current = await PromptStorageManager.getButtonPosition();
     if (current.x === pos.x && current.y === pos.y) return true;
     return await PromptStorageManager.setData('buttonPosition', pos);
   }
-
-  // keyboard shortcut settings with platform-specific defaults
   static async getKeyboardShortcut() {
     const isMac = navigator.platform.toUpperCase().includes('MAC');
     return await PromptStorageManager.getData('keyboardShortcut', {
@@ -528,22 +497,14 @@ class PromptStorageManager {
     });
   }
   static async saveKeyboardShortcut(shortcut) { return await PromptStorageManager.setData('keyboardShortcut', shortcut); }
-  // Check if the user has completed onboarding
-  static async getOnboardingCompleted() {
-    return await PromptStorageManager.getData('onboardingCompleted', false);
-  }
-
-  // Mark onboarding as completed
-  static async setOnboardingCompleted() {
-    return await PromptStorageManager.setData('onboardingCompleted', true);
-  }
+  static async getOnboardingCompleted() { return await PromptStorageManager.getData('onboardingCompleted', false); }
+  static async setOnboardingCompleted() { return await PromptStorageManager.setData('onboardingCompleted', true); }
+  static async getDisplayMode() { return await PromptStorageManager.getData('displayMode', 'standard'); }
+  static async saveDisplayMode(mode) { return await PromptStorageManager.setData('displayMode', mode); }
 }
 
 /* Icon SVGs */
-// Get theme color for icons based on current mode
 const ICON_COLOR = () => (getMode() === 'dark' ? '#e1e1e1' : '#3674B5');
-
-// Define SVG icons with theme color
 const ICON_SVGS = {
   list: `<img src="${chrome.runtime.getURL('icons/list.svg')}" width="16" height="16" alt="List Prompts" title="List Prompts" style="filter: ${getMode() === 'dark' ? 'invert(93%) sepia(0%) saturate(0%) hue-rotate(213deg) brightness(107%) contrast(87%)' : 'invert(37%) sepia(74%) saturate(380%) hue-rotate(175deg) brightness(93%) contrast(88%)'}">`,
   add: `<img src="${chrome.runtime.getURL('icons/new.svg')}" width="16" height="16" alt="Add Prompt" title="Add Prompt" style="filter: ${getMode() === 'dark' ? 'invert(93%) sepia(0%) saturate(0%) hue-rotate(213deg) brightness(107%) contrast(87%)' : 'invert(37%) sepia(74%) saturate(380%) hue-rotate(175deg) brightness(93%) contrast(88%)'}">`,
@@ -555,40 +516,30 @@ const ICON_SVGS = {
   changelog: `<img src="${chrome.runtime.getURL('icons/notes.svg')}" width="16" height="16" alt="Changelog" title="Changelog" style="filter: ${getMode() === 'dark' ? 'invert(93%) sepia(0%) saturate(0%) hue-rotate(213deg) brightness(107%) contrast(87%)' : 'invert(37%) sepia(74%) saturate(380%) hue-rotate(175deg) brightness(93%) contrast(88%)'}">`,
 };
 
-/* UI Manager - Handles all UI-related operations and interactions */
+/* UI Manager */
 class PromptUIManager {
-  // Event bus for handling prompt selection events
+  // Add a static flag to track manual view changes.
+  static manuallyOpened = false;
   static eventBus = new EventBus();
-
-  // Event subscription methods
   static onPromptSelect(cb) { this.eventBus.on('promptSelect', cb); }
   static emitPromptSelect(prompt) { this.eventBus.emit('promptSelect', prompt); }
 
-  // Injects the main prompt button and list container into the page
   static injectPromptManagerButton(prompts) {
     if (document.getElementById(SELECTORS.PROMPT_BUTTON_CONTAINER)) return;
     PromptStorageManager.getButtonPosition().then(pos => {
-      // Create main container
       const container = createEl('div', { id: SELECTORS.PROMPT_BUTTON_CONTAINER, styles: UI_STYLES.getPromptButtonContainerStyle(pos) });
       const button = createEl('button', { id: SELECTORS.PROMPT_BUTTON, className: 'prompt-button' });
       container.appendChild(button);
       const listEl = createEl('div', { id: SELECTORS.PROMPT_LIST, className: `prompt-list ${getMode()}` });
       container.appendChild(listEl);
       document.body.appendChild(container);
-
-      // Always refresh the prompt list initially, regardless of whether it's empty
       PromptUIManager.refreshPromptList(prompts);
-
-      // Setup event handlers
       PromptUIManager.attachButtonEvents(button, listEl, container, prompts);
       PromptUIManager.makeDraggable(container);
-
-      // Check if onboarding should be shown
       PromptUIManager.checkAndShowOnboarding(container);
     });
   }
 
-  // Check if onboarding should be shown and display it if needed
   static async checkAndShowOnboarding(container) {
     const onboardingCompleted = await PromptStorageManager.getOnboardingCompleted();
     if (!onboardingCompleted) {
@@ -596,13 +547,9 @@ class PromptUIManager {
     }
   }
 
-  // Create and show the onboarding popup
   static showOnboardingPopup(container) {
-    // Remove any existing popup first
     const existingPopup = document.getElementById(SELECTORS.ONBOARDING_POPUP);
     if (existingPopup) existingPopup.remove();
-
-    // Create the popup with solid primary color 
     const popup = createEl('div', {
       id: SELECTORS.ONBOARDING_POPUP,
       className: `onboarding-popup ${getMode()}`,
@@ -625,8 +572,6 @@ class PromptUIManager {
       },
       innerHTML: 'Hover to Start'
     });
-
-    // little triangle pointing down with primary color
     const triangle = createEl('div', {
       styles: {
         position: 'absolute',
@@ -640,11 +585,8 @@ class PromptUIManager {
         borderTop: `5px solid ${THEME_COLORS.primary}dd`
       }
     });
-
     popup.appendChild(triangle);
     container.appendChild(popup);
-
-    // Automatically hide after 10 seconds
     setTimeout(() => {
       if (popup && popup.parentNode) {
         popup.style.opacity = '0';
@@ -655,32 +597,25 @@ class PromptUIManager {
     }, 10000);
   }
 
-  // Attaches click and hover events to the prompt button
   static attachButtonEvents(button, listEl, container, prompts) {
     let isOpen = false;
-
-    // Shared handler for starting the close timer
     const startCloseTimerHandler = (e) => {
       if (e) e.stopPropagation();
       PromptUIManager.startCloseTimer(e, listEl, () => (isOpen = false));
     };
 
-    // Toggle list on click
     button.addEventListener('click', e => {
       e.stopPropagation();
+      // For manual actions, mark as manuallyOpened.
+      PromptUIManager.manuallyOpened = true;
       isOpen ? PromptUIManager.hidePromptList(listEl) : PromptUIManager.showPromptList(listEl);
       isOpen = !isOpen;
     });
 
-    // Show appropriate content on hover - dynamically check prompts count
     button.addEventListener('mouseenter', async e => {
       e.stopPropagation();
       PromptUIManager.cancelCloseTimer();
-
-      // Get current prompts instead of using a stale reference
       const currentPrompts = await PromptStorageManager.getPrompts();
-
-      // If no prompts exist, show the creation form instead of the prompt list
       if (currentPrompts.length === 0) {
         PromptUIManager.showPromptCreationForm();
       } else {
@@ -689,14 +624,10 @@ class PromptUIManager {
       isOpen = true;
     });
 
-    // Start close timer on mouse leave
     button.addEventListener('mouseleave', startCloseTimerHandler);
-    // Cancel close timer when mouse enters list
     listEl.addEventListener('mouseenter', PromptUIManager.cancelCloseTimer.bind(PromptUIManager));
-    // Start close timer when mouse leaves list  
     listEl.addEventListener('mouseleave', startCloseTimerHandler);
 
-    // Close list when clicking outside
     document.addEventListener('click', e => {
       const isMenu = e.target.closest(`#${SELECTORS.PROMPT_LIST}`) ||
         e.target.closest(`.${SELECTORS.PROMPT_ITEMS_CONTAINER}`) ||
@@ -711,18 +642,14 @@ class PromptUIManager {
     });
   }
 
-  // Timer management for auto-closing the prompt list
   static startCloseTimer(e, listEl, callback) {
     if (this.closeTimer) clearTimeout(this.closeTimer);
     this.closeTimer = setTimeout(() => { hideEl(listEl); callback && callback(); this.closeTimer = null; }, PROMPT_CLOSE_DELAY);
   }
   static cancelCloseTimer() { if (this.closeTimer) { clearTimeout(this.closeTimer); this.closeTimer = null; } }
 
-  // Makes the prompt button draggable and saves its position - simplified version
   static makeDraggable(container) {
     let pos = { x: 0, y: 0 };
-
-    // Load the initial position
     PromptStorageManager.getButtonPosition().then(savedPos => {
       pos = savedPos;
       Object.assign(container.style, {
@@ -730,18 +657,13 @@ class PromptUIManager {
         bottom: `${pos.y}px`
       });
     });
-
-    // Single mousedown event with all logic contained
     container.addEventListener('mousedown', startEvent => {
       if (startEvent.target.id !== SELECTORS.PROMPT_BUTTON) return;
-
-      // Initial values
       const startX = startEvent.clientX;
       const startY = startEvent.clientY;
       const startRight = parseInt(container.style.right, 10) || 0;
       const startBottom = parseInt(container.style.bottom, 10) || 0;
       container.style.transition = 'none';
-      // Define move and end handlers within this scope
       const handleMove = moveEvent => {
         const newX = Math.min(
           Math.max(startRight + (startX - moveEvent.clientX), 0),
@@ -762,7 +684,6 @@ class PromptUIManager {
           x: parseInt(container.style.right, 10),
           y: parseInt(container.style.bottom, 10)
         };
-        // Only save if position changed significantly
         if (Math.abs(newPos.x - pos.x) > 5 || Math.abs(newPos.y - pos.y) > 5) {
           PromptStorageManager.saveButtonPosition(newPos)
             .then(success => {
@@ -770,16 +691,13 @@ class PromptUIManager {
             });
         }
       };
-      // Add temporary listeners
       document.addEventListener('mousemove', handleMove);
       document.addEventListener('mouseup', handleEnd);
     });
   }
 
-  // Refreshes the prompt list UI
   static refreshPromptList(prompts) { this.buildPromptListContainer(prompts); const input = document.getElementById(SELECTORS.PROMPT_SEARCH_INPUT); if (input) input.style.display = 'block'; }
 
-  // Builds the container for the prompt list
   static buildPromptListContainer(prompts = []) {
     const listEl = document.getElementById(SELECTORS.PROMPT_LIST);
     if (!listEl) return;
@@ -791,7 +709,6 @@ class PromptUIManager {
     listEl.appendChild(PromptUIManager.createBottomMenu());
   }
 
-  // Resets and rebuilds the prompt list container
   static resetPromptListContainer() {
     const listEl = document.getElementById(SELECTORS.PROMPT_LIST);
     const wasVisible = listEl && listEl.classList.contains('visible');
@@ -802,7 +719,6 @@ class PromptUIManager {
     }
   }
 
-  // Creates a single prompt item in the list
   static createPromptItem(prompt) {
     const item = createEl('div', {
       className: `prompt-list-item ${getMode()}`,
@@ -822,26 +738,19 @@ class PromptUIManager {
     return item;
   }
 
-  // Creates the bottom menu with search and action buttons
   static createBottomMenu() {
     const menu = createEl('div', {
       className: `bottom-menu ${getMode()}`,
       styles: { display: 'flex', flexDirection: 'column', gap: '10px', padding: '10px 10px 5px 10px', borderTop: '1px solid var(--light-border)' }
     });
-
-    // Create search input 
     const search = createEl('input', {
       id: SELECTORS.PROMPT_SEARCH_INPUT,
       className: `search-input ${getMode()}`,
       attributes: { type: 'text', placeholder: 'Type to search', style: 'border-radius: 4px;' }
     });
-
-    // Use the unified keyboard handler for search
     search.addEventListener('keydown', e => {
       PromptUIManager.handleKeyboardNavigation(e, 'search');
     });
-
-    // Filter prompts on search input
     search.addEventListener('input', e => {
       const term = e.target.value.toLowerCase();
       const container = document.querySelector(`.${SELECTORS.PROMPT_ITEMS_CONTAINER}`);
@@ -851,57 +760,46 @@ class PromptUIManager {
       );
       PromptUIManager.selectedSearchIndex = -1;
     });
-
     menu.appendChild(search);
     menu.appendChild(PromptUIManager.createMenuBar());
     return menu;
   }
 
-  // Creates the menu bar with action buttons
   static createMenuBar() {
     const bar = createEl('div', { styles: { display: 'flex', alignItems: 'center', gap: '8px' } });
-    const btns = ['list', 'add', 'edit', 'import_export', 'help', 'changelog'/*, 'settings'*/];
+    const btns = ['list', 'add', 'edit', 'import_export', 'help', 'changelog','settings'];
+    // Add manual flag before calling the actions.
     const actions = {
-      list: e => { e.stopPropagation(); PromptUIManager.refreshAndShowPromptList(); },
-      add: e => { e.stopPropagation(); PromptUIManager.showPromptCreationForm(); },
-      edit: e => { e.stopPropagation(); PromptUIManager.showEditView(); },
-      settings: e => { e.stopPropagation(); PromptUIManager.showSettingsForm(); },
-      import_export: e => { e.stopPropagation(); PromptUIManager.showImportExportForm(); },
-      help: e => { e.stopPropagation(); PromptUIManager.showHelp(); },
-      changelog: e => { e.stopPropagation(); PromptUIManager.showChangelog(); },
+      list: e => { e.stopPropagation(); PromptUIManager.manuallyOpened = true; PromptUIManager.refreshAndShowPromptList(); },
+      add: e => { e.stopPropagation(); PromptUIManager.manuallyOpened = true; PromptUIManager.showPromptCreationForm(); },
+      edit: e => { e.stopPropagation(); PromptUIManager.manuallyOpened = true; PromptUIManager.showEditView(); },
+      settings: e => { e.stopPropagation(); PromptUIManager.manuallyOpened = true; PromptUIManager.showSettingsForm(); },
+      import_export: e => { e.stopPropagation(); PromptUIManager.manuallyOpened = true; PromptUIManager.showImportExportForm(); },
+      help: e => { e.stopPropagation(); PromptUIManager.manuallyOpened = true; PromptUIManager.showHelp(); },
+      changelog: e => { e.stopPropagation(); PromptUIManager.manuallyOpened = true; PromptUIManager.showChangelog(); },
     };
     btns.forEach(type => bar.appendChild(PromptUIManager.createIconButton(type, actions[type])));
     return bar;
   }
 
-  // Creates an icon button with specified type and click handler for the menu bar
   static createIconButton(type, onClick) {
     return createEl('button', { className: 'icon-button', eventListeners: { click: onClick }, innerHTML: ICON_SVGS[type] || '' });
   }
 
-  // Shows the prompt list and sets up keyboard navigation
   static showPromptList(listEl) {
     if (!listEl) return;
     showEl(listEl);
     listEl.classList.add('visible');
-
-    // separate event listeners for navigation within the prompt list and container-wide Escape key handling
     document.addEventListener('keydown', PromptUIManager.handleKeyboardNavigation);
     document.addEventListener('keydown', PromptUIManager.handleGlobalEscape);
-
     const first = listEl.querySelector('.prompt-list-item');
     if (first) setTimeout(() => first.focus(), 50);
     PromptUIManager.focusSearchInput();
-
-    // Mark onboarding as completed when the user opens the prompt list
     PromptStorageManager.setOnboardingCompleted();
-
-    // Remove the onboarding popup if it exists
     const popup = document.getElementById(SELECTORS.ONBOARDING_POPUP);
     if (popup) popup.remove();
   }
 
-  // Hides the prompt list and cleans up
   static hidePromptList(listEl) {
     if (!listEl) return;
     hideEl(listEl);
@@ -909,17 +807,14 @@ class PromptUIManager {
     if (input) input.value = '';
     document.removeEventListener('keydown', PromptUIManager.handleKeyboardNavigation);
     document.removeEventListener('keydown', PromptUIManager.handleGlobalEscape);
+    // Reset manual flag when hiding the view.
+    PromptUIManager.manuallyOpened = false;
   }
 
-  // Unified keyboard navigation handler
   static handleKeyboardNavigation(e, context = 'list') {
     const list = document.getElementById(SELECTORS.PROMPT_LIST);
     if (!list || !list.classList.contains('visible')) return;
-
     PromptUIManager.cancelCloseTimer();
-
-    // Escape key is now handled by handleGlobalEscape
-    // Get items based on context
     let items = [];
     if (context === 'search') {
       const container = document.querySelector(`.${SELECTORS.PROMPT_ITEMS_CONTAINER}`);
@@ -929,12 +824,8 @@ class PromptUIManager {
     } else {
       items = Array.from(list.querySelectorAll('.prompt-list-item'));
     }
-
     if (items.length === 0) return;
-
-    // Get current index based on context
     let idx = context === 'search' ? PromptUIManager.selectedSearchIndex : items.indexOf(document.activeElement);
-
     if (e.key === 'ArrowDown') {
       e.preventDefault();
       if (context === 'search') {
@@ -965,14 +856,11 @@ class PromptUIManager {
     }
   }
 
-  // Enhanced method to handle Escape globally with search reset functionality
   static handleGlobalEscape(e) {
     if (e.key === 'Escape') {
       const listEl = document.getElementById(SELECTORS.PROMPT_LIST);
       if (listEl && listEl.classList.contains('visible')) {
         e.preventDefault();
-        
-        // Reset search selection if needed
         PromptUIManager.selectedSearchIndex = -1;
         const container = document.querySelector(`.${SELECTORS.PROMPT_ITEMS_CONTAINER}`);
         if (container) {
@@ -980,20 +868,14 @@ class PromptUIManager {
             .filter(item => item.style.display !== 'none' && !item.classList.contains('shortcut-container'));
           PromptUIManager.updateSelection(items, -1);
         }
-        
-        // Hide the prompt list
         PromptUIManager.hidePromptList(listEl);
       }
     }
   }
 
-  // Updates theme-related UI elements
   static updateThemeForUI() {
-    // Update body classes
     document.body.classList.toggle('dark', isDarkMode());
     document.body.classList.toggle('light', !isDarkMode());
-
-    // Update all theme-dependent elements
     const themeElements = document.querySelectorAll([
         '.prompt-list',
         '.prompt-list-items',
@@ -1006,13 +888,10 @@ class PromptUIManager {
         '.form-container',
         '.bottom-menu'
     ].join(','));
-
     themeElements.forEach(el => {
         el.classList.remove('light', 'dark');
         el.classList.add(getMode());
     });
-
-    // Update button shadow
     const container = document.getElementById(SELECTORS.PROMPT_BUTTON_CONTAINER);
     if (container) {
         const btn = container.querySelector(`.${SELECTORS.PROMPT_BUTTON}`);
@@ -1020,8 +899,6 @@ class PromptUIManager {
             btn.style.boxShadow = isDarkMode() ? THEME_COLORS.darkShadow : THEME_COLORS.lightShadow;
         }
     }
-
-    // Update icon colors
     const icons = document.querySelectorAll('.icon-button img');
     icons.forEach(icon => {
         icon.style.filter = isDarkMode() 
@@ -1030,7 +907,6 @@ class PromptUIManager {
     });
   }
 
-  // Refreshes and shows the prompt list
   static refreshAndShowPromptList() {
     (async () => {
       const prompts = await PromptStorageManager.getPrompts();
@@ -1040,13 +916,11 @@ class PromptUIManager {
     })();
   }
 
-  // Focuses the search input
   static focusSearchInput() {
     const input = document.getElementById(SELECTORS.PROMPT_SEARCH_INPUT);
     if (input) { applyTheme(input); requestAnimationFrame(() => { input.focus(); input.select(); }); }
   }
 
-  // Shows the prompt creation form
   static showPromptCreationForm() {
     const list = document.getElementById(SELECTORS.PROMPT_LIST);
     if (!list) return;
@@ -1062,7 +936,6 @@ class PromptUIManager {
     });
   }
 
-  // Shows the variable input form for prompts with variables
   static showVariableInputForm(inputBox, content, variables, listEl, onSubmit) {
     listEl.innerHTML = '';
     const dark = isDarkMode();
@@ -1101,7 +974,6 @@ class PromptUIManager {
     if (firstInput) firstInput.focus();
   }
 
-  // Creates the prompt creation form
   static createPromptCreationForm(prefill = '') {
     const search = document.getElementById(SELECTORS.PROMPT_SEARCH_INPUT);
     if (search) search.style.display = 'none';
@@ -1127,10 +999,8 @@ class PromptUIManager {
     return form;
   }
 
-  // Shows error dialog for save failures
   static showSaveErrorDialog(msg) { alert(msg); }
 
-  // Creates the import/export form
   static createImportExportForm() {
     const dark = isDarkMode();
     const search = document.getElementById(SELECTORS.PROMPT_SEARCH_INPUT);
@@ -1173,7 +1043,6 @@ class PromptUIManager {
     return form;
   }
 
-  // Shows the import/export form
   static showImportExportForm() {
     const list = document.getElementById(SELECTORS.PROMPT_LIST);
     if (!list) return;
@@ -1183,7 +1052,6 @@ class PromptUIManager {
     list.insertBefore(form, list.firstChild);
   }
 
-  // Edit view for prompt list items
   static async createEditView() {
     const dark = isDarkMode();
     const prompts = await PromptStorageManager.getPrompts();
@@ -1194,8 +1062,8 @@ class PromptUIManager {
         className: `prompt-list-item ${getMode()}`,
         styles: {
           justifyContent: 'space-between',
-          padding: '4px 10px',  // Increased horizontal padding while keeping vertical padding
-          margin: '6px 0'      // Explicitly set the same margin
+          padding: '4px 10px',
+          margin: '6px 0'
         }
       });
       item.setAttribute('draggable', 'true');
@@ -1229,7 +1097,6 @@ class PromptUIManager {
     return container;
   }
 
-  // Shows the edit form for a specific prompt
   static async showEditForm(prompt, index) {
     const dark = isDarkMode();
     const list = document.getElementById(SELECTORS.PROMPT_LIST);
@@ -1253,7 +1120,6 @@ class PromptUIManager {
     list.insertBefore(form, list.firstChild);
   }
 
-  // Deletes a prompt at the specified index
   static async deletePrompt(index) {
     const prompts = await PromptStorageManager.getPrompts();
     prompts.splice(index, 1);
@@ -1262,7 +1128,6 @@ class PromptUIManager {
     if (list) { PromptUIManager.resetPromptListContainer(); PromptUIManager.showEditView(); }
   }
 
-  // Shows the edit view
   static showEditView() {
     const list = document.getElementById(SELECTORS.PROMPT_LIST);
     if (!list) return;
@@ -1271,7 +1136,6 @@ class PromptUIManager {
     (async () => { const view = await PromptUIManager.createEditView(); list.insertBefore(view, list.firstChild); })();
   }
 
-  // Shows the help view
   static showHelp() {
     const list = document.getElementById(SELECTORS.PROMPT_LIST);
     if (!list) return;
@@ -1312,16 +1176,30 @@ class PromptUIManager {
     const form = createEl('div', { className: `form-container ${getMode()}`, styles: { padding: '12px', display: 'flex', flexDirection: 'column', gap: '8px' } });
     const title = createEl('div', { styles: { fontWeight: 'bold', fontSize: '16px', marginBottom: '10px' }, innerHTML: 'Settings' });
     const settings = createEl('div', { styles: { display: 'flex', flexDirection: 'column', gap: '12px' } });
-    const toggleRow = createEl('div', { styles: { display: 'flex', justifyContent: 'space-between', alignItems: 'center' } });
-    const toggleLabel = createEl('label', { innerHTML: 'Example Setting', styles: { fontSize: '14px' } });
-    const toggleSwitch = createEl('div', { className: `toggle-switch ${getMode()}`, eventListeners: { click: e => { e.stopPropagation(); toggleSwitch.classList.toggle('active'); } } });
-    toggleRow.append(toggleLabel, toggleSwitch);
-    settings.appendChild(toggleRow);
+    const displayModeRow = createEl('div', { styles: { display: 'flex', justifyContent: 'space-between', alignItems: 'center' } });
+    const displayModeLabel = createEl('label', { innerHTML: 'Hot Corner Mode', styles: { fontSize: '14px' } });
+    PromptStorageManager.getDisplayMode().then(mode => {
+      const isHotCorner = mode === 'hotCorner';
+      const toggleSwitch = createEl('div', { 
+        className: `toggle-switch ${getMode()} ${isHotCorner ? 'active' : ''}`,
+        eventListeners: { 
+          click: e => {
+            e.stopPropagation();
+            toggleSwitch.classList.toggle('active');
+            const newMode = toggleSwitch.classList.contains('active') ? 'hotCorner' : 'standard';
+            PromptStorageManager.saveDisplayMode(newMode).then(() => {
+              PromptUIManager.refreshDisplayMode();
+            });
+          } 
+        } 
+      });
+      displayModeRow.append(displayModeLabel, toggleSwitch);
+      settings.appendChild(displayModeRow);
+    });
     form.append(title, settings);
     return form;
   }
 
-  // Updates the selection in the prompt list during keyboard navigation
   static updateSelection(items, selIndex) {
     items.forEach((item, idx) => {
       item.style.backgroundColor = '';
@@ -1337,8 +1215,147 @@ class PromptUIManager {
     });
   }
 
-  // Class property to store the selected search index
   static selectedSearchIndex = -1;
+
+  // Hot corner injection with manual mode check.
+  static injectHotCorner() {
+    if (document.getElementById('hot-corner-container')) return;
+    const container = createEl('div', { 
+      id: 'hot-corner-container', 
+      styles: UI_STYLES.hotCornerActiveZone
+    });
+    const indicator = createEl('div', {
+      id: 'hot-corner-indicator',
+      styles: {
+        position: 'fixed',
+        bottom: '0',
+        right: '0',
+        width: '0',
+        height: '0',
+        borderStyle: 'solid',
+        borderWidth: '0 0 20px 20px',
+        borderColor: `transparent transparent ${THEME_COLORS.primary}90 transparent`,
+        zIndex: '9999',
+        transition: 'border-width 0.3s ease, border-color 0.3s ease',
+        pointerEvents: 'none'
+      }
+    });
+    container.appendChild(indicator);
+    const listEl = createEl('div', { 
+      id: SELECTORS.PROMPT_LIST, 
+      className: `prompt-list ${getMode()}`,
+      styles: {
+        position: 'absolute',
+        bottom: '20px',
+        right: '0'
+      }
+    });
+    container.appendChild(listEl);
+    document.body.appendChild(container);
+    
+    container.addEventListener('mouseenter', async e => {
+      e.stopPropagation();
+      PromptUIManager.cancelCloseTimer();
+      // Only auto-refresh if no manual view is active.
+      if (!PromptUIManager.manuallyOpened) {
+        indicator.style.borderWidth = '0 0 30px 30px';
+        indicator.style.borderColor = `transparent transparent ${THEME_COLORS.primary} transparent`;
+        const currentPrompts = await PromptStorageManager.getPrompts();
+        PromptUIManager.refreshPromptList(currentPrompts);
+        if (currentPrompts.length === 0) {
+          PromptUIManager.showPromptCreationForm();
+        } else {
+          PromptUIManager.showPromptList(listEl);
+        }
+      }
+    });
+    
+    container.addEventListener('mouseleave', e => {
+      e.stopPropagation();
+      indicator.style.borderWidth = '0 0 20px 20px';
+      indicator.style.borderColor = `transparent transparent ${THEME_COLORS.primary}90 transparent`;
+      PromptUIManager.startCloseTimer(e, listEl, () => {});
+    });
+    
+    listEl.addEventListener('mouseenter', PromptUIManager.cancelCloseTimer.bind(PromptUIManager));
+    listEl.addEventListener('mouseleave', e => {
+      PromptUIManager.startCloseTimer(e, listEl, () => {});
+    });
+    
+    const documentClickHandler = e => {
+      const isMenu = e.target.closest(`#${SELECTORS.PROMPT_LIST}`) ||
+        e.target.closest(`.${SELECTORS.PROMPT_ITEMS_CONTAINER}`) ||
+        e.target.closest('.icon-button') ||
+        e.target.closest('.form-container') ||
+        e.target.closest('.button') ||
+        container.contains(e.target);
+      if (listEl.classList.contains('visible') && !isMenu) {
+        PromptUIManager.hidePromptList(listEl);
+      }
+    };
+    container.documentClickHandler = documentClickHandler;
+    document.addEventListener('click', documentClickHandler);
+    
+    container.addEventListener('mouseenter', () => {
+      PromptStorageManager.setOnboardingCompleted();
+      const popup = document.getElementById(SELECTORS.ONBOARDING_POPUP);
+      if (popup) popup.remove();
+    });
+    
+    PromptStorageManager.getPrompts().then(prompts => {
+      PromptUIManager.refreshPromptList(prompts);
+    });
+  }
+
+  static async refreshDisplayMode() {
+    const mode = await PromptStorageManager.getDisplayMode();
+    const buttonContainer = document.getElementById(SELECTORS.PROMPT_BUTTON_CONTAINER);
+    const hotCornerContainer = document.getElementById('hot-corner-container');
+    
+    if (mode === 'standard') {
+      if (hotCornerContainer) {
+        if (hotCornerContainer.documentClickHandler) {
+          document.removeEventListener('click', hotCornerContainer.documentClickHandler);
+        }
+        hotCornerContainer.remove();
+      }
+      if (!buttonContainer) {
+        const prompts = await PromptStorageManager.getPrompts();
+        PromptUIManager.injectPromptManagerButton(prompts);
+      } else {
+        buttonContainer.style.display = 'block';
+      }
+    } else {
+      if (buttonContainer) buttonContainer.style.display = 'none';
+      if (!hotCornerContainer) {
+        PromptUIManager.injectHotCorner();
+      }
+    }
+    
+    const prompts = await PromptStorageManager.getPrompts();
+    PromptUIManager.refreshPromptList(prompts);
+  }
+
+  setupMutationObserver() {
+    let observerTimeout = null;
+    const target = document.querySelector('main') || document.body;
+    const observer = new MutationObserver(async () => {
+      if (observerTimeout) clearTimeout(observerTimeout);
+      observerTimeout = setTimeout(async () => {
+        const inputBox = InputBoxHandler.getInputBox();
+        if (inputBox) {
+          const displayMode = await PromptStorageManager.getDisplayMode();
+          if (displayMode === 'standard' && !document.getElementById(SELECTORS.PROMPT_BUTTON_CONTAINER)) {
+            const updated = await PromptStorageManager.getPrompts();
+            PromptUIManager.injectPromptManagerButton(updated);
+          } else if (displayMode === 'hotCorner' && !document.getElementById('hot-corner-container')) {
+            PromptUIManager.injectHotCorner();
+          }
+        }
+      }, 300);
+    });
+    observer.observe(target, { childList: true, subtree: true });
+  }
 }
 
 /* Prompt Processor */
@@ -1361,85 +1378,71 @@ class PromptProcessor {
   }
 }
 
-/* Prompt Mediator - Coordinates interactions between UI, storage, and prompt processing
- * Handles:
- * - Event binding for prompt selection and variable replacement
- * - Initialization of UI components and observers
- * - Keyboard shortcut handling
- * - Storage change monitoring
- */
+/* Prompt Mediator */
 class PromptMediator {
   constructor(ui, processor) {
     this.ui = ui;
     this.processor = processor;
-    this.eventBus = new EventBus(); // Move EventBus instance here
+    this.eventBus = new EventBus();
     this.bindEvents();
     this.initialize();
   }
-
-  // Bind event handlers for prompt selection and variable processing
   bindEvents() {
-    // Use the existing static event bus from PromptUIManager
     PromptUIManager.onPromptSelect(async prompt => {
       const inputBox = InputBoxHandler.getInputBox();
       if (!inputBox) { console.error('Input box not found.'); return; }
-
-      // Extract variables from prompt content
       const vars = this.processor.extractVariables(prompt.content);
       const listEl = document.getElementById(SELECTORS.PROMPT_LIST);
-
-      // Handle prompts with and without variables differently
       if (vars.length === 0) {
-        // For prompts without variables, insert directly
         await InputBoxHandler.insertPrompt(inputBox, prompt.content, listEl);
         PromptUIManager.hidePromptList(listEl);
       } else {
-        // For prompts with variables, show input form and process values
         PromptUIManager.showVariableInputForm(inputBox, prompt.content, vars, listEl, async values => {
           const processed = this.processor.replaceVariables(prompt.content, values);
           await InputBoxHandler.insertPrompt(inputBox, processed, listEl);
           PromptUIManager.hidePromptList(listEl);
-          // Refresh prompt list after short delay
           setTimeout(() => { PromptStorageManager.getPrompts().then(prompts => { PromptUIManager.refreshPromptList(prompts); }); }, 300);
         });
       }
     });
-    
   }
-
-  // Initialize extension components and set up observers
   async initialize() {
     try {
-      // Wait for input box to be available before proceeding
       await InputBoxHandler.waitForInputBox();
-      const prompts = await PromptStorageManager.getPrompts();
-      PromptUIManager.injectPromptManagerButton(prompts);
-
+      const displayMode = await PromptStorageManager.getDisplayMode();
+      if (displayMode === 'standard') {
+        const prompts = await PromptStorageManager.getPrompts();
+        PromptUIManager.injectPromptManagerButton(prompts);
+      } else {
+        PromptUIManager.injectHotCorner();
+      }
       this.setupMutationObserver();
       this.setupStorageChangeMonitor();
       this.setupKeyboardShortcuts();
     } catch (err) { console.error('Error initializing extension:', err); }
   }
   
-  //  mutation observer
   setupMutationObserver() {
     let observerTimeout = null;
     const target = document.querySelector('main') || document.body;
     const observer = new MutationObserver(async () => {
-      if (document.getElementById(SELECTORS.PROMPT_BUTTON_CONTAINER)) return;
       if (observerTimeout) clearTimeout(observerTimeout);
       observerTimeout = setTimeout(async () => {
         const inputBox = InputBoxHandler.getInputBox();
-        if (inputBox && !document.getElementById(SELECTORS.PROMPT_BUTTON_CONTAINER)) {
-          const updated = await PromptStorageManager.getPrompts();
-          PromptUIManager.injectPromptManagerButton(updated);
+        if (inputBox) {
+          const displayMode = await PromptStorageManager.getDisplayMode();
+          if (displayMode === 'standard' && !document.getElementById(SELECTORS.PROMPT_BUTTON_CONTAINER)) {
+            const updated = await PromptStorageManager.getPrompts();
+            PromptUIManager.injectPromptManagerButton(updated);
+          } else if (displayMode === 'hotCorner' && !document.getElementById('hot-corner-container')) {
+            PromptUIManager.injectHotCorner();
+          }
         }
       }, 300);
     });
     observer.observe(target, { childList: true, subtree: true });
   }
   
-  //  storage change monitor   
   setupStorageChangeMonitor() {
     PromptStorageManager.onChange(async (changes, area) => {
       if (area === 'local' && changes.prompts) {
@@ -1448,7 +1451,6 @@ class PromptMediator {
     });
   }
   
-  // keyboard shortcut handler 
   setupKeyboardShortcuts() {
     document.addEventListener('keydown', async e => {
       const shortcut = await PromptStorageManager.getKeyboardShortcut();
