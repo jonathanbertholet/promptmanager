@@ -17,11 +17,8 @@ yarn.lock
 *.swp
 *.swo
 .DS_Store
-
-# Build output
-dist/
-build/
-out/
+.cursorrules
+.gitignore
 
 # Debug logs
 debug.log
