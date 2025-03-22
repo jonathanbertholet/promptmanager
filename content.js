@@ -1372,14 +1372,15 @@ class PromptMediator {
   constructor(ui, processor) {
     this.ui = ui;
     this.processor = processor;
-    this.eventBus = new EventBus();
+    this.eventBus = new EventBus(); // Move EventBus instance here
     this.bindEvents();
     this.initialize();
   }
 
   // Bind event handlers for prompt selection and variable processing
   bindEvents() {
-    this.eventBus.on('promptSelect', async prompt => {
+    // Use the existing static event bus from PromptUIManager
+    PromptUIManager.onPromptSelect(async prompt => {
       const inputBox = InputBoxHandler.getInputBox();
       if (!inputBox) { console.error('Input box not found.'); return; }
 
@@ -1404,8 +1405,6 @@ class PromptMediator {
       }
     });
     
-    // Expose event emission method for UI components
-    PromptUIManager.onPromptSelect = (prompt) => this.eventBus.emit('promptSelect', prompt);
   }
 
   // Initialize extension components and set up observers
@@ -1422,7 +1421,7 @@ class PromptMediator {
     } catch (err) { console.error('Error initializing extension:', err); }
   }
   
-  // Extract mutation observer to its own method
+  //  mutation observer
   setupMutationObserver() {
     let observerTimeout = null;
     const target = document.querySelector('main') || document.body;
@@ -1440,7 +1439,7 @@ class PromptMediator {
     observer.observe(target, { childList: true, subtree: true });
   }
   
-  // Extract storage change monitor to its own method  
+  //  storage change monitor   
   setupStorageChangeMonitor() {
     PromptStorageManager.onChange(async (changes, area) => {
       if (area === 'local' && changes.prompts) {
@@ -1449,7 +1448,7 @@ class PromptMediator {
     });
   }
   
-  // Extract keyboard shortcut handler to its own method
+  // keyboard shortcut handler 
   setupKeyboardShortcuts() {
     document.addEventListener('keydown', async e => {
       const shortcut = await PromptStorageManager.getKeyboardShortcut();
