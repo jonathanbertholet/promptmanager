@@ -1246,8 +1246,8 @@ class PromptUIManager {
       className: `prompt-list ${getMode()}`,
       styles: {
         position: 'absolute',
-        bottom: '20px',
-        right: '0'
+        right: '30px',
+        bottom: '30px',
       }
     });
     container.appendChild(listEl);
