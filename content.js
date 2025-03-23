@@ -520,6 +520,7 @@ const ICON_SVGS = {
 class PromptUIManager {
   // Add a static flag to track manual view changes.
   static manuallyOpened = false;
+  static inVariableInputMode = false;
   static eventBus = new EventBus();
   static onPromptSelect(cb) { this.eventBus.on('promptSelect', cb); }
   static emitPromptSelect(prompt) { this.eventBus.emit('promptSelect', prompt); }
@@ -793,8 +794,9 @@ class PromptUIManager {
     if (input) input.value = '';
     document.removeEventListener('keydown', PromptUIManager.handleKeyboardNavigation);
     document.removeEventListener('keydown', PromptUIManager.handleGlobalEscape);
-    // Reset manual flag when hiding the view.
+    // Reset both flags when hiding the view
     PromptUIManager.manuallyOpened = false;
+    PromptUIManager.inVariableInputMode = false;
   }
 
   static handleKeyboardNavigation(e, context = 'list') {
@@ -923,6 +925,9 @@ class PromptUIManager {
   }
 
   static showVariableInputForm(inputBox, content, variables, listEl, onSubmit) {
+    // Set the flag to indicate we're in variable input mode
+    PromptUIManager.inVariableInputMode = true;
+    
     listEl.innerHTML = '';
     const dark = isDarkMode();
     const form = createEl('div', {
@@ -946,12 +951,18 @@ class PromptUIManager {
     form.appendChild(varContainer);
     const btnContainer = createEl('div', { styles: { display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '8px' } });
     const submitBtn = createEl('button', { innerHTML: 'Submit', className: `button ${getMode()}` });
-    submitBtn.addEventListener('click', () => { onSubmit(varValues); });
+    submitBtn.addEventListener('click', () => { 
+      PromptUIManager.inVariableInputMode = false;
+      onSubmit(varValues); 
+    });
     const backBtn = createEl('button', {
       innerHTML: 'Back', className: `button ${getMode()}`,
       styles: { marginTop: '4px', backgroundColor: dark ? '#4A5568' : '#CBD5E0', color: dark ? THEME_COLORS.inputDarkText : '#333' }
     });
-    backBtn.addEventListener('click', () => { PromptUIManager.refreshAndShowPromptList(); });
+    backBtn.addEventListener('click', () => { 
+      PromptUIManager.inVariableInputMode = false;
+      PromptUIManager.refreshAndShowPromptList(); 
+    });
     btnContainer.append(submitBtn, backBtn);
     form.appendChild(btnContainer);
     listEl.appendChild(form);
@@ -1207,13 +1218,13 @@ class PromptUIManager {
   static injectHotCorner() {
     if (document.getElementById('hot-corner-container')) return;
     
-    // Create the container with active zone
+    // container with active zone
     const container = createEl('div', { 
       id: 'hot-corner-container', 
       styles: UI_STYLES.hotCornerActiveZone
     });
     
-    // Add the visual indicator
+    //  visual indicator
     const indicator = createEl('div', {
       id: 'hot-corner-indicator',
       styles: {
@@ -1249,7 +1260,9 @@ class PromptUIManager {
     container.addEventListener('mouseenter', async e => {
       e.stopPropagation();
       PromptUIManager.cancelCloseTimer();
-      if (!PromptUIManager.manuallyOpened) {
+      
+      // Don't show prompt list if we're in variable input mode or manual mode
+      if (!PromptUIManager.manuallyOpened && !PromptUIManager.inVariableInputMode) {
         indicator.style.borderWidth = '0 0 30px 30px';
         indicator.style.borderColor = `transparent transparent ${THEME_COLORS.primary} transparent`;
         const currentPrompts = await PromptStorageManager.getPrompts();
@@ -1262,11 +1275,39 @@ class PromptUIManager {
       }
     });
     
+    // Existing mouseleave handler
     container.addEventListener('mouseleave', e => {
       e.stopPropagation();
       indicator.style.borderWidth = '0 0 20px 20px';
       indicator.style.borderColor = `transparent transparent ${THEME_COLORS.primary}90 transparent`;
       PromptUIManager.startCloseTimer(e, listEl, () => {});
+    });
+    
+    //  document click handler for closing the prompt list when clicking outside
+    const documentClickHandler = e => {
+      const isMenu = e.target.closest(`#${SELECTORS.PROMPT_LIST}`) ||
+        e.target.closest(`.${SELECTORS.PROMPT_ITEMS_CONTAINER}`) ||
+        e.target.closest('.icon-button') ||
+        e.target.closest('.form-container') ||
+        e.target.closest('.button') ||
+        container.contains(e.target);
+      
+      if (listEl.classList.contains('visible') && !isMenu) {
+        PromptUIManager.hidePromptList(listEl);
+      }
+    };
+    
+    // Store reference to the handler for cleanup
+    container.documentClickHandler = documentClickHandler;
+    
+    // Add the event listener to the document
+    document.addEventListener('click', documentClickHandler);
+    
+    // Set onboarding as completed when hovering over hot corner
+    container.addEventListener('mouseenter', () => {
+      PromptStorageManager.setOnboardingCompleted();
+      const popup = document.getElementById(SELECTORS.ONBOARDING_POPUP);
+      if (popup) popup.remove();
     });
   }
 
@@ -1414,8 +1455,7 @@ class PromptMediator {
         const inputBox = InputBoxHandler.getInputBox();
         if (inputBox) {
           const displayMode = await PromptStorageManager.getDisplayMode();
-          // Use our new cleanupAllUIComponents method to ensure clean state
-          // before checking if we need to inject components
+          // cleanupAllUIComponents method to ensure clean state
           if (!document.getElementById(SELECTORS.PROMPT_BUTTON_CONTAINER) && 
               !document.getElementById('hot-corner-container')) {
             PromptUIManager.cleanupAllUIComponents();
