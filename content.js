@@ -554,34 +554,20 @@ class PromptUIManager {
       id: SELECTORS.ONBOARDING_POPUP,
       className: `onboarding-popup ${getMode()}`,
       styles: {
-        position: 'absolute',
-        top: '-42px',
-        left: '50%',
-        transform: 'translateX(-50%)',
-        backgroundColor: `${THEME_COLORS.primary}dd`,
-        color: 'white',
-        padding: '6px 10px',
-        borderRadius: '6px',
-        fontSize: '13px',
-        fontWeight: 'bold',
+        position: 'absolute', top: '-42px', left: '50%',
+        transform: 'translateX(-50%)', backgroundColor: `${THEME_COLORS.primary}dd`,
+        color: 'white', padding: '6px 10px', borderRadius: '6px',
+        fontSize: '13px', fontWeight: 'bold', zIndex: '10000',
         boxShadow: '0 2px 10px rgba(0, 0, 0, 0.15)',
-        zIndex: '10000',
-        textAlign: 'center',
-        whiteSpace: 'nowrap',
-        transition: 'opacity 0.3s ease'
+        textAlign: 'center', whiteSpace: 'nowrap', transition: 'opacity 0.3s ease'
       },
       innerHTML: 'Hover to Start'
     });
     const triangle = createEl('div', {
       styles: {
-        position: 'absolute',
-        bottom: '-4px',
-        left: '50%',
-        transform: 'translateX(-50%)',
-        width: '0',
-        height: '0',
-        borderLeft: '5px solid transparent',
-        borderRight: '5px solid transparent',
+        position: 'absolute', bottom: '-4px', left: '50%',
+        transform: 'translateX(-50%)', width: '0', height: '0',
+        borderLeft: '5px solid transparent', borderRight: '5px solid transparent',
         borderTop: `5px solid ${THEME_COLORS.primary}dd`
       }
     });
@@ -1220,27 +1206,28 @@ class PromptUIManager {
   // Hot corner injection with manual mode check.
   static injectHotCorner() {
     if (document.getElementById('hot-corner-container')) return;
+    
+    // Create the container with active zone
     const container = createEl('div', { 
       id: 'hot-corner-container', 
       styles: UI_STYLES.hotCornerActiveZone
     });
+    
+    // Add the visual indicator
     const indicator = createEl('div', {
       id: 'hot-corner-indicator',
       styles: {
-        position: 'fixed',
-        bottom: '0',
-        right: '0',
-        width: '0',
-        height: '0',
-        borderStyle: 'solid',
-        borderWidth: '0 0 20px 20px',
+        position: 'fixed', bottom: '0', right: '0',
+        width: '0', height: '0', zIndex: '9999',
+        borderStyle: 'solid', borderWidth: '0 0 20px 20px',
         borderColor: `transparent transparent ${THEME_COLORS.primary}90 transparent`,
-        zIndex: '9999',
         transition: 'border-width 0.3s ease, border-color 0.3s ease',
         pointerEvents: 'none'
       }
     });
     container.appendChild(indicator);
+    
+    // Create the prompt list container with some positioning rules
     const listEl = createEl('div', { 
       id: SELECTORS.PROMPT_LIST, 
       className: `prompt-list ${getMode()}`,
@@ -1253,10 +1240,15 @@ class PromptUIManager {
     container.appendChild(listEl);
     document.body.appendChild(container);
     
+    // Setup event handlers
+    this.setupHotCornerEvents(container, indicator, listEl);
+  }
+
+  // Extracted event handling for hot corner
+  static setupHotCornerEvents(container, indicator, listEl) {
     container.addEventListener('mouseenter', async e => {
       e.stopPropagation();
       PromptUIManager.cancelCloseTimer();
-      // Only auto-refresh if no manual view is active.
       if (!PromptUIManager.manuallyOpened) {
         indicator.style.borderWidth = '0 0 30px 30px';
         indicator.style.borderColor = `transparent transparent ${THEME_COLORS.primary} transparent`;
@@ -1275,35 +1267,6 @@ class PromptUIManager {
       indicator.style.borderWidth = '0 0 20px 20px';
       indicator.style.borderColor = `transparent transparent ${THEME_COLORS.primary}90 transparent`;
       PromptUIManager.startCloseTimer(e, listEl, () => {});
-    });
-    
-    listEl.addEventListener('mouseenter', PromptUIManager.cancelCloseTimer.bind(PromptUIManager));
-    listEl.addEventListener('mouseleave', e => {
-      PromptUIManager.startCloseTimer(e, listEl, () => {});
-    });
-    
-    const documentClickHandler = e => {
-      const isMenu = e.target.closest(`#${SELECTORS.PROMPT_LIST}`) ||
-        e.target.closest(`.${SELECTORS.PROMPT_ITEMS_CONTAINER}`) ||
-        e.target.closest('.icon-button') ||
-        e.target.closest('.form-container') ||
-        e.target.closest('.button') ||
-        container.contains(e.target);
-      if (listEl.classList.contains('visible') && !isMenu) {
-        PromptUIManager.hidePromptList(listEl);
-      }
-    };
-    container.documentClickHandler = documentClickHandler;
-    document.addEventListener('click', documentClickHandler);
-    
-    container.addEventListener('mouseenter', () => {
-      PromptStorageManager.setOnboardingCompleted();
-      const popup = document.getElementById(SELECTORS.ONBOARDING_POPUP);
-      if (popup) popup.remove();
-    });
-    
-    PromptStorageManager.getPrompts().then(prompts => {
-      PromptUIManager.refreshPromptList(prompts);
     });
   }
 
@@ -1330,13 +1293,11 @@ class PromptUIManager {
   }
 
   static async refreshDisplayMode() {
-    // First, clean up all existing UI components
+    // clean up all existing UI components
     PromptUIManager.cleanupAllUIComponents();
-    
     // Get the current mode and prompts
     const mode = await PromptStorageManager.getDisplayMode();
     const prompts = await PromptStorageManager.getPrompts();
-    
     // Create the appropriate UI based on the current mode
     if (mode === 'standard') {
       PromptUIManager.injectPromptManagerButton(prompts);
@@ -1346,7 +1307,6 @@ class PromptUIManager {
     
     // Make sure the prompt list is refreshed
     PromptUIManager.refreshPromptList(prompts);
-    
     // If switching modes from settings, we should close any open menu
     const listEl = document.getElementById(SELECTORS.PROMPT_LIST);
     if (listEl && listEl.classList.contains('visible')) {
@@ -1363,11 +1323,16 @@ class PromptUIManager {
         const inputBox = InputBoxHandler.getInputBox();
         if (inputBox) {
           const displayMode = await PromptStorageManager.getDisplayMode();
-          if (displayMode === 'standard' && !document.getElementById(SELECTORS.PROMPT_BUTTON_CONTAINER)) {
-            const updated = await PromptStorageManager.getPrompts();
-            PromptUIManager.injectPromptManagerButton(updated);
-          } else if (displayMode === 'hotCorner' && !document.getElementById('hot-corner-container')) {
-            PromptUIManager.injectHotCorner();
+          // cleanupAllUIComponents method to ensure clean state
+          if (!document.getElementById(SELECTORS.PROMPT_BUTTON_CONTAINER) && 
+              !document.getElementById('hot-corner-container')) {
+            PromptUIManager.cleanupAllUIComponents();
+            const prompts = await PromptStorageManager.getPrompts();
+            if (displayMode === 'standard') {
+              PromptUIManager.injectPromptManagerButton(prompts);
+            } else {
+              PromptUIManager.injectHotCorner();
+            }
           }
         }
       }, 300);
@@ -1449,11 +1414,17 @@ class PromptMediator {
         const inputBox = InputBoxHandler.getInputBox();
         if (inputBox) {
           const displayMode = await PromptStorageManager.getDisplayMode();
-          if (displayMode === 'standard' && !document.getElementById(SELECTORS.PROMPT_BUTTON_CONTAINER)) {
-            const updated = await PromptStorageManager.getPrompts();
-            PromptUIManager.injectPromptManagerButton(updated);
-          } else if (displayMode === 'hotCorner' && !document.getElementById('hot-corner-container')) {
-            PromptUIManager.injectHotCorner();
+          // Use our new cleanupAllUIComponents method to ensure clean state
+          // before checking if we need to inject components
+          if (!document.getElementById(SELECTORS.PROMPT_BUTTON_CONTAINER) && 
+              !document.getElementById('hot-corner-container')) {
+            PromptUIManager.cleanupAllUIComponents();
+            const prompts = await PromptStorageManager.getPrompts();
+            if (displayMode === 'standard') {
+              PromptUIManager.injectPromptManagerButton(prompts);
+            } else {
+              PromptUIManager.injectHotCorner();
+            }
           }
         }
       }, 300);
