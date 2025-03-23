@@ -1307,33 +1307,51 @@ class PromptUIManager {
     });
   }
 
-  static async refreshDisplayMode() {
-    const mode = await PromptStorageManager.getDisplayMode();
+  static cleanupAllUIComponents() {
+    // Clean up button container
     const buttonContainer = document.getElementById(SELECTORS.PROMPT_BUTTON_CONTAINER);
-    const hotCornerContainer = document.getElementById('hot-corner-container');
-    
-    if (mode === 'standard') {
-      if (hotCornerContainer) {
-        if (hotCornerContainer.documentClickHandler) {
-          document.removeEventListener('click', hotCornerContainer.documentClickHandler);
-        }
-        hotCornerContainer.remove();
-      }
-      if (!buttonContainer) {
-        const prompts = await PromptStorageManager.getPrompts();
-        PromptUIManager.injectPromptManagerButton(prompts);
-      } else {
-        buttonContainer.style.display = 'block';
-      }
-    } else {
-      if (buttonContainer) buttonContainer.style.display = 'none';
-      if (!hotCornerContainer) {
-        PromptUIManager.injectHotCorner();
-      }
+    if (buttonContainer) {
+      // Clean up any event listeners if needed
+      buttonContainer.remove();
     }
     
+    // Clean up hot corner container
+    const hotCornerContainer = document.getElementById('hot-corner-container');
+    if (hotCornerContainer) {
+      // Remove the document click handler if it exists
+      if (hotCornerContainer.documentClickHandler) {
+        document.removeEventListener('click', hotCornerContainer.documentClickHandler);
+      }
+      hotCornerContainer.remove();
+    }
+    
+    // Clean up any other global handlers or state
+    PromptUIManager.manuallyOpened = false;
+  }
+
+  static async refreshDisplayMode() {
+    // First, clean up all existing UI components
+    PromptUIManager.cleanupAllUIComponents();
+    
+    // Get the current mode and prompts
+    const mode = await PromptStorageManager.getDisplayMode();
     const prompts = await PromptStorageManager.getPrompts();
+    
+    // Create the appropriate UI based on the current mode
+    if (mode === 'standard') {
+      PromptUIManager.injectPromptManagerButton(prompts);
+    } else {
+      PromptUIManager.injectHotCorner();
+    }
+    
+    // Make sure the prompt list is refreshed
     PromptUIManager.refreshPromptList(prompts);
+    
+    // If switching modes from settings, we should close any open menu
+    const listEl = document.getElementById(SELECTORS.PROMPT_LIST);
+    if (listEl && listEl.classList.contains('visible')) {
+      PromptUIManager.hidePromptList(listEl);
+    }
   }
 
   setupMutationObserver() {
