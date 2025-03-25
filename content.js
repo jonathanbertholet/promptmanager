@@ -1174,7 +1174,7 @@ class PromptUIManager {
     const title = createEl('div', { styles: { fontWeight: 'bold', fontSize: '16px', marginBottom: '10px' }, innerHTML: 'Settings' });
     const settings = createEl('div', { styles: { display: 'flex', flexDirection: 'column', gap: '12px' } });
     const displayModeRow = createEl('div', { styles: { display: 'flex', justifyContent: 'space-between', alignItems: 'center' } });
-    const displayModeLabel = createEl('label', { innerHTML: 'Hot Corner Mode', styles: { fontSize: '14px' } });
+    const displayModeLabel = createEl('label', { innerHTML: 'Enable Hot Corner Mode', styles: { fontSize: '14px' } });
     PromptStorageManager.getDisplayMode().then(mode => {
       const isHotCorner = mode === 'hotCorner';
       const toggleSwitch = createEl('div', { 
@@ -1214,7 +1214,7 @@ class PromptUIManager {
 
   static selectedSearchIndex = -1;
 
-  // Hot corner injection with manual mode check.
+  // HOT CORNER MODE
   static injectHotCorner() {
     if (document.getElementById('hot-corner-container')) return;
     
