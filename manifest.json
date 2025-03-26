@@ -1,8 +1,8 @@
 {
     "manifest_version": 3,
     "name": "Open Prompt Manager",
-    "version": "1.9.3",
-    "description": "The best prompt manager for all LLMs. Fully Open Source.",
+    "version": "1.9.5",
+    "description": "Fully Open Source Prompt Manager for ChatGPT, Claude, Gemini, Grok, and more.",
     "permissions": ["storage"],
     "icons": {
       "16": "/icons/icon16.png",
