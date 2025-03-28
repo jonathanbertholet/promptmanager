@@ -79,7 +79,7 @@ This project is open source and available under the MIT License.
 
 ## Attributions
 
-###Contributing members : 
+### Contributing members : 
 - Thanks to Hexodus for identifying a bug & helping me resolve it
 - Thanks to Abdallahheidar for his ideas, contributions, and teamwork on this project!
 - Thanks to HideMaru for the nice icon!
