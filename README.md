@@ -1,6 +1,6 @@
 # Open Prompt Manager
 
-A lightweight Chrome extension for managing prompts across multiple AI chatbots including ChatGPT, Claude, Gemini, NotebookLM, Deepseek, Grok, and Poe.
+A lightweight Chrome extension for managing prompts across multiple AI chatbots including ChatGPT, Claude, Gemini, NotebookLM, Deepseek,Copilot, Grok, and Poe.
 
 ## Features
 
@@ -16,6 +16,7 @@ A lightweight Chrome extension for managing prompts across multiple AI chatbots 
   - Google Gemini
   - Google NotebookLM
   - Deepseek
+  - Copilot
   - Grok
   - Poe
 
@@ -78,6 +79,9 @@ This project is open source and available under the MIT License.
 
 ## Attributions
 
-Thanks to HideMaru for the nice icon!
+###Contributing members : 
+- Thanks to Hexodus for identifying a bug & helping me resolve it
+- Thanks to Abdallahheidar for his ideas, contributions, and teamwork on this project!
+- Thanks to HideMaru for the nice icon!
 
 <a href="https://www.flaticon.com/free-icons/chatbot" title="chatbot icons">Chatbot icons created by HideMaru - Flaticon</a>
