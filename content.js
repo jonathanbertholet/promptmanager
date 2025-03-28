@@ -1486,7 +1486,25 @@ class PromptMediator {
       if (e[shortcut.modifier] && (shortcut.requiresShift ? e.shiftKey : true) && e.key.toLowerCase() === shortcut.key.toLowerCase()) {
         e.preventDefault();
         const listEl = document.getElementById(SELECTORS.PROMPT_LIST);
-        if (listEl) listEl.classList.contains('visible') ? PromptUIManager.hidePromptList(listEl) : PromptUIManager.showPromptList(listEl);
+        if (listEl) {
+          if (listEl.classList.contains('visible')) {
+            PromptUIManager.hidePromptList(listEl);
+          } else {
+            // Mark as manually opened
+            PromptUIManager.manuallyOpened = true;
+            
+            // Get current prompts and refresh the list before showing it
+            const currentPrompts = await PromptStorageManager.getPrompts();
+            PromptUIManager.refreshPromptList(currentPrompts);
+            
+            // Handle empty prompts case
+            if (currentPrompts.length === 0) {
+              PromptUIManager.showPromptCreationForm();
+            } else {
+              PromptUIManager.showPromptList(listEl);
+            }
+          }
+        }
       }
     });
   }
