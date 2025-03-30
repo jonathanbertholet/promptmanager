@@ -1,91 +1,170 @@
 <!DOCTYPE html>
 <html>
+
 <head>
-  <title>Open Prompt Manager</title>
-  <link rel="stylesheet" href="styles.css">
-  <meta charset="UTF-8">
+  <title>Simple Prompt Manager</title>
+  <link rel="stylesheet" href="styles.css" />
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 </head>
+
 <body>
   <div class="title">
-    <img class="icon" src="/icons/icon128.png" alt="Extension Icon" style="width: 22px; height: 22px;">
+    <img class="header-icon" src="icons/icon128.png" alt="Extension Icon" style="width: 22px; height: 22px" />
     <h2>Open Prompt Manager</h2>
+    <a href="popup.html" target="_blank">
+      <img id="open-new-tab" class="header-icon" src="icons/open_in_new.svg" alt="Open in New Tab"
+        title="Open in New Tab" />
+    </a>
   </div>
   <form id="prompt-form">
-    <input type="hidden" id="prompt-index">
-    <input type="text" id="prompt-title" placeholder="Name" required><br>
-    <textarea id="prompt-content" placeholder="Prompt content. Use #variablename# for dynamic values." required></textarea><br>
-    <button class="main" type="submit" id="submit-button" style="vertical-align: middle; display: flex; justify-content: center; align-items: center;">
-      <img src="icons/add-icon.png" alt="Add" style="width: 16px; height: 16px; vertical-align: middle; margin-right: 5px;">
+    <input type="hidden" id="prompt-index" />
+    <input type="text" id="prompt-title" placeholder="Name" required /><br />
+    <textarea id="prompt-content" placeholder="Prompt content. Use #variablename# for dynamic values." required
+      style="height: 100%"></textarea><br />
+    <button class="main" type="submit" id="submit-button">
+      <img src="icons/add-icon.png" alt="Add" style="margin-right: 5px" />
       Save prompt
     </button>
-    <button type="button" id="cancel-edit-button" style="display: none;">Cancel</button>
+    <button type="button" id="cancel-edit-button" style="display: none">
+      Cancel
+    </button>
   </form>
   <div class="prompts-container">
     <div class="prompts-section">
-      <ul id="prompt-list"></ul>
+      <ul id="prompt-list">
+        <li><span style="
+                margin: 2px;
+                padding: 3px;
+                vertical-align: middle;
+                display: inline-block;
+              ">Reddit Thread Analyzer</span>
+          <button style="display: none; background-color: rgba(255, 255, 255, 0)">
+            <img src="icons/edit-icon.png" alt="Edit" style="vertical-align: middle" />
+          </button>
+          <button style="display: none; background-color: rgba(255, 255, 255, 0)">
+            <img src="icons/delete-icon.png" alt="Delete" style="vertical-align: middle" />
+          </button>
+        </li>
+        <li><span style="
+                margin: 2px;
+                padding: 3px;
+                vertical-align: middle;
+                display: inline-block;
+              ">Summarize Knowledge</span>
+          <button style="display: none; background-color: rgba(255, 255, 255, 0)">
+            <img src="icons/edit-icon.png" alt="Edit" style="vertical-align: middle" />
+          </button>
+          <button style="display: none; background-color: rgba(255, 255, 255, 0)">
+            <img src="icons/delete-icon.png" alt="Delete" style="vertical-align: middle" />
+          </button>
+        </li>
+        <li><span style="
+                margin: 2px;
+                padding: 3px;
+                vertical-align: middle;
+                display: inline-block;
+              ">AI News Analyst</span>
+          <button style="display: none; background-color: rgba(255, 255, 255, 0)">
+            <img src="icons/edit-icon.png" alt="Edit" style="vertical-align: middle" />
+          </button>
+          <button style="display: none; background-color: rgba(255, 255, 255, 0)">
+            <img src="icons/delete-icon.png" alt="Delete" style="vertical-align: middle" />
+          </button>
+        </li>
+        <li><span style="
+                margin: 2px;
+                padding: 3px;
+                vertical-align: middle;
+                display: inline-block;
+              ">AI Recipe Extractor</span>
+          <button style="display: none; background-color: rgba(255, 255, 255, 0)">
+            <img src="icons/edit-icon.png" alt="Edit" style="vertical-align: middle" />
+          </button>
+          <button style="display: none; background-color: rgba(255, 255, 255, 0)">
+            <img src="icons/delete-icon.png" alt="Delete" style="vertical-align: middle" />
+          </button>
+        </li>
+      </ul>
       <!-- Add title and message about storage changes -->
-      <div id="empty-state" class="shortcut-container" style="display: none;">
+      <div id="empty-state" class="shortcut-container" style="display: none">
         <h3>Prompts missing?</h3>
-        <p>A recent update handles prompts differently and should have migrated them automatically. Fix available in the settings.</p>
-        <h3>Keyboard Navigation & Shortcuts</h3>
-        <p style="display: flex; align-items: center; margin: 8px 0;">
-          <span style="background-color: #0077B6; color: white; padding: 4px 8px; border-radius: 4px; margin-right: 10px;">
-            Hover/Click
-          </span>
-          <span>Open prompt list buttons</span>
-        </p>
-        <p style="display: flex; align-items: center; margin: 8px 0;">
-          <span style="background-color: #0077B6; color: white; padding: 4px 8px; border-radius: 4px; margin-right: 10px;">
-            ⌘ + ⇧ + P or Ctrl + M
-          </span>
-          <span>Open / close prompt list</span>
-        </p>
-        <p style="display: flex; align-items: center; margin: 8px 0;">
-          <span style="background-color: #0077B6; color: white; padding: 4px 8px; border-radius: 4px; margin-right: 10px;">↑↓</span>
-          <span>Navigate the prompt list</span>
-        </p>
-        <p style="display: flex; align-items: center; margin: 8px 0;">
-          <span style="background-color: #0077B6; color: white; padding: 4px 8px; border-radius: 4px; margin-right: 10px;">Enter</span>
-          <span>Select a prompt</span>
-        </p>
-        <p style="display: flex; align-items: center; margin: 8px 0;">
-          <span style="background-color: #0077B6; color: white; padding: 4px 8px; border-radius: 4px; margin-right: 10px;">Esc</span>
-          <span>Close the prompt manager</span>
-        </p>
+        <p>
+          A recent update handles prompts differently and should have migrated
+          them automatically. Fix available in the settings. </p>
+        <h3>Keyboard Navigation &amp; Shortcuts</h3>
+        <p style="display: flex; align-items: center; margin: 8px 0"> <span style="
+                background-color: #0077b6;
+                color: white;
+                padding: 4px 8px;
+                border-radius: 4px;
+                margin-right: 10px;
+              ">
+            Hover/Click </span> <span>Open prompt list buttons</span> </p>
+        <p style="display: flex; align-items: center; margin: 8px 0"> <span style="
+                background-color: #0077b6;
+                color: white;
+                padding: 4px 8px;
+                border-radius: 4px;
+                margin-right: 10px;
+              ">
+            ⌘ + ⇧ + P or Ctrl + M </span> <span>Open / close prompt list</span> </p>
+        <p style="display: flex; align-items: center; margin: 8px 0"> <span style="
+                background-color: #0077b6;
+                color: white;
+                padding: 4px 8px;
+                border-radius: 4px;
+                margin-right: 10px;
+              ">↑↓</span> <span>Navigate the prompt list</span> </p>
+        <p style="display: flex; align-items: center; margin: 8px 0"> <span style="
+                background-color: #0077b6;
+                color: white;
+                padding: 4px 8px;
+                border-radius: 4px;
+                margin-right: 10px;
+              ">Enter</span> <span>Select a prompt</span> </p>
+        <p style="display: flex; align-items: center; margin: 8px 0"> <span style="
+                background-color: #0077b6;
+                color: white;
+                padding: 4px 8px;
+                border-radius: 4px;
+                margin-right: 10px;
+              ">Esc</span> <span>Close the prompt manager</span> </p>
       </div>
     </div>
   </div>
-
-  <table class="dataimpexp" style="width: 100%;">
-    <tr>
-      <td>
-        <button class="main" id="export-btn">Export prompts</button>
-      </td>
-      <td>
-        <input type="file" id="import-file" accept=".json" hidden>
-        <button class="main" id="import-btn">Import prompts</button>
-      </td>
-    </tr>
-  </table>
+  <div class="dataimpexp">
+    <button class="main" id="export-btn">Export prompts</button>
+    <span></span>
+    <button class="main" id="import-btn">Import prompts</button>
+    <input type="file" id="import-file" accept=".json" hidden />
+  </div>
   <p></p>
   <script type="module" src="popup.js"></script>
-  <table class="footer-table" style="width: 100%;">
+  <table class="footer-table" style="grid-row: 3">
     <tr>
       <td>
-        <div class="link-container">
-          <a id="link" href="https://chatgpt.com" target="_blank" title ="ChatGPT"><img src="icons/chatgpt-icon.png" alt="ChatGPT" style="width: 16px; height: 16px; vertical-align: middle;"></a>
-          <a id="link" href="https://claude.ai/new" target="_blank" title ="Claude"><img src="icons/claude-icon.png" alt="Claude" style="width: 16px; height: 16px; vertical-align: middle;"></a>
-          <a id="link" href="https://notebooklm.google.com" target="_blank" title ="NotebookLM"><img src="icons/notebooklm-icon.png" alt="NotebookLM" style="width: 16px; height: 16px; vertical-align: middle;"></a>
-          <a id="link" href="https://gemini.google.com" target="_blank" title ="Gemini"><img src="icons/gemini-icon.png" alt="Gemini" style="width: 16px; height: 16px; vertical-align: middle;"></a>
-          <a id="link" href="https://poe.com" target="_blank" title="Poe"><img src="icons/poe-icon.png" alt="Poe" style="width: 16px; height: 16px; vertical-align: middle;"></a>
+        <div class="link-container"><a id="link" href="https://chatgpt.com" target="_blank" title="ChatGPT"><img
+              class="footer-icons" src="icons/chatgpt-icon.png" alt="ChatGPT" /></a><a id="link"
+            href="https://claude.ai/new" target="_blank" title="Claude"><img class="footer-icons"
+              src="icons/claude-icon.png" alt="Claude" /></a><a id="link" href="https://notebooklm.google.com"
+            target="_blank" title="NotebookLM"><img class="footer-icons" src="icons/notebooklm-icon.png"
+              alt="NotebookLM" /></a><a id="link" href="https://gemini.google.com" target="_blank" title="Gemini"><img
+              class="footer-icons" src="icons/gemini-icon.png" alt="Gemini" /></a><a id="link" href="https://poe.com"
+            target="_blank" title="Poe"><img class="footer-icons" src="icons/poe-icon.png" alt="Poe" /></a><a id="link"
+            href="https://apps.abacus.ai/chatllm" target="_blank" title="ChatLLM"><img class="footer-icons"
+              src="icons/chatllm-icon.png" alt="ChatLLM" /></a>
         </div>
       </td>
-      <td style="text-align: right;">
-        <a id="link" href="https://github.com/jonathanbertholet/promptmanager" target="_blank"><img src="icons/github-icon.png" alt="Github" style="width: 16px; height: 16px; vertical-align: middle; margin-right: 5px;"></a>
-        <a id="link" href="https://chromewebstore.google.com/detail/simple-prompt-manager-cha/gmhaghdbihgenofhnmdbglbkbplolain?authuser=0&hl=en-GB" target="_blank"><img src="icons/review-icon.png" alt="Review me" style="width: 16px; height: 16px; vertical-align: middle; margin-right: 5px;"></a>
-        <a href="settings.html"><img src="icons/settings-icon.png" alt="Settings" style="width: 16px; height: 16px; vertical-align: middle;"></a>
-      </td>
+      <td style="text-align: right"> <a id="link" href="https://github.com/jonathanbertholet/promptmanager"
+          target="_blank"><img class="footer-icons" src="icons/github-icon.png" alt="Github"
+            style="margin-right: 5px" /></a> <a id="link"
+          href="https://chromewebstore.google.com/detail/simple-prompt-manager-cha/gmhaghdbihgenofhnmdbglbkbplolain?authuser=0&hl=en-GB"
+          target="_blank"><img class="footer-icons" src="icons/review-icon.png" alt="Review me"
+            style="margin-right: 5px" /></a> <a href="settings.html"><img id="settings-icon" class="footer-icons"
+            src="icons/settings-icon.png" alt="Settings" /></a> </td>
     </tr>
   </table>
 </body>
+
 </html>
