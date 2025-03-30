@@ -54,12 +54,6 @@ A lightweight Chrome extension for managing prompts across multiple AI chatbots 
    - When using a prompt with variables, you'll be prompted to fill in values
    - Variables allow for reusable prompt templates
 
-## Testing
-
-This project includes automated tests using **Puppeteer** and **Jest**. For more advanced testing, refer to the [Puppeteer API documentation](https://pptr.dev/).
-
-For detailed instructions on how to run and debug tests, see the [Testing Guide](TESTING.md).
-
 ### Keyboard Shortcuts
 
 - **⌘ + Shift + P** (Mac) or **Ctrl + M** (Windows/Linux): Open/close prompt list
@@ -71,6 +65,12 @@ For detailed instructions on how to run and debug tests, see the [Testing Guide]
 
 - **Export**: Click "Export prompts" to download your prompts as a JSON file
 - **Import**: Click "Import prompts" to load prompts from a JSON file
+
+## Testing
+
+This project includes automated tests using **Puppeteer** and **Jest**. For more advanced testing, refer to the [Puppeteer API documentation](https://pptr.dev/).
+
+For detailed instructions on how to run and debug tests, see the [Testing Guide](TESTING.md).
 
 ## Privacy
 
