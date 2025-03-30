@@ -1,0 +1,12 @@
+{
+    "name": "automated-testing",
+    "version": "1.0.0",
+    "dependencies": {
+        "jest": "^29.7.0",
+        "puppeteer": "^24.4.0"
+    },
+    "scripts": {
+        "start": "jest .",
+        "debug": "node --inspect-brk node_modules/jest/bin/jest.js"
+    }
+}

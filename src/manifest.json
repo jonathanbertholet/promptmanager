@@ -1,0 +1,55 @@
+{
+  "manifest_version": 3,
+  "name": "Open Prompt Manager",
+  "version": "1.9.6",
+  "description": "Fully Open Source Prompt Manager for ChatGPT, Claude, Gemini, Grok, and more.",
+  "permissions": [
+    "storage"
+  ],
+  "icons": {
+    "16": "/icons/icon16.png",
+    "48": "/icons/icon48.png",
+    "128": "/icons/icon128.png"
+  },
+  "action": {
+    "default_popup": "popup.html"
+  },
+  "options_page": "settings.html",
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "*://chatgpt.com/*",
+        "*://notebooklm.google.com/*",
+        "*://claude.ai/*",
+        "*://poe.com/*",
+        "*://gemini.google.com/*",
+        "*://chat.deepseek.com/*",
+        "*://x.com/i/grok*",
+        "*://grok.com/*",
+        "*://copilot.microsoft.com/*",
+        "*://apps.abacus.ai/chatllm/*"
+
+      ],
+      "js": [
+        "inputBoxHandler.js",
+        "content.js"
+      ],
+      "run_at": "document_end"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "icons/*",
+        "changelog.html",
+        "info.html"
+      ],
+      "matches": [
+        "<all_urls>"
+      ]
+    }
+  ]
+}
