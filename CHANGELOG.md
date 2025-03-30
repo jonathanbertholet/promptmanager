@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning].
 ### Added
 
 - Implemented automated end-to-end tests using Puppeteer
+- Implemented a prompt lab page to manage prompts in full page
 
 ## [1.9.5] - 2025-03-22
 
