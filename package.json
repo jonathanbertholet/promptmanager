@@ -1,0 +1,20 @@
+{
+    "name": "chrome-extension-automation",
+    "version": "1.0.0",
+    "dependencies": {
+        "jest": "^29.7.0",
+        "puppeteer": "^24.4.0"
+    },
+    "scripts": {
+        "test": "copy src\\manifest.dev.json src\\manifest.json && echo 'Testing in DEVO' && jest ./tests/",
+        "debug": "node --inspect-brk node_modules/jest/bin/jest.js",
+        "build:prod": "cp src/manifest.prod.json src/manifest.json && echo 'Build for PROD'",
+        "lint": "eslint src",
+        "lint:fix": "eslint src --fix"
+    },
+    "devDependencies": {
+        "@eslint/js": "^9.23.0",
+        "eslint": "^9.23.0",
+        "globals": "^16.0.0"
+    }
+}

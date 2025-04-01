@@ -166,7 +166,7 @@ class InputBoxHandler {
       // Timeout after 10 seconds
       setTimeout(() => {
         clearInterval(checkExist);
-        reject("Input box not found after 10 seconds.");
+        reject('Input box not found after 10 seconds.');
       }, 10000);
     });
   }
@@ -233,7 +233,6 @@ class InputBoxHandler {
         console.error('Unknown input box type.');
         return;
       }
-
       // Hide the prompt list after inserting the prompt
       PromptUIManager.hidePromptList(promptList);
     } catch (error) {

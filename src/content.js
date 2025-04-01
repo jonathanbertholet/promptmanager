@@ -1,3 +1,4 @@
+
 /* Global constants, helpers & styles */
 const THEME_COLORS = {
   primary: '#3674B5', primaryGradientStart: '#3674B5', primaryGradientEnd: '#578FCA',
@@ -754,7 +755,7 @@ class PromptUIManager {
 
   static createMenuBar() {
     const bar = createEl('div', { styles: { display: 'flex', alignItems: 'center', gap: '8px' } });
-    const btns = ['list', 'add', 'edit', 'import_export', 'help', 'changelog','settings'];
+    const btns = ['list', 'add', 'edit', 'import_export', 'help', 'changelog', 'settings'];
     // Add manual flag before calling the actions.
     const actions = {
       list: e => { e.stopPropagation(); PromptUIManager.manuallyOpened = true; PromptUIManager.refreshAndShowPromptList(); },
@@ -865,33 +866,33 @@ class PromptUIManager {
     document.body.classList.toggle('dark', isDarkMode());
     document.body.classList.toggle('light', !isDarkMode());
     const themeElements = document.querySelectorAll([
-        '.prompt-list',
-        '.prompt-list-items',
-        '.prompt-list-item',
-        '.search-input',
-        '.input-field',
-        '.textarea-field',
-        '.button',
-        '.toggle-switch',
-        '.form-container',
-        '.bottom-menu'
+      '.prompt-list',
+      '.prompt-list-items',
+      '.prompt-list-item',
+      '.search-input',
+      '.input-field',
+      '.textarea-field',
+      '.button',
+      '.toggle-switch',
+      '.form-container',
+      '.bottom-menu'
     ].join(','));
     themeElements.forEach(el => {
-        el.classList.remove('light', 'dark');
-        el.classList.add(getMode());
+      el.classList.remove('light', 'dark');
+      el.classList.add(getMode());
     });
     const container = document.getElementById(SELECTORS.PROMPT_BUTTON_CONTAINER);
     if (container) {
-        const btn = container.querySelector(`.${SELECTORS.PROMPT_BUTTON}`);
-        if (btn) {
-            btn.style.boxShadow = isDarkMode() ? THEME_COLORS.darkShadow : THEME_COLORS.lightShadow;
-        }
+      const btn = container.querySelector(`.${SELECTORS.PROMPT_BUTTON}`);
+      if (btn) {
+        btn.style.boxShadow = isDarkMode() ? THEME_COLORS.darkShadow : THEME_COLORS.lightShadow;
+      }
     }
     const icons = document.querySelectorAll('.icon-button img');
     icons.forEach(icon => {
-        icon.style.filter = isDarkMode() 
-            ? 'invert(93%) sepia(0%) saturate(0%) hue-rotate(213deg) brightness(107%) contrast(87%)'
-            : 'invert(37%) sepia(74%) saturate(380%) hue-rotate(175deg) brightness(93%) contrast(88%)';
+      icon.style.filter = isDarkMode()
+        ? 'invert(93%) sepia(0%) saturate(0%) hue-rotate(213deg) brightness(107%) contrast(87%)'
+        : 'invert(37%) sepia(74%) saturate(380%) hue-rotate(175deg) brightness(93%) contrast(88%)';
     });
   }
 
@@ -927,7 +928,7 @@ class PromptUIManager {
   static showVariableInputForm(inputBox, content, variables, listEl, onSubmit) {
     // Set the flag to indicate we're in variable input mode
     PromptUIManager.inVariableInputMode = true;
-    
+
     listEl.innerHTML = '';
     const dark = isDarkMode();
     const form = createEl('div', {
@@ -951,17 +952,17 @@ class PromptUIManager {
     form.appendChild(varContainer);
     const btnContainer = createEl('div', { styles: { display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '8px' } });
     const submitBtn = createEl('button', { innerHTML: 'Submit', className: `button ${getMode()}` });
-    submitBtn.addEventListener('click', () => { 
+    submitBtn.addEventListener('click', () => {
       PromptUIManager.inVariableInputMode = false;
-      onSubmit(varValues); 
+      onSubmit(varValues);
     });
     const backBtn = createEl('button', {
       innerHTML: 'Back', className: `button ${getMode()}`,
       styles: { marginTop: '4px', backgroundColor: dark ? '#4A5568' : '#CBD5E0', color: dark ? THEME_COLORS.inputDarkText : '#333' }
     });
-    backBtn.addEventListener('click', () => { 
+    backBtn.addEventListener('click', () => {
       PromptUIManager.inVariableInputMode = false;
-      PromptUIManager.refreshAndShowPromptList(); 
+      PromptUIManager.refreshAndShowPromptList();
     });
     btnContainer.append(submitBtn, backBtn);
     form.appendChild(btnContainer);
@@ -1177,9 +1178,9 @@ class PromptUIManager {
     const displayModeLabel = createEl('label', { innerHTML: 'Enable Hot Corner Mode', styles: { fontSize: '14px' } });
     PromptStorageManager.getDisplayMode().then(mode => {
       const isHotCorner = mode === 'hotCorner';
-      const toggleSwitch = createEl('div', { 
+      const toggleSwitch = createEl('div', {
         className: `toggle-switch ${getMode()} ${isHotCorner ? 'active' : ''}`,
-        eventListeners: { 
+        eventListeners: {
           click: e => {
             e.stopPropagation();
             toggleSwitch.classList.toggle('active');
@@ -1187,8 +1188,8 @@ class PromptUIManager {
             PromptStorageManager.saveDisplayMode(newMode).then(() => {
               PromptUIManager.refreshDisplayMode();
             });
-          } 
-        } 
+          }
+        }
       });
       displayModeRow.append(displayModeLabel, toggleSwitch);
       settings.appendChild(displayModeRow);
@@ -1217,13 +1218,13 @@ class PromptUIManager {
   // HOT CORNER MODE
   static injectHotCorner() {
     if (document.getElementById('hot-corner-container')) return;
-    
+
     // container with active zone
-    const container = createEl('div', { 
-      id: 'hot-corner-container', 
+    const container = createEl('div', {
+      id: 'hot-corner-container',
       styles: UI_STYLES.hotCornerActiveZone
     });
-    
+
     //  visual indicator
     const indicator = createEl('div', {
       id: 'hot-corner-indicator',
@@ -1237,10 +1238,10 @@ class PromptUIManager {
       }
     });
     container.appendChild(indicator);
-    
+
     // Create the prompt list container with some positioning rules
-    const listEl = createEl('div', { 
-      id: SELECTORS.PROMPT_LIST, 
+    const listEl = createEl('div', {
+      id: SELECTORS.PROMPT_LIST,
       className: `prompt-list ${getMode()}`,
       styles: {
         position: 'absolute',
@@ -1250,7 +1251,7 @@ class PromptUIManager {
     });
     container.appendChild(listEl);
     document.body.appendChild(container);
-    
+
     // Setup event handlers
     this.setupHotCornerEvents(container, indicator, listEl);
   }
@@ -1260,7 +1261,7 @@ class PromptUIManager {
     container.addEventListener('mouseenter', async e => {
       e.stopPropagation();
       PromptUIManager.cancelCloseTimer();
-      
+
       // Don't show prompt list if we're in variable input mode or manual mode
       if (!PromptUIManager.manuallyOpened && !PromptUIManager.inVariableInputMode) {
         indicator.style.borderWidth = '0 0 30px 30px';
@@ -1274,15 +1275,15 @@ class PromptUIManager {
         }
       }
     });
-    
+
     // Existing mouseleave handler
     container.addEventListener('mouseleave', e => {
       e.stopPropagation();
       indicator.style.borderWidth = '0 0 20px 20px';
       indicator.style.borderColor = `transparent transparent ${THEME_COLORS.primary}90 transparent`;
-      PromptUIManager.startCloseTimer(e, listEl, () => {});
+      PromptUIManager.startCloseTimer(e, listEl, () => { });
     });
-    
+
     //  document click handler for closing the prompt list when clicking outside
     const documentClickHandler = e => {
       const isMenu = e.target.closest(`#${SELECTORS.PROMPT_LIST}`) ||
@@ -1291,18 +1292,18 @@ class PromptUIManager {
         e.target.closest('.form-container') ||
         e.target.closest('.button') ||
         container.contains(e.target);
-      
+
       if (listEl.classList.contains('visible') && !isMenu) {
         PromptUIManager.hidePromptList(listEl);
       }
     };
-    
+
     // Store reference to the handler for cleanup
     container.documentClickHandler = documentClickHandler;
-    
+
     // Add the event listener to the document
     document.addEventListener('click', documentClickHandler);
-    
+
     // Set onboarding as completed when hovering over hot corner
     container.addEventListener('mouseenter', () => {
       PromptStorageManager.setOnboardingCompleted();
@@ -1318,7 +1319,7 @@ class PromptUIManager {
       // Clean up any event listeners if needed
       buttonContainer.remove();
     }
-    
+
     // Clean up hot corner container
     const hotCornerContainer = document.getElementById('hot-corner-container');
     if (hotCornerContainer) {
@@ -1328,7 +1329,7 @@ class PromptUIManager {
       }
       hotCornerContainer.remove();
     }
-    
+
     // Clean up any other global handlers or state
     PromptUIManager.manuallyOpened = false;
   }
@@ -1345,7 +1346,7 @@ class PromptUIManager {
     } else {
       PromptUIManager.injectHotCorner();
     }
-    
+
     // Make sure the prompt list is refreshed
     PromptUIManager.refreshPromptList(prompts);
     // If switching modes from settings, we should close any open menu
@@ -1365,8 +1366,8 @@ class PromptUIManager {
         if (inputBox) {
           const displayMode = await PromptStorageManager.getDisplayMode();
           // cleanupAllUIComponents method to ensure clean state
-          if (!document.getElementById(SELECTORS.PROMPT_BUTTON_CONTAINER) && 
-              !document.getElementById('hot-corner-container')) {
+          if (!document.getElementById(SELECTORS.PROMPT_BUTTON_CONTAINER) &&
+            !document.getElementById('hot-corner-container')) {
             PromptUIManager.cleanupAllUIComponents();
             const prompts = await PromptStorageManager.getPrompts();
             if (displayMode === 'standard') {
@@ -1445,7 +1446,7 @@ class PromptMediator {
       this.setupKeyboardShortcuts();
     } catch (err) { console.error('Error initializing extension:', err); }
   }
-  
+
   setupMutationObserver() {
     let observerTimeout = null;
     const target = document.querySelector('main') || document.body;
@@ -1456,8 +1457,8 @@ class PromptMediator {
         if (inputBox) {
           const displayMode = await PromptStorageManager.getDisplayMode();
           // cleanupAllUIComponents method to ensure clean state
-          if (!document.getElementById(SELECTORS.PROMPT_BUTTON_CONTAINER) && 
-              !document.getElementById('hot-corner-container')) {
+          if (!document.getElementById(SELECTORS.PROMPT_BUTTON_CONTAINER) &&
+            !document.getElementById('hot-corner-container')) {
             PromptUIManager.cleanupAllUIComponents();
             const prompts = await PromptStorageManager.getPrompts();
             if (displayMode === 'standard') {
@@ -1471,7 +1472,7 @@ class PromptMediator {
     });
     observer.observe(target, { childList: true, subtree: true });
   }
-  
+
   setupStorageChangeMonitor() {
     PromptStorageManager.onChange(async (changes, area) => {
       if (area === 'local' && changes.prompts) {
@@ -1479,7 +1480,7 @@ class PromptMediator {
       }
     });
   }
-  
+
   setupKeyboardShortcuts() {
     document.addEventListener('keydown', async e => {
       const shortcut = await PromptStorageManager.getKeyboardShortcut();
@@ -1492,11 +1493,11 @@ class PromptMediator {
           } else {
             // Mark as manually opened
             PromptUIManager.manuallyOpened = true;
-            
+
             // Get current prompts and refresh the list before showing it
             const currentPrompts = await PromptStorageManager.getPrompts();
             PromptUIManager.refreshPromptList(currentPrompts);
-            
+
             // Handle empty prompts case
             if (currentPrompts.length === 0) {
               PromptUIManager.showPromptCreationForm();

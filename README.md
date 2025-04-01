@@ -31,17 +31,20 @@ A lightweight Chrome extension for managing prompts across multiple AI chatbots 
 ### Managing Prompts
 
 1. **Add a New Prompt**
+
    - Open the extension popup
    - Enter a name and prompt content
    - Click "Save prompt"
 
 2. **Use a Saved Prompt**
+
    - Visit any supported AI chat platform
    - Click the floating prompt manager button
    - Select your desired prompt
    - The prompt will be automatically inserted into the chat input
 
 3. **Search Prompts**
+
    - Use the search bar to filter prompts by title or content
    - Navigate through results using arrow keys
    - Press Enter to select
@@ -63,6 +66,12 @@ A lightweight Chrome extension for managing prompts across multiple AI chatbots 
 - **Export**: Click "Export prompts" to download your prompts as a JSON file
 - **Import**: Click "Import prompts" to load prompts from a JSON file
 
+## Testing
+
+This project includes automated tests using **Puppeteer** and **Jest**. For more advanced testing, refer to the [Puppeteer API documentation](https://pptr.dev/).
+
+For detailed instructions on how to run and debug tests, see the [Testing Guide](TESTING.md).
+
 ## Privacy
 
 - All prompts are stored locally in your browser
@@ -79,7 +88,8 @@ This project is open source and available under the MIT License.
 
 ## Attributions
 
-### Contributing members : 
+### Contributing members :
+
 - Thanks to Hexodus for identifying a bug & helping me resolve it
 - Thanks to Abdallahheidar for his ideas, contributions, and teamwork on this project!
 - Thanks to HideMaru for the nice icon!
