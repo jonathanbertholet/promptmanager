@@ -3,23 +3,27 @@ name: Prepare Production Manifest
 on:
   push:
     branches:
-      - main # Run this action on pushes to the main branch
+      - main
 
 jobs:
-  prepare-prod:
+  update-manifest:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write  # Grant write permission
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
+      - name: Checkout repository
+        uses: actions/checkout@v2
 
-      - name: Copy production manifest
-        run: cp src/manifest.prod.json src/manifest.json
-
-      - name: Commit changes
+      - name: Update manifest.json
         run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git add src/manifest.json
+          # Your script to update the manifest.json
+          echo "Updating manifest.json"
+
+      - name: Commit and push changes
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          git add manifest.json
           git commit -m "Update manifest.json to production"
           git push
