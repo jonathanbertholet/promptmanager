@@ -20,6 +20,9 @@ jobs:
           # Your script to update the manifest.json
           echo "Updating manifest.json"
 
+      - name: Copy production manifest
+        run: cp src/manifest.prod.json src/manifest.json
+
       - name: Commit and push changes
         run: |
           git config --global user.name 'github-actions[bot]'
