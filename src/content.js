@@ -1,4 +1,3 @@
-
 /* Global constants, helpers & styles */
 const THEME_COLORS = {
   primary: '#3674B5', primaryGradientStart: '#3674B5', primaryGradientEnd: '#578FCA',
@@ -1029,7 +1028,17 @@ class PromptUIManager {
             const imported = JSON.parse(text);
             if (!Array.isArray(imported)) throw new Error('Invalid format');
             const merged = await PromptStorageManager.mergeImportedPrompts(imported);
+            
+            // Add these lines to properly refresh the UI after import
+            const displayMode = await PromptStorageManager.getDisplayMode();
+            PromptUIManager.cleanupAllUIComponents();
+            if (displayMode === 'standard') {
+              PromptUIManager.injectPromptManagerButton(merged);
+            } else {
+              PromptUIManager.injectHotCorner();
+            }
             PromptUIManager.refreshPromptList(merged);
+            
             importBtn.textContent = 'Import successful!';
             setTimeout(() => importBtn.textContent = 'Import Prompts', 2000);
           } catch (err) { alert('Invalid JSON file format.'); }
