@@ -64,6 +64,7 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
         // Simple matching (more robust matching might be needed depending on patterns)
         // Convert wildcard pattern to a basic regex check
         const regexPattern = originPattern
+          .replace(/\\/g, '\\\\') // Escape backslashes first
           .replace(/[.]/g, '\\.') // Escape dots
           .replace(/[*]/g, '.*'); // Replace wildcard with .*
         const urlRegex = new RegExp(`^${regexPattern}`);
