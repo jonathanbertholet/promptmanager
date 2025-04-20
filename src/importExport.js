@@ -34,31 +34,42 @@ export function importPrompts(file) {
           
           // Create a map of existing prompts by ID
           const existingPromptsMap = new Map(
-            existingPrompts.map(p => [p.id, p])
+            existingPrompts.map(p => [p.uuid, p])
           );
-          
+          console.log('Existing prompts map:', existingPromptsMap); // Log initial map
+
           // Merge imported prompts
           importedPrompts.forEach(importedPrompt => {
-            if (importedPrompt.id) {
-              if (existingPromptsMap.has(importedPrompt.id)) {
+            console.log('Processing imported prompt:', importedPrompt); // Log each imported prompt
+            if (importedPrompt.uuid) {
+              if (existingPromptsMap.has(importedPrompt.uuid)) {
+                console.log('Found existing prompt with ID:', importedPrompt.uuid); // Log if found
                 // Update existing prompt if imported version is newer
-                const existing = existingPromptsMap.get(importedPrompt.id);
+                const existing = existingPromptsMap.get(importedPrompt.uuid);
                 const existingDate = existing.updatedAt || existing.createdAt;
                 const importedDate = importedPrompt.updatedAt || importedPrompt.createdAt;
-                
+                console.log('Comparing dates - Existing:', existingDate, 'Imported:', importedDate); // Log dates
+
                 if (new Date(importedDate) > new Date(existingDate)) {
-                  existingPromptsMap.set(importedPrompt.id, importedPrompt);
+                  console.log('Updating existing prompt with newer version.'); // Log update action
+                  existingPromptsMap.set(importedPrompt.uuid, importedPrompt);
+                } else {
+                  console.log('Keeping existing prompt (it is newer or same age).'); // Log skip action
                 }
               } else {
+                console.log('Adding new prompt with ID:', importedPrompt.uuid); // Log add action
                 // Add new prompt
-                existingPromptsMap.set(importedPrompt.id, importedPrompt);
+                existingPromptsMap.set(importedPrompt.uuid, importedPrompt);
               }
+            } else {
+              console.warn('Imported prompt missing ID:', importedPrompt); // Warn about missing ID
             }
           });
-          
+
           // Convert map back to array
           const mergedPrompts = Array.from(existingPromptsMap.values());
-          
+          console.log('Merged prompts:', mergedPrompts); // Log the final merged array
+
           // Save merged prompts
           chrome.storage.local.set({ prompts: mergedPrompts }, loadPrompts);
         });

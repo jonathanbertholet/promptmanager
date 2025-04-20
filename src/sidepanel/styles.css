@@ -1,5 +1,5 @@
 /* styles.css */
-@media (min-width:320px) {
+@media (min-width:286px) {
   body {
     font-family: Helvetica, Verdana, Geneva, Tahoma, sans-serif;
     width: auto;
@@ -17,7 +17,7 @@
     grid-auto-columns: 0px;
     flex-direction: column;
     align-items: stretch;
-    min-width: 300px;
+    min-width: 286px;
   }
 
   h2,
@@ -119,7 +119,7 @@
 
   /* Adjust list item spacing for left aligned list */
   #prompt-list {
-    list-style-type: none;
+    /* list-style-type: none; */
     padding: 0;
     margin: 0;
     margin-bottom: 5px;
@@ -318,7 +318,7 @@
   }
 
   #prompt-list {
-    list-style-type: none;
+    /* list-style-type: none; */
     padding: 0;
     margin: 0;
   }

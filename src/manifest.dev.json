@@ -1,44 +1,49 @@
 {
     "manifest_version": 3,
     "name": "Open Prompt Manager",
-    "version": "1.9.6",
-    "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA0FAp+xWiJpGBmsKPhGcqF4/gQN9F5tmXgEVYEHUHc8HcBIUcT+9w+jo4q2OtXa2ThqgEXsx2zcNZIWJ/5yXcofVry5E2/HKBuLWHNtYOlI1rhwc/CLujo0RHhzF7rIiYcMPQdBhzr6L0u5u9N29VUWjLozltquKRcUbjXNe4LT7+q/akhn5tvfvWHkQ9qC6mRjvGwGTFlh1A6+vWKKSVYx/J+IBHW+I2X5NlAxwG734OMYVWRWK487jf1wsWZ2jHRTqg9TB3htT+84r7+E3kFYMycow9+2EhvoI2k5VGhZw1tAJcpie1Poozc5u8CTrZ4sZ5LK4h59OCOxmejC048QIDAQAB",
+    "version": "1.9.7",
     "description": "Fully Open Source Prompt Manager for ChatGPT, Claude, Gemini, Grok, and more.",
+    "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA0FAp+xWiJpGBmsKPhGcqF4/gQN9F5tmXgEVYEHUHc8HcBIUcT+9w+jo4q2OtXa2ThqgEXsx2zcNZIWJ/5yXcofVry5E2/HKBuLWHNtYOlI1rhwc/CLujo0RHhzF7rIiYcMPQdBhzr6L0u5u9N29VUWjLozltquKRcUbjXNe4LT7+q/akhn5tvfvWHkQ9qC6mRjvGwGTFlh1A6+vWKKSVYx/J+IBHW+I2X5NlAxwG734OMYVWRWK487jf1wsWZ2jHRTqg9TB3htT+84r7+E3kFYMycow9+2EhvoI2k5VGhZw1tAJcpie1Poozc5u8CTrZ4sZ5LK4h59OCOxmejC048QIDAQAB",
     "permissions": [
-        "storage"
+        "sidePanel",
+        "storage",
+        "tabs",
+        "scripting",
+        "activeTab"
     ],
+    "side_panel": {
+        "default_path": "sidepanel/index.html"
+    },
     "icons": {
         "16": "/icons/icon16.png",
         "48": "/icons/icon48.png",
         "128": "/icons/icon128.png"
     },
     "action": {
-        "default_popup": "popup.html"
+        "default_title": "Click to open panel",
+        "default_icon": {
+            "16": "/icons/icon16.png",
+            "48": "/icons/icon48.png",
+            "128": "/icons/icon128.png"
+        },
+        "type": "side_panel"
     },
-    "options_page": "settings.html",
-    "content_security_policy": {
-        "extension_pages": "script-src 'self'; object-src 'self'"
+    "background": {
+        "service_worker": "service-worker.js",
+        "type": "module"
     },
-    "content_scripts": [
-        {
-            "matches": [
-                "*://chatgpt.com/*",
-                "*://notebooklm.google.com/*",
-                "*://claude.ai/*",
-                "*://poe.com/*",
-                "*://gemini.google.com/*",
-                "*://chat.deepseek.com/*",
-                "*://x.com/i/grok*",
-                "*://grok.com/*",
-                "*://copilot.microsoft.com/*",
-                "*://apps.abacus.ai/chatllm/*"
-            ],
-            "js": [
-                "inputBoxHandler.js",
-                "content.js"
-            ],
-            "run_at": "document_end"
-        }
+    "host_permissions": [],
+    "optional_host_permissions": [
+        "*://chatgpt.com/*",
+        "*://notebooklm.google.com/*",
+        "*://claude.ai/*",
+        "*://poe.com/*",
+        "*://gemini.google.com/*",
+        "*://chat.deepseek.com/*",
+        "*://x.com/i/grok*",
+        "*://grok.com/*",
+        "*://copilot.microsoft.com/*",
+        "*://apps.abacus.ai/chatllm/*"
     ],
     "web_accessible_resources": [
         {

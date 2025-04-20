@@ -1,0 +1,71 @@
+{
+  "llm_providers": [
+    {
+      "name": "ChatGPT",
+      "pattern": "*://chatgpt.com/*",
+      "url": "https://chatgpt.com",
+      "icon_url": "https://cdn.oaistatic.com/assets/favicon-miwirzcw.ico"
+      
+    },
+    {
+      "name": "NotebookLM",
+      "pattern": "*://notebooklm.google.com/*",
+      "url": "https://notebooklm.google.com",
+      "icon_url": "https://notebooklm.google.com/_/static/branding/v5/light_mode/favicon/favicon.svg"
+    },
+    {
+      "name": "Claude",
+      "pattern": "*://claude.ai/*",
+      "url": "https://claude.ai",
+      "icon_url": "https://claude.ai/images/claude_app_icon.png"
+    },
+    {
+      "name": "Poe",
+      "pattern": "*://poe.com/*",
+      "url": "https://poe.com",
+      "icon_url": "https://psc2.cf2.poecdn.net/assets/favicon.svg"
+    },
+    {
+      "name": "Gemini",
+      "pattern": "*://gemini.google.com/*",
+      "url": "https://gemini.google.com",
+      "icon_url": "https://www.gstatic.com/lamda/images/gemini_sparkle_v002_d4735304ff6292a690345.svg"
+    },
+    {
+      "name": "DeepSeek",
+      "pattern": "*://chat.deepseek.com/*",
+      "url": "https://chat.deepseek.com",
+      "icon_url": "https://cdn.deepseek.com/chat/icon.png"
+    },
+    {
+      "name": "Grok",
+      "pattern": "*://x.com/i/grok*",
+      "url": "https://x.com/i/grok",
+      "icon_url": "https://grok.com/images/favicon-light.png"
+    },
+    {
+      "name": "Grok",
+      "pattern": "*://grok.com/*",
+      "url": "https://grok.com",
+      "icon_url": "https://grok.com/images/favicon-light.png"
+    },
+    {
+      "name": "Microsoft Copilot",
+      "pattern": "*://copilot.microsoft.com/*",
+      "url": "https://copilot.microsoft.com",
+      "icon_url": "https://copilot.microsoft.com/sa/simg/favicon-cplt.ico"
+    },
+    {
+      "name": "ChatLLM",
+      "pattern": "*://apps.abacus.ai/chatllm/*",
+      "url": "https://apps.abacus.ai",
+      "icon_url": "https://apps.abacus.ai/chatllm/icon.png"
+    },
+    {
+      "name": "Google AI Studio",
+      "pattern": "*://aistudio.google.com/*",
+      "url": "https://aistudio.google.com",
+      "icon_url": "https://www.gstatic.com/aistudio/ai_studio_favicon_32x32.png"
+    }
+  ]
+}

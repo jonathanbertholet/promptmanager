@@ -186,6 +186,23 @@ export function editPrompt(index) {
   });
 }
 
+export function copyToClipboard(index) {
+  chrome.storage.local.get('prompts', data => {
+    const prompts = data.prompts || [];
+    if (index >= 0 && index < prompts.length) {
+      const prompt = prompts[index];
+      navigator.clipboard.writeText(prompt.content)
+        .then(() => {
+          console.log('Prompt content copied to clipboard');
+          // Optional: Provide user feedback (e.g., show a temporary message)
+        })
+        .catch(err => {
+          console.error('Failed to copy text: ', err);
+        });
+    }
+  });
+}
+
 export function displayPrompts(prompts) {
   const promptList = document.getElementById('prompt-list');
   const emptyState = document.getElementById('empty-state');
@@ -209,10 +226,26 @@ export function displayPrompts(prompts) {
     titleSpan.style.display = 'inline-block';
     li.appendChild(titleSpan);
 
+    const copyBtn = document.createElement('button');
+    const copyImg = document.createElement('img');
+    copyImg.src = '../icons/copy.png';
+    copyImg.alt = 'Copy';
+    copyImg.title = 'Copy to clipboard';
+    copyImg.width = 14;
+    copyImg.height = 14;
+    copyImg.style.verticalAlign = 'middle';
+    copyBtn.style.display = 'none';
+    copyBtn.style.backgroundColor = '#ffffff00';  // Set background color to white
+
+    copyBtn.appendChild(copyImg);
+    copyBtn.addEventListener('click', () => copyToClipboard(index));
+    li.appendChild(copyBtn);
+
     const editBtn = document.createElement('button');
     const editImg = document.createElement('img');
-    editImg.src = 'icons/edit-icon.png';
+    editImg.src = '../icons/edit-icon.png';
     editImg.alt = 'Edit';
+    editImg.title = 'Edit';
     editImg.width = 14;
     editImg.height = 14;
     editImg.style.verticalAlign = 'middle';
@@ -225,8 +258,9 @@ export function displayPrompts(prompts) {
 
     const delBtn = document.createElement('button');
     const delImg = document.createElement('img');
-    delImg.src = 'icons/delete-icon.png';
+    delImg.src = '../icons/delete-icon.png';
     delImg.alt = 'Delete';
+    delImg.title = 'Delete';
     delImg.width = 10;
     delImg.height = 10;
     delImg.style.verticalAlign = 'middle';
@@ -237,11 +271,13 @@ export function displayPrompts(prompts) {
     li.appendChild(delBtn);
 
     li.addEventListener('mouseenter', () => {
+      copyBtn.style.display = 'inline-block';
       editBtn.style.display = 'inline-block';
       delBtn.style.display = 'inline-block';
     });
 
     li.addEventListener('mouseleave', () => {
+      copyBtn.style.display = 'none';
       editBtn.style.display = 'none';
       delBtn.style.display = 'none';
     });
@@ -300,6 +336,7 @@ export function loadPrompts() {
       // Then load prompts from local storage
       chrome.storage.local.get('prompts', data => {
         const prompts = data.prompts || [];
+        console.log('Loaded prompts:', prompts);
         displayPrompts(prompts);
       });
     });
