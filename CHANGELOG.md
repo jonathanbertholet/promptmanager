@@ -13,6 +13,10 @@ and this project adheres to [Semantic Versioning].
 - Added Permissions Manager.
 - Copy prompts to clipboard.
 
+### Fixed
+
+- Bug fix for the import/export feature.
+
 ### Removed
 
 - Popup window
