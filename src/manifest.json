@@ -29,8 +29,7 @@
                 "*://chat.deepseek.com/*",
                 "*://x.com/i/grok*",
                 "*://grok.com/*",
-                "*://copilot.microsoft.com/*",
-                "*://apps.abacus.ai/chatllm/*"
+                "*://copilot.microsoft.com/*"
             ],
             "js": [
                 "inputBoxHandler.js",
