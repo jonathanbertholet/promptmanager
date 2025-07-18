@@ -1,0 +1,128 @@
+[
+  {
+    "content": "gerreggerrge",
+    "title": "tyreegrreg",
+    "uuid": "a368f05e-cd57-4040-a2dc-b081c352553d"
+  },
+  {
+    "content": "Generate meeting minutes using my notes. The meeting minutes should be in french and follow the following structure : \n\nRésumé de notre meeting d'aujourd'hui : \n- Bullet list of topics discussed : keep it simple, avoid using people's names, just make a list of the topics that were discussed & add some detail whenever some is present in the meeting notes\n\nTo-do's : \n- Per person",
+    "title": "GPT : Meeting Minutes - FR",
+    "updatedAt": "2024-10-29T09:41:11.792Z",
+    "uuid": "0cad6169-75ba-4fbd-85e8-702ca7d5417b"
+  },
+  {
+    "content": "We're playing the role of a digital advisor. Our role consists in understanding and analyzing the broader scope and context of a client company, and to identify relevant topics to that industry/company on the macro, meso and micro levels. \n\nCan you provide me with two topics per level that might be the most relevant to the client company? \n\nTopics per level : \n\nMacro : Political, Economical, Sociological, Technological, Ecological, Legal\nMeso : Costs, Revenues, Competitors, Suppliers, Customers, Partners\nMicro : People, Culture, Processes, Dreams & Projects, Fears\n\nInformation about the client company : #industry#",
+    "title": "GPT : Digital Advisor Analysis",
+    "uuid": "8a0bccc3-8944-499c-9de5-aa5581a33ccb"
+  },
+  {
+    "content": "I want you to generate a detailed and comprehensive sequence diagram in mermaid code for the following flow.",
+    "title": "GPT : Sequence Diagram",
+    "updatedAt": "2024-10-29T09:45:08.857Z",
+    "uuid": "ad432682-3345-475a-b569-0c2d5522ce67"
+  },
+  {
+    "content": "I need help with improving the following text. \n\nI need you to analyse it, list points of improvements, and apply those improvements. \n\nPlease be direct, use bullet points when it helps getting the point across in a clear and concise fashion, be concise in general, not too formal, but not too informal either. Don't be afraid to redefine the entire email structure, but keep all the information of the original text in the new text. Always keep the language of the original text. \n\nText :",
+    "title": "GPT : Redaction Assistance",
+    "updatedAt": "2024-10-29T09:40:48.304Z",
+    "uuid": "5b021955-277d-47e7-bc6d-95ebdb95aba6"
+  },
+  {
+    "content": "I need your assistance with creating a Google Sheet formula. Pay close attention to Google Sheets syntax. \n\nColumns to take into consideration and what they contain : \n\nObjective of the formula :",
+    "title": "GPT : Excel Assistance",
+    "updatedAt": "2024-10-29T09:40:40.144Z",
+    "uuid": "b8aad7bd-ae5b-48bf-a019-12e63c864939"
+  },
+  {
+    "content": "Give me an in depth analysis of a specific industry, sector, or business type. Be concise, except whenever it's super relevant and important to take into account. Use the following structure : \n\nKey considerations: \n\nHistorical context : \n\nFuture considerations: \n\nImpact and implications : \n\nINDUSTRY, SECTOR OR BUSINESS OF THIS ANALYSIS : #industryname#",
+    "title": "GPT : Industry Analysis",
+    "uuid": "2abf5c95-6265-4d6a-9b4b-84b3311254a2"
+  },
+  {
+    "content": "Please provide a step-by-step flow of how to demo a customer implementation in Odoo. \n\nGo through the following phases : \n- Initial system configuration (modules/apps to be installed, basic settings).\n- One flow, from A-Z, corresponding to the customers current described flow. Go from one app to the other, explain what we do in each app to complete the flow. \n- Explore additional apps that can benefit the customer in his industry, sector or business based on the apps available within Odoo. \n\nMake sure to include any key considerations. If something is unclear, request more details from me. \n\nDESCRIPTION OF THE CUSTOMER PROJECT INCLUDING SECTOR, CURRENT FLOW(S), AND OTHER SPECIFICS : ",
+    "title": "NBLM : Flow Request",
+    "updatedAt": "2024-10-29T09:40:03.358Z",
+    "uuid": "12ee8f68-98d0-433b-b489-0d0b58da06ec"
+  },
+  {
+    "content": "Assist in resolving a presales ticket for Odoo by providing a detailed response to the following aspects:\n\nCustomer Requirements: Outline key considerations for assessing the customer's industry and business needs, including specific modules they might benefit from.\nSolution Proposal: Suggest the most suitable Odoo apps or customizations based on the customer’s workflow, including integrations with third-party software if necessary.\nDemonstration Preparation: Detail how to prepare an effective demo that highlights Odoo’s core features relevant to the customer, including key selling points.\nTechnical Clarifications: Address potential technical questions about deployment options (cloud vs. on-premise).\nEnsure that the response is customer-centric and emphasizes the flexibility and scalability of Odoo to handle their business challenges.",
+    "title": "NBLM : Presales Ticket",
+    "updatedAt": "2024-10-29T09:34:34.878Z",
+    "uuid": "70ebe29a-e88d-4184-9a98-2baddd0b68e6"
+  },
+  {
+    "content": "Brainstorm with me on how we can help a business by implementing Odoo for them. Think opportunities, apps, and game changers. ",
+    "title": "NBLM : Implementation brainstorm",
+    "uuid": "aa4b44c2-236f-47e3-adbf-be16d34f3742"
+  },
+  {
+    "content": "Create a sequence diagram in mermaid code with the following parameters where each MVP is a column, under each MVP we have a textarea with a placeholder text",
+    "title": "GPT : Roadmap Diagram",
+    "updatedAt": "2024-10-29T09:53:15.542Z",
+    "uuid": "c8fb5b23-7e74-4352-8914-2694b262aaa7"
+  },
+  {
+    "content": "I will share with you my meeting notes. Please go through them carefully, analyse them, and restructure them in a summarized way that keeps all the essential information, but in a clear and succinct way. \n\nMEETING NOTES : ",
+    "title": "GPT : Structure & Summarize",
+    "uuid": "1d4e118c-c253-448c-bf0a-920487b5bd88"
+  },
+  {
+    "content": "Write release notes based on the following transcript : \n\n",
+    "title": "GPT : Release Notes",
+    "uuid": "6afc97df-f7b9-456a-ac54-0a166c4e2c29"
+  },
+  {
+    "content": "Explain in two sentences what the following concept is about :",
+    "title": "GPT : Explain",
+    "uuid": "a57901d6-981a-4d03-8bac-4a75996f19c3"
+  },
+  {
+    "content": "Please generate a documentation/user guide for the [Industry/Sector Name] sector described below, for Odoo applications. Follow the structure below:\n\nTitle & Introduction:\n\nTitle: “Odoo for [Industry/Sector Name]”\nIntroduction: A brief paragraph on how Odoo empowers businesses in this industry through efficiency and integrated solutions.\n\nStructure : Table of Contents:\n1. Basics \nFlow 1: [Name/Module] [Emoji]\nFlow 2: [Name/Module] [Emoji]\n… (Include all flows as provided)\n2. Tips for Success\n3. Do You Want to Go Further?\n\nDetailed Sections instructions:\n\n---\n\nBasics : \n- bullet point list of each mentioned app in the flow/app list hereunder, with what they do, in 15 words or less. \n\nFor each flow/app:\n- Heading (e.g., “Opportunities 🎯” for CRM)\n- Two description variations (e.g., for CRM, see options below) + more detailed explanations in bullet point format about how the app can be used:\nOption 1: “The CRM module helps you capture and track customer inquiries, manage communications through chatter, and schedule follow-up tasks.”\nOption 2: “Our CRM allows you to monitor leads, organize activities, and streamline communication with potential customers.”\n\nProvide similar generic descriptions for each subsequent app.\n\nTips for Success:\n\n- Offer a few generic tips to help users maximize the benefits of the industry module.\n\nDo You Want to Go Further?:\n\n- End with an invitation for further exploration, additional apps, or a call-to-action for more information.\n\n--- \n\nExtra guidelines on formatting / wording: \n- do not mention \"flows\" in the output. this is a term we use ourselves\n- when i talk about a flow in this prompt, it's a sequence of actions, it should be clear from your output (e.g. : crm leads to quotations leads to sales leads to projects leads to invoicing), and multiple flows can exist in a business\n- do offer some amount of detail under every flow section, structured with a short paragraph, then bullet points + bold text for the apps, or important parts. \n\n\nDETAILS ON THE INDUSTRY, APPS AND FLOWS THAT NEED TO BE INCLUDED IN THE USER GUIDE :\n\n--- \n\n- Industry/Sector Name:\n- Business Flows (in order):\n- Do you want to go further apps:  \n",
+    "id": "1ac631b9-b89b-4436-aea3-33e4a59daea1",
+    "title": "Industry Knowledge Article",
+    "updatedAt": "2025-02-27T08:59:44.291Z",
+    "uuid": "4b903817-46e4-49bd-902b-27baac432547"
+  },
+  {
+    "content": "Generate 10 variations of a loading screen phrase for a [business type]. Each phrase should follow this format:\n\n\"Building your... [customized phrase]\"\nThe phrases should be creative, engaging, and relevant to the business type provided. Ensure they are concise and maintain a consistent tone. Here are some examples:\n\nExample for a Veterinary Clinic:\n\nBuilding your... [veterinary cabinet]\nBuilding your... [animal care garden]\nBuilding your... [puppy wellness]\nBuilding your... [kitten care center]\nBuilding your... [furry friends hub]\nBuilding your... [pet wellness haven]\nBuilding your... [tail-wagging clinic]\nBuilding your... [purr-fect care center]\nBuilding your... [happy paws clinic]\nBuilding your... [trusted vet station]\n\nNow, generate a list of 10 phrases in the exact same format for the following sector/industry/occupation : \n\n",
+    "id": "ff056953-b1c7-4323-9fce-a5cbb59e05d0",
+    "title": "Building Your ...",
+    "uuid": "9e66ef76-f884-48f7-a339-037ae624949e"
+  },
+  {
+    "content": "I'm working on demo data for a CRM. \n\nHere is a CRM data import file. I need you to add multiple new rows for a given use case (below). Don't change the column names. \n\nDetail on the columns : \n- id = uuid\n- contact_name = name of the contact to which the opportunity is associated\n- email_from = contact's email\n- expected_revenue = expected revenue of the opportunity\n- name = name of the opportunity, should always be something that's descriptive, e.g. \"microsoft office cleaning\", or other stuff that can describe the opportunity, in less than 8 words\n- tag_ids = tags that are linked to the opportunity, invent new ones, multiple tags per opportunity would be great, separated by a \",\"\n- website : optional, depends on the opportunity. \n\nAdjust it for the following type of business : \n\n\n",
+    "id": "1513305a-7eee-4736-bf2a-9bb339e30473",
+    "title": "CRM Demo Data",
+    "uuid": "a8bd8c69-4de3-4f0a-8665-28e9d736ef43"
+  },
+  {
+    "content": "I'm working on demo data for company products.\n \nHere is a product import file. I need you to add multiple new rows for a given use case (below). Don't change the column names. \n\nDetail on the columns : \n- id = uuid\n- name = product name, short, ten words max. \n- type = product type, choice between \"goods\" and \"service\"\n- list_price = sales price\n- categ_id = product category, choose a few ones for this business if it makes sense, don't make 10 different ones for 10 different products, e.g. a grocery shop may have \"drinks\" and \"food\", etc. \n- product_tag_ids = product tags, make up a few ones that make sense, you can add multiple tags per product, separated by \",\"\n- description = notes on the product, a few sentences typically.\n- standard_price = product cost, fill in if relevant, not always the case\n - default_code = internal product reference, usually a short code. \n- description_sale = description on quotations & sales orders\n\nI want you to output an xlsx file. \n\nAdjust it for the following type of business :\n\n",
+    "id": "000832b3-5768-48c4-a55e-fa65aa120b7c",
+    "title": "Product Demo Data",
+    "uuid": "c6253427-126f-408a-9d1a-6cdec10e3ca2"
+  },
+  {
+    "content": "Generate a list of terms and conditions that can appear on a sales order for a business working in the following sector/industry : \n\n",
+    "id": "d35cc077-f3c5-4053-9281-96392ea60473",
+    "title": "Terms & Conditions",
+    "uuid": "550757ec-cfb2-4e20-b6eb-e488f89ed094"
+  },
+  {
+    "content": "Generate a generic document for the following industry, sector, or business. \n\nIndustry / Business / Sector : \nType of document (consent form, contract, agreement, etc.) : \n\n",
+    "id": "7a205e7f-81b5-4fa3-a32c-9e49f77703af",
+    "title": "Generic Sign Document",
+    "uuid": "7b3bc86a-ca09-470b-a862-ee891e18a912"
+  },
+  {
+    "content": "I need you to provide me with the various business flows a company of a specific sector or industry might have. Keep it generic. \n\nExample : \n\nTattoo Shop: \n- Commercial flow : appointment/walk in -> discuss idea -> arrange quote -> fix dates -> execute tattoo'ing -> invoicing -> send aftercare instructions\n- Communication flow : social media posting, website, etc. \n\nAnd so on : go through all the possible flows, consider b2b, b2c when applicable, contracts, and all other aspects of how the business operates. \n\n----\n\nBusiness / sector / industry : \n",
+    "id": "008cc1d7-78e7-49ab-a78d-ee4d4135b22c",
+    "title": "Industry Flow Drafting",
+    "uuid": "62352699-a80d-4c2a-a2db-07aa6d77ac55"
+  },
+  {
+    "content": "fvdvfdvdfdvfvfd",
+    "createdAt": "2025-07-18T13:53:56.817Z",
+    "title": "dffdvfvdvf",
+    "uuid": "37e7d12c-d064-42b6-9dc7-36cc4a1ee463"
+  }
+]

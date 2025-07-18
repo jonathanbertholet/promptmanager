@@ -45,7 +45,8 @@
         "*://apps.abacus.ai/chatllm/*",
         "*://aistudio.google.com/*",
         "*://www.perplexity.ai/*",
-        "*://lmarena.ai/*"
+        "*://lmarena.ai/*",
+        "*://chat.qwen.ai/*"
     ],
     "web_accessible_resources": [
         {

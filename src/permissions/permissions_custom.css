@@ -61,13 +61,13 @@ body {
 
 /* Custom Lead Text - Replicates .col-lg-8 .mx-auto .fs-5 .text-muted */
 .custom-lead-text {
-  max-width: 80%; /* Adjusted for better readability, similar to col-lg-8 */
+  max-width: 80%;
   margin-left: auto;
   margin-right: auto;
   font-size: 1.25rem;
   color: var(--muted-text);
-  margin-top: 1rem;
-  margin-bottom: 2rem;
+  margin-top: 0rem;
+  margin-bottom: 0.5rem; /* Reduced margin-bottom */
 }
 
 /* Custom Container with top margin - Replicates .container .mt-5 */
@@ -160,7 +160,8 @@ body {
 /* Custom Rounded Circle - Replicates .rounded-circle */
 .custom-rounded-circle {
   border-radius: 50%;
-  object-fit: cover; /* Ensure images cover the circle area without distortion */
+  object-fit: cover;
+  background-color: white;
 }
 
 /* Custom margin bottom 0 - Replicates .mb-0 */
@@ -175,6 +176,56 @@ body {
 .custom-mt-mb-3 {
   margin-top: 1rem;
   margin-bottom: 1rem;
+}
+
+/* Onboarding Section Styles */
+.custom-onboarding-section {
+    margin-top: 2rem;
+    margin-bottom: 2rem;
+    text-align: center;
+}
+
+.custom-onboarding-title {
+    margin-bottom: 1.5rem;
+    font-size: 1.5rem; /* Adjusted font size */
+}
+
+.custom-row {
+    display: flex;
+    justify-content: center;
+    gap: 20px; /* Space between columns */
+    flex-wrap: wrap; /* Allow columns to wrap on smaller screens */
+}
+
+.custom-col {
+    flex: 1; /* Distribute space equally */
+    min-width: 280px; /* Minimum width before wrapping */
+    max-width: 45%; /* Max width to ensure two columns */
+    box-sizing: border-box;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center; /* Center content within columns */
+}
+
+.custom-onboarding-gif {
+    max-width: 40%;
+    height: auto;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.custom-onboarding-gif-title {
+    font-size: 1.2rem;
+    margin-bottom: 0.5rem;
+    color: var(--dark-text);
+}
+
+.custom-onboarding-caption {
+    font-size: 0.9rem;
+    color: var(--muted-text);
+    line-height: 1.4;
 }
 
 /* Responsive adjustments */
@@ -210,9 +261,13 @@ body {
   .custom-mb-0 {
     font-size: 0.9rem;
   }
+
+  .custom-col {
+    max-width: 90%; /* Single column on small screens */
+  }
 }
 
-@media (max-width: 480px) {
+@media (max-width: 600px) {
   .custom-container {
     margin-top: 2rem;
     margin-bottom: 2rem;

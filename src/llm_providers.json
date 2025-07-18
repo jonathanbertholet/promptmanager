@@ -35,7 +35,7 @@
       "name": "DeepSeek",
       "pattern": "*://chat.deepseek.com/*",
       "url": "https://chat.deepseek.com",
-      "icon_url": "https://cdn.deepseek.com/chat/icon.png"
+      "icon_url": "../icons/deepseek-icon.png"
     },
     {
       "name": "Grok",
@@ -84,6 +84,12 @@
       "pattern": "*://aistudio.google.com/*",
       "url": "https://aistudio.google.com",
       "icon_url": "https://www.gstatic.com/aistudio/ai_studio_favicon_32x32.png"
+    },
+    {
+      "name": "Qwen",
+      "pattern": "*://chat.qwen.ai/*",
+      "url": "https://chat.qwen.ai",
+      "icon_url": "../icons/qwen-icon.png"
     }
   ]
 }
