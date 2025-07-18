@@ -8,8 +8,7 @@
         "storage",
         "tabs",
         "scripting",
-        "activeTab",
-        "contextMenus"
+        "activeTab"
     ],
     "side_panel": {
         "default_path": "sidepanel/index.html"
