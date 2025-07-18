@@ -293,3 +293,45 @@ body {
     font-size: 0.8rem;
   }
 } 
+
+/* Center header icon and title */
+.custom-header-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 0.2rem;
+}
+.custom-header-icon {
+  display: block;
+  margin: 0 auto 0.2rem auto;
+}
+.custom-theme-blue {
+  color: var(--primary-blue) !important;
+} 
+
+/* Footer styles for permissions.html */
+.custom-footer {
+  width: 100%;
+  padding: 1.5rem 0 1rem 0;
+  background: none;
+  text-align: center;
+  color: var(--muted-text);
+  font-size: 0.95rem;
+  margin-top: 2rem;
+}
+.custom-footer-content {
+  display: inline-block;
+  color: var(--muted-text);
+}
+.custom-footer-link {
+  color: var(--muted-text);
+  text-decoration: underline dotted;
+  transition: color 0.2s;
+  font-size: 0.97em;
+}
+.custom-footer-link:hover,
+.custom-footer-link:focus {
+  color: var(--primary-blue);
+  text-decoration: underline;
+} 

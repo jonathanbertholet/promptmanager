@@ -467,6 +467,8 @@ class PromptStorageManager {
     const prompts = await PromptStorageManager.getPrompts();
     prompts.push(prompt);
     await PromptStorageManager.setData('prompts', prompts);
+    // TWO-WAY SYNC: Also update 'prompts_storage' for sidebar compatibility
+    await chrome.storage.local.set({ prompts_storage: { version: 1, prompts: prompts.map(p => p.uuid ? p : { ...p, uuid: crypto.randomUUID() }) } });
     return { success: true };
   }
   static async mergeImportedPrompts(imported) {
@@ -480,6 +482,8 @@ class PromptStorageManager {
     });
     prompts = prompts.map(p => p.uuid ? p : { ...p, uuid: crypto.randomUUID() });
     await PromptStorageManager.setData('prompts', prompts);
+    // TWO-WAY SYNC: Also update 'prompts_storage' for sidebar compatibility
+    await chrome.storage.local.set({ prompts_storage: { version: 1, prompts } });
     return prompts;
   }
   static onChange(cb) { chrome.storage.onChanged.addListener(cb); }

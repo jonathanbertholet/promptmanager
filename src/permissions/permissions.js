@@ -5,6 +5,8 @@ document.addEventListener('DOMContentLoaded', function () {
   // Get the target containers
   const permissionGrantedContainer = document.getElementById('permission-granted');
   const requestPermissionContainer = document.getElementById('request-permission');
+  // Get the Get Started button container
+  const getStartedBtnContainer = document.getElementById('get-started-btn-container');
 
   if (!permissionGrantedContainer || !requestPermissionContainer) {
     console.error('Required container elements (#permission-granted or #request-permission) not found.');
@@ -16,6 +18,9 @@ document.addEventListener('DOMContentLoaded', function () {
     if (result.aiProvidersMap) {
       const providersMap = result.aiProvidersMap;
       console.log('Retrieved providersMap from storage:', providersMap);
+
+      // Store allowed providers for Get Started logic
+      const allowedProviders = [];
 
       // Process the provider map data
       for (const [key, providerInfo] of Object.entries(providersMap)) {
@@ -37,6 +42,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (providerInfo.hasPermission == "Yes") {
           console.log(`Provider: ${key}, Has Permission: Yes`);
           targetContainer = permissionGrantedContainer;
+          allowedProviders.push({ key, providerInfo }); // Collect allowed providers
           // Optionally add styling or text to indicate granted status within the element if needed
         } else {
           console.log(`Provider: ${key}, Has Permission: No`);
@@ -76,6 +82,38 @@ document.addEventListener('DOMContentLoaded', function () {
             });
           }
         }
+      }
+      // After processing all providers, show the Get Started button if at least one is allowed
+      if (allowedProviders.length > 0 && getStartedBtnContainer) {
+        // Fetch the LLM provider URLs from llm_providers.json
+        fetch(chrome.runtime.getURL('llm_providers.json'))
+          .then(response => response.json())
+          .then(data => {
+            // Find the first allowed provider in the llm_providers list (by name match)
+            const llmList = data.llm_providers || [];
+            let firstAllowedUrl = null;
+            for (const allowed of allowedProviders) {
+              const match = llmList.find(llm => llm.name === allowed.key);
+              if (match && match.url) {
+                firstAllowedUrl = match.url;
+                break;
+              }
+            }
+            if (firstAllowedUrl) {
+              // Create the Get Started button
+              getStartedBtnContainer.innerHTML = `<button id="get-started-btn" class="custom-button" style="font-size: 1.2rem; padding: 0.75rem 1rem; margin-top: 1rem; display: inline-flex; align-items: center; gap: 0.5rem;">
+                <img src="../icons/icon-button.png" alt="Open Prompt Manager Icon" width="28" height="28" style="object-fit: cover;"> 
+                <span style="vertical-align: middle;">Get Started</span>
+              </button>`;
+              // Add click event to open the URL in a new tab
+              document.getElementById('get-started-btn').addEventListener('click', function() {
+                window.open(firstAllowedUrl, '_blank');
+              });
+            }
+          });
+      } else if (getStartedBtnContainer) {
+        // Hide or clear the button if no allowed providers
+        getStartedBtnContainer.innerHTML = '';
       }
     } else {
       console.log('No providersMap found in storage.');

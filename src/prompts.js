@@ -53,16 +53,22 @@ async function setPromptStorage(storageObj) {
     throw new Error('Prompt storage version mismatch. Refusing to overwrite.');
   }
   await chrome.storage.local.set({ prompts_storage: storageObj });
+  // QUICK FIX: Also update legacy 'prompts' array for content.js compatibility
+  await chrome.storage.local.set({ prompts: storageObj.prompts });
 }
 
 // Add a prompt to local storage (robust, versioned)
 export async function addPrompt(title, content) {
   if (!title || !content) return;
   try {
-    const storage = await getPromptStorage();
+    // Always normalize/upgrade storage before proceeding
+    let prompts = await normalizePromptFormat();
+    // Get the latest storage object
+    let storage = await getPromptStorage();
+    // If storage version is not current, upgrade in-place
     if (storage.version !== PROMPT_STORAGE_VERSION) {
-      alert('Prompt storage version mismatch. Please update your extension.');
-      return;
+      storage = { version: PROMPT_STORAGE_VERSION, prompts };
+      await setPromptStorage(storage);
     }
     const prompt = normalizePromptObject({ title, content });
     storage.prompts.push(prompt);
@@ -77,36 +83,44 @@ export async function addPrompt(title, content) {
 
 // Update an existing prompt by index (robust, versioned)
 export function updatePrompt(index, title, content) {
-  getPromptStorage().then(storage => {
-    if (storage.version !== PROMPT_STORAGE_VERSION) {
-      alert('Prompt storage version mismatch. Please update your extension.');
-      return;
-    }
-    const prompts = storage.prompts;
-    if (index >= 0 && index < prompts.length) {
-      const updated = normalizePromptObject({
-        ...prompts[index],
-        title,
-        content,
-        updatedAt: new Date().toISOString()
-      });
-      prompts[index] = updated;
-      setPromptStorage(storage).then(loadPrompts);
-    }
+  // Always normalize/upgrade storage before proceeding
+  normalizePromptFormat().then(prompts => {
+    getPromptStorage().then(async storage => {
+      // If storage version is not current, upgrade in-place
+      if (storage.version !== PROMPT_STORAGE_VERSION) {
+        storage = { version: PROMPT_STORAGE_VERSION, prompts };
+        await setPromptStorage(storage);
+      }
+      const promptsArr = storage.prompts;
+      if (index >= 0 && index < promptsArr.length) {
+        const updated = normalizePromptObject({
+          ...promptsArr[index],
+          title,
+          content,
+          updatedAt: new Date().toISOString()
+        });
+        promptsArr[index] = updated;
+        setPromptStorage(storage).then(loadPrompts);
+      }
+    });
   });
 }
 
 // Delete a prompt by index (robust, versioned)
 export function deletePrompt(index) {
   if (window.confirm('Are you sure you want to delete this prompt?')) {
-    getPromptStorage().then(storage => {
-      if (storage.version !== PROMPT_STORAGE_VERSION) {
-        alert('Prompt storage version mismatch. Please update your extension.');
-        return;
-      }
-      const prompts = storage.prompts;
-      prompts.splice(index, 1);
-      setPromptStorage(storage).then(loadPrompts);
+    // Always normalize/upgrade storage before proceeding
+    normalizePromptFormat().then(prompts => {
+      getPromptStorage().then(async storage => {
+        // If storage version is not current, upgrade in-place
+        if (storage.version !== PROMPT_STORAGE_VERSION) {
+          storage = { version: PROMPT_STORAGE_VERSION, prompts };
+          await setPromptStorage(storage);
+        }
+        const promptsArr = storage.prompts;
+        promptsArr.splice(index, 1);
+        setPromptStorage(storage).then(loadPrompts);
+      });
     });
   }
 }

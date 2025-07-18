@@ -476,6 +476,31 @@ div.dataimpexp {
   transition: transform 0.18s ease-out, opacity 0.18s ease-out; /* Smooth transition for release */
 }
 
+/* Sticky footer styles */
+footer.footer {
+  flex-shrink: 0;
+  position: sticky;
+  bottom: 0;
+  background: transparent; /* Transparent background for footer */
+  padding: 10px 0;
+  width: 100%;
+  z-index: 10;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.footer-icons {
+  display: flex;
+  gap: 12px;
+}
+
+@media (prefers-color-scheme: dark) {
+  footer.footer {
+    background: transparent; /* Transparent in dark mode too */
+  }
+}
+
 /* Responsive adjustments */
 @media (max-width: 768px) {
     .custom-col {
