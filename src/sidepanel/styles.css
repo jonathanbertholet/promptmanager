@@ -32,7 +32,7 @@
   }
 
   form {
-    margin-bottom: 10px;
+    margin-bottom: 15px;
     grid-area: g-prompt-form;
     display: flex;
     flex-direction: column;
@@ -44,7 +44,7 @@
   textarea {
     width: 100%;
     box-sizing: border-box;
-    margin-bottom: 6px;
+    margin-bottom: 6px; /* Reduced from 4px to 2px to tighten spacing between fields */
     font-family: Helvetica, Verdana, Geneva, Tahoma, sans-serif;
     border-color: #0077B6;
     border-width: 1px;
@@ -79,8 +79,6 @@
 
   button.main {
     background-color: #0077B6;
-
-    /* A vibrant color, adjust as needed */
     color: white;
     border: none;
     padding: 10px 20px;
@@ -91,11 +89,7 @@
     margin: 0px;
     cursor: pointer;
     border-radius: 8px;
-
-    /* Rounded corners */
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-
-    /* Slight shadow */
     transition: background-color 0.3s ease;
     width: 100%;
   }
