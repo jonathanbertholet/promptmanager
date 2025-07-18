@@ -148,3 +148,85 @@ async function checkProviderPermissions() {
     return null; // Return null or an empty object {} to indicate failure
   }
 }
+
+// --- CONTEXT MENU FOR PROMPT MANAGER ---
+
+// Helper: Get all prompts from storage
+async function getAllPrompts() {
+  // Try to get the current prompt storage
+  const data = await chrome.storage.local.get('prompts_storage');
+  if (data.prompts_storage && Array.isArray(data.prompts_storage.prompts)) {
+    return data.prompts_storage.prompts;
+  }
+  // Fallback: try legacy key
+  const legacy = await chrome.storage.local.get('prompts');
+  if (Array.isArray(legacy.prompts)) {
+    return legacy.prompts;
+  }
+  return [];
+}
+
+// Create the context menu
+async function createPromptContextMenu() {
+  // Remove any existing menu to avoid duplicates
+  chrome.contextMenus.removeAll(() => {
+    // Create the parent menu
+    chrome.contextMenus.create({
+      id: 'open-prompt-manager',
+      title: 'Open Prompt Manager',
+      contexts: ['all']
+    });
+    // Add a menu item for each prompt
+    getAllPrompts().then(prompts => {
+      prompts.forEach((prompt, idx) => {
+        chrome.contextMenus.create({
+          id: 'prompt-' + idx,
+          parentId: 'open-prompt-manager',
+          title: prompt.title || `Prompt ${idx + 1}`,
+          contexts: ['all']
+        });
+      });
+    });
+  });
+}
+
+// On install or update, create the context menu
+chrome.runtime.onInstalled.addListener(() => {
+  createPromptContextMenu();
+});
+
+// On startup, also create the context menu (for reloads)
+chrome.runtime.onStartup.addListener(() => {
+  createPromptContextMenu();
+});
+
+// When a context menu item is clicked
+chrome.contextMenus.onClicked.addListener(async (info, tab) => {
+  if (info.menuItemId.startsWith('prompt-')) {
+    // Extract the prompt index
+    const idx = parseInt(info.menuItemId.replace('prompt-', ''), 10);
+    const prompts = await getAllPrompts();
+    if (prompts[idx]) {
+      // Write the prompt content to the clipboard
+      try {
+        await navigator.clipboard.writeText(prompts[idx].content);
+        // Optionally, show a notification
+        chrome.notifications?.create({
+          type: 'basic',
+          iconUrl: 'icons/icon128.png',
+          title: 'Prompt Copied',
+          message: `Copied: ${prompts[idx].title}`
+        });
+      } catch (err) {
+        // Fallback: try to copy using the tabs API if clipboard API fails
+        chrome.scripting.executeScript({
+          target: { tabId: tab.id },
+          func: (text) => navigator.clipboard.writeText(text),
+          args: [prompts[idx].content]
+        });
+      }
+    }
+  }
+});
+
+// --- END CONTEXT MENU ---

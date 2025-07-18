@@ -19,9 +19,8 @@
   </div>
   <form id="prompt-form">
     <input type="hidden" id="prompt-index" />
-    <input type="text" id="prompt-title" placeholder="Name" required /><br />
-    <textarea id="prompt-content" placeholder="Prompt content. Use #variablename# for dynamic values." required
-      style="height: 100%"></textarea><br />
+    <input type="text" id="prompt-title" placeholder="Prompt Title" required />
+    <textarea id="prompt-content" placeholder="Enter your prompt here - Use #variablename# for dynamic values." required style="height: 100%"></textarea>
     <button class="main" type="submit" id="submit-button">
       <img src="../icons/add-icon.png" alt="Add" style="margin-right: 5px" />
       Save prompt
@@ -85,7 +84,6 @@
     <input type="file" id="import-file" accept=".json" hidden />
   </div>
   <p></p>
-  <script type="module" src="sidepanel.js"></script>
   <table class="footer-table" style="grid-row: 3">
     <tr>
       <td>
@@ -113,6 +111,8 @@
       </td>
     </tr>
   </table>
+  <script type="module" src="sidepanel.js"></script>
+
 </body>
 
 </html>

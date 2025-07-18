@@ -204,7 +204,7 @@ export function displayPrompts(prompts) {
     li.appendChild(editBtn);
     const delBtn = document.createElement('button');
     const delImg = document.createElement('img');
-    delImg.src = '../icons/delete-icon.png';
+    delImg.src = '../icons/delete.svg';
     delImg.alt = 'Delete';
     delImg.title = 'Delete';
     delImg.width = 18;
@@ -259,7 +259,7 @@ export async function normalizePromptFormat() {
   }
 }
 
-// Load prompts from local storage and display them (robust)
+// Load prompts from local storage and display them
 export function loadPrompts() {
   normalizePromptFormat().then(prompts => {
     displayPrompts(prompts);
