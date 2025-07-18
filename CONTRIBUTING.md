@@ -14,6 +14,7 @@ Thanks for your interest in contributing! This Chrome extension is a **prompt ma
 
 - **Large refactors** – avoid rewriting the entire codebase unless there's a strong, well-justified reason
 - **Major styling changes** – we aim to keep styling minimal and consistent
+- **External libraries** - We keep things light
 
 ### 🧠 Before You Start
 

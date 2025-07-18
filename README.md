@@ -19,6 +19,7 @@ A lightweight Chrome extension for managing prompts across multiple AI chatbots 
   - Copilot
   - Grok
   - Poe
+  - Qwen
 
 ## Installation
 

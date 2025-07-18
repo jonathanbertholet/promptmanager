@@ -544,6 +544,7 @@ class PromptUIManager {
 
   static async checkAndShowOnboarding(container) {
     const onboardingCompleted = await PromptStorageManager.getOnboardingCompleted();
+    // Remove "!" to the onboardingCompleted to force it to show.
     if (!onboardingCompleted) {
       PromptUIManager.showOnboardingPopup(container);
     }
@@ -1512,4 +1513,4 @@ class PromptMediator {
 }
 
 /* Initialize the extension */
-setTimeout(() => { new PromptMediator(PromptUIManager, PromptProcessor); }, 100);
+setTimeout(() => { new PromptMediator(PromptUIManager, PromptProcessor); }, 50);

@@ -171,6 +171,15 @@ class InputBoxHandler {
       }
     }
 
+    // Qwen (chat.qwen.ai)
+    if (url.includes('qwen.ai')) {
+      const inputBox = document.getElementById('chat-input');
+      if (inputBox) {
+        console.log('Input box found: Qwen');
+        return inputBox;
+      }
+    }
+
     // If no input box is found, log an error
     // console.error('Input box not found on this page.');
     return null;
@@ -206,14 +215,14 @@ class InputBoxHandler {
    */
   static async insertPrompt(inputBox, content, promptList) {
     if (!inputBox || !content || !promptList) {
-      console.error('Missing required parameters for insertPrompt');
+      console.error('Missing required parameters for insertPrompt', { inputBox, content, promptList });
       return;
     }
 
     inputBox.focus();
     try {
+      console.log('Inserting prompt:', { content, inputBox, promptList });
       if (inputBox.contentEditable === 'true') {
-        // For contenteditable elements (e.g., ChatGPT and Claude)
         inputBox.innerHTML = '';
 
         // Simulate a paste event for contenteditable elements
@@ -227,10 +236,9 @@ class InputBoxHandler {
         inputBox.dispatchEvent(pasteEvent);
 
         // Fallback for line breaks if paste event doesn't handle them perfectly
-        // This part might need adjustment based on how Lexical handles new lines.
         if (content.includes('\n')) {
           const lines = content.split('\n');
-          inputBox.innerHTML = ''; // Clear again if paste didn't
+          inputBox.innerHTML = '';
           lines.forEach((line, index) => {
             if (line.trim()) {
               const p = document.createElement('p');
@@ -243,6 +251,9 @@ class InputBoxHandler {
               inputBox.appendChild(p);
             }
           });
+        } else {
+          // For single-line prompts, ensure content is set
+          inputBox.textContent = content;
         }
 
         // Add two spaces at the end, if not handled by the paste event
@@ -261,23 +272,24 @@ class InputBoxHandler {
         // Trigger input event to notify the application of the change
         inputBox.dispatchEvent(new Event('input', { bubbles: true }));
 
+        // Final fallback: if still empty, set innerText
+        if (!inputBox.textContent || inputBox.textContent.trim() === '') {
+          inputBox.innerText = content + '  ';
+          inputBox.dispatchEvent(new Event('input', { bubbles: true }));
+        }
       } else if (inputBox.tagName.toLowerCase() === 'textarea') {
-        // For textarea elements (e.g., NotebookLM & Poe)
-        inputBox.value = content + '  '; // Add two spaces
+        inputBox.value = content + '  ';
         inputBox.dispatchEvent(new Event('input', { bubbles: true }));
         inputBox.dispatchEvent(new Event('change', { bubbles: true }));
-
-        // Adjust textarea height if necessary to fit content
         inputBox.style.height = 'auto';
         inputBox.style.height = `${inputBox.scrollHeight}px`;
       } else {
-        console.error('Unknown input box type.');
+        console.error('Unknown input box type.', { inputBox });
         return;
       }
-      // Hide the prompt list after inserting the prompt
       PromptUIManager.hidePromptList(promptList);
     } catch (error) {
-      console.error('Error inserting prompt:', error);
+      console.error('Error inserting prompt:', error, { content, inputBox, promptList });
     }
   }
 
