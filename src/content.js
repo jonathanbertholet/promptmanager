@@ -544,8 +544,8 @@ class PromptUIManager {
 
   static async checkAndShowOnboarding(container) {
     const onboardingCompleted = await PromptStorageManager.getOnboardingCompleted();
-    // Add "!" to the onboardingCompleted to force it to show.
-    if (onboardingCompleted) {
+    // Remove "!" to the onboardingCompleted to force it to show.
+    if (!onboardingCompleted) {
       PromptUIManager.showOnboardingPopup(container);
     }
   }
