@@ -9,7 +9,7 @@
 <body>
 <div class="title">
   <img class="icon" src="icons/icon128.png" alt="Extension Icon" style="width: 22px; height: 22px;">
-  <h2>Settings & Information</h2>
+  <h2>Information</h2>
 </div>
 
 <!--Keyboard shortcut-->
@@ -49,23 +49,27 @@
 <p>Contact me on <a href="https://github.com/jonathanbertholet" target="_blank">Github</a></p>
 
 <!-- Support section: Buy Me a Coffee -->
-<div style="margin: 18px 0 10px 0; display: flex; align-items: center;">
-  <a href="https://buymeacoffee.com/jonathanbertholet" target="_blank" style="text-decoration: none; display: flex; align-items: center;">
-    <!-- Coffee cup SVG icon -->
-    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="margin-right: 8px;"><!-- Coffee cup icon -->
-      <path d="M18 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v6a6 6 0 0 0 12 0V8h2a2 2 0 0 1 0 4h-1" stroke="#FFDD00" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-      <path d="M6 19h12" stroke="#888" stroke-width="2" stroke-linecap="round"/>
-    </svg>
-    <button class="main" style="background-color: #FFDD00; color: #333; font-weight: bold; border: none; border-radius: 6px; padding: 8px 16px; cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,0.07); display: flex; align-items: center;">
-      Buy Me a Coffee
+<div class="coffee-support" style="margin: 18px 0 10px 0; display: flex; justify-content: center; align-items: center;">
+  <a href="https://coff.ee/jonathanbertholet" target="_blank" class="coffee-link" style="text-decoration: none;">
+    <button class="main coffee-btn" style="display: flex; align-items: center; gap: 8px; background-color: #0077B6; color: #fff; font-weight: 500; border: none; border-radius: 6px; padding: 10px 20px; cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,0.07); font-size: 1rem; transition: background 0.2s;">
+      <span style="font-size: 1.3em;">☕</span>
+      <span>Buy Me a Coffee</span>
     </button>
   </a>
 </div>
+<!-- End Buy Me a Coffee section -->
 
 <a href="/sidepanel/index.html"><button class="main" style="margin-top: 10px;">Back</button></a>
 
 <!-- Add script import -->
 <script type="module" src="settings.js"></script>
+
+<style>
+  /* Make the coffee button look more integrated and add a hover effect */
+  .coffee-btn:hover {
+    background-color: #005f87 !important;
+  }
+</style>
 
 </body>
 </html>
