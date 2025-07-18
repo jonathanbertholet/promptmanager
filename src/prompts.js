@@ -165,11 +165,15 @@ export function updatePrompt(index, title, content) {
 }
 
 export function deletePrompt(index) {
-  chrome.storage.local.get('prompts', data => {
-    const prompts = data.prompts || [];
-    prompts.splice(index, 1);
-    chrome.storage.local.set({ prompts }, loadPrompts);
-  });
+  // Use chrome's built-in confirmation dialog before deleting
+  if (window.confirm('Are you sure you want to delete this prompt?')) {
+    chrome.storage.local.get('prompts', data => {
+      const prompts = data.prompts || [];
+      prompts.splice(index, 1);
+      chrome.storage.local.set({ prompts }, loadPrompts);
+    });
+  }
+  // If user cancels, do nothing
 }
 
 export function editPrompt(index) {
@@ -182,6 +186,36 @@ export function editPrompt(index) {
       document.getElementById('prompt-index').value = index;
       document.getElementById('submit-button').textContent = 'Update';
       document.getElementById('cancel-edit-button').style.display = 'inline';
+    }
+  });
+}
+
+// Helper function to animate button press
+function animateButtonPress(button) {
+  button.classList.add('pressed');
+  setTimeout(() => {
+    button.classList.remove('pressed');
+  }, 180); // short feedback
+}
+
+export function copyToClipboard(index) {
+  chrome.storage.local.get('prompts', data => {
+    const prompts = data.prompts || [];
+    if (index >= 0 && index < prompts.length) {
+      const prompt = prompts[index];
+      navigator.clipboard.writeText(prompt.content)
+        .then(() => {
+          // Provide visual feedback by animating the button as "pressed"
+          const promptList = document.getElementById('prompt-list');
+          if (promptList && promptList.children[index]) {
+            // The copy button is the second child (after the title span)
+            const li = promptList.children[index];
+            const copyBtn = li.querySelector('button');
+            if (copyBtn) {
+              animateButtonPress(copyBtn);
+            }
+          }
+        })
     }
   });
 }
@@ -209,39 +243,62 @@ export function displayPrompts(prompts) {
     titleSpan.style.display = 'inline-block';
     li.appendChild(titleSpan);
 
+    const copyBtn = document.createElement('button');
+    const copyImg = document.createElement('img');
+    copyImg.src = '../icons/copy.png';
+    copyImg.alt = 'Copy';
+    copyImg.title = 'Copy to clipboard';
+    copyImg.width = 14;
+    copyImg.height = 14;
+    copyImg.style.verticalAlign = 'middle';
+    copyBtn.style.display = 'none';
+    copyBtn.style.backgroundColor = '#ffffff00';  // white bg
+
+    copyBtn.appendChild(copyImg);
+    copyBtn.addEventListener('click', () => copyToClipboard(index));
+    li.appendChild(copyBtn);
+
     const editBtn = document.createElement('button');
     const editImg = document.createElement('img');
-    editImg.src = 'icons/edit-icon.png';
+    editImg.src = '../icons/edit-icon.png';
     editImg.alt = 'Edit';
+    editImg.title = 'Edit';
     editImg.width = 14;
     editImg.height = 14;
     editImg.style.verticalAlign = 'middle';
     editBtn.style.display = 'none';
-    editBtn.style.backgroundColor = '#ffffff00';  // Set background color to white
+    editBtn.style.backgroundColor = '#ffffff00';  // white bg
 
     editBtn.appendChild(editImg);
-    editBtn.addEventListener('click', () => editPrompt(index));
+    editBtn.addEventListener('click', () => {
+      editPrompt(index);
+    });
     li.appendChild(editBtn);
 
     const delBtn = document.createElement('button');
     const delImg = document.createElement('img');
-    delImg.src = 'icons/delete-icon.png';
+    delImg.src = '../icons/delete-icon.png';
     delImg.alt = 'Delete';
-    delImg.width = 10;
-    delImg.height = 10;
+    delImg.title = 'Delete';
+    delImg.width = 18;
+    delImg.height = 18;
     delImg.style.verticalAlign = 'middle';
     delBtn.style.display = 'none';
-    delBtn.style.backgroundColor = '#ffffff00';  // Set background color to white
+    delBtn.style.backgroundColor = '#ffffff00';  // white bg
     delBtn.appendChild(delImg);
-    delBtn.addEventListener('click', () => deletePrompt(index));
+    delBtn.addEventListener('click', () => {
+      deletePrompt(index);
+    });
     li.appendChild(delBtn);
 
     li.addEventListener('mouseenter', () => {
+      copyBtn.style.display = 'inline-block';
       editBtn.style.display = 'inline-block';
       delBtn.style.display = 'inline-block';
     });
 
     li.addEventListener('mouseleave', () => {
+      copyBtn.style.display = 'none';
       editBtn.style.display = 'none';
       delBtn.style.display = 'none';
     });
@@ -250,7 +307,7 @@ export function displayPrompts(prompts) {
   });
 }
 
-// Add a function to ensure all prompts have uuid
+// Ensure all prompts have uuid
 export async function normalizePromptFormat() {
   try {
     const data = await chrome.storage.local.get('prompts');
@@ -300,6 +357,7 @@ export function loadPrompts() {
       // Then load prompts from local storage
       chrome.storage.local.get('prompts', data => {
         const prompts = data.prompts || [];
+        console.log('Loaded prompts:', prompts);
         displayPrompts(prompts);
       });
     });

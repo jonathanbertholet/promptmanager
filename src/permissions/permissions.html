@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en" data-bs-theme="auto">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Open Prompt Manager - Permissions</title>
+  <link href="permissions_custom.css" rel="stylesheet">
+
+  <meta name="theme-color" content="#712cf9">
+
+</head>
+
+<body>
+
+  <div class="custom-container custom-my-5">
+    <div class="custom-jumbotron">
+      <div class="custom-inline-flex-group">
+        <img src="../icons/icon128.png" alt="Placeholder Icon" width="48" height="48" class="bi custom-mt-mb-3">
+        <h1 class="custom-text-emphasis">Open Prompt Manager</h1>
+      </div>
+      <p class="custom-lead-text">
+        Manage permission for Open Prompt Manager.
+      </p>
+
+      <div class="custom-container-mt5">
+        <!-- Collection -->
+        <div class="custom-section-border">
+          <!-- Title inside the border -->
+          <span class="custom-badge-absolute">
+            <small class="custom-badge-text">Permission Granted</small>
+          </span>
+
+          <!-- Buttons -->
+          <div id="permission-granted" class="custom-flex-wrap-group">
+          </div>
+        </div>
+      </div>
+      <div class="custom-container-mt5">
+        <!-- Collection -->
+        <div class="custom-section-border">
+          <!-- Title inside the border -->
+          <span class="custom-badge-absolute">
+            <small class="custom-badge-text">Request Permission</small>
+          </span>
+
+          <!-- Buttons -->
+          <div id="request-permission" class="custom-flex-wrap-group">
+          </div>    
+        </div>
+        <p style="font-size: 1rem; color: var(--muted-text); margin-top: 1rem; margin-bottom: 0rem;">
+          I'll only show this page when permissions get updated & on install, in the future. Promised.
+        </p>
+  
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="permissions.js"></script>
+
+</body>
+
+</html>

@@ -1,7 +1,7 @@
-// popup.js
+// sidepanel.js
 
-import { loadPrompts, addPrompt, updatePrompt } from './prompts.js';
-import { exportPrompts, importPrompts } from './importExport.js';
+import { loadPrompts, addPrompt, updatePrompt } from '../prompts.js';
+import { exportPrompts, importPrompts } from '../importExport.js';
 
 document.addEventListener('DOMContentLoaded', () => {
   const form = document.getElementById('prompt-form');

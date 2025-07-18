@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog],
 and this project adheres to [Semantic Versioning].
 
+## [1.9.7] - 2025-04-20
+
+### Added
+
+- Added support for Side Panel.
+- Added Permissions Manager.
+- Copy prompts to clipboard.
+
+### Fixed
+
+- Bug fix for the import/export feature.
+
+### Removed
+
+- Popup window
+
 ## [1.9.6] - 2025-03-30
 
 ### Added
