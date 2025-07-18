@@ -1,0 +1,240 @@
+/*
+  Base styles for a clean and modern look, using a custom color palette.
+*/
+
+:root {
+  --primary-blue: #3674B5;
+  --primary-blue-dark: #4488d1;
+  --primary-blue-darker: #3b86d6;
+  --light-bg: #f8f9fa;
+  --dark-text: #212529;
+  --muted-text: #6c757d;
+  --border-color: #dee2e6;
+  --white: #ffffff;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+  line-height: 1.5;
+  color: var(--dark-text);
+  background-color: var(--white);
+  margin: 0;
+  padding: 0;
+}
+
+/* Custom Container - Replicates Bootstrap's .container .my-5 */
+.custom-container {
+  max-width: 960px; /* Standard container width for medium-large screens */
+  padding-right: 1.5rem; /* Equivalent to Bootstrap's px-3 */
+  padding-left: 1.5rem;  /* Equivalent to Bootstrap's px-3 */
+  margin-right: auto;
+  margin-left: auto;
+  margin-top: 3rem; /* Equivalent to Bootstrap's my-5 */
+  margin-bottom: 3rem; /* Equivalent to Bootstrap's my-5 */
+}
+
+/* Custom Jumbotron / Hero Section - Replicates .p-5 .text-center .bg-body-tertiary .rounded-3 */
+.custom-jumbotron {
+  padding: 3rem;
+  text-align: center;
+  background-color: var(--light-bg);
+  border-radius: 0.5rem;
+}
+
+/* Custom Inline Flex Group - Replicates .d-inline-flex .gap-2 .mb-1 .align-items-center */
+.custom-inline-flex-group {
+  display: inline-flex;
+  gap: 0.5rem; /* Space between items */
+  margin-bottom: 0.25rem;
+  align-items: center; /* Vertically align items */
+  justify-content: center; /* Horizontally center items if they don't fill the space */
+  width: 100%; /* Ensure it takes full width for centering */
+}
+
+/* Custom Text Emphasis - Replicates .text-body-emphasis */
+.custom-text-emphasis {
+  color: var(--dark-text);
+  font-weight: 500;
+  font-size: 2.5rem; /* Adjust as needed */
+  margin: 0; /* Remove all default margins for perfect alignment */
+}
+
+/* Custom Lead Text - Replicates .col-lg-8 .mx-auto .fs-5 .text-muted */
+.custom-lead-text {
+  max-width: 80%; /* Adjusted for better readability, similar to col-lg-8 */
+  margin-left: auto;
+  margin-right: auto;
+  font-size: 1.25rem;
+  color: var(--muted-text);
+  margin-top: 1rem;
+  margin-bottom: 2rem;
+}
+
+/* Custom Container with top margin - Replicates .container .mt-5 */
+.custom-container-mt5 {
+  margin-top: 3rem; /* Equivalent to Bootstrap's mt-5 */
+  padding-right: 1.5rem;
+  padding-left: 1.5rem;
+  margin-right: auto;
+  margin-left: auto;
+  width: 100%;
+}
+
+/* Custom Section Border - Replicates .border .text-start .rounded-3 .position-relative .px-3 .py-4 .mt-4 */
+.custom-section-border {
+  border: 1px solid var(--border-color);
+  border-radius: 0.5rem;
+  position: relative;
+  padding: 2.5rem 1.5rem 1.5rem 1.5rem; /* Adjusted top padding to accommodate absolute badge */
+  margin-top: 1.5rem;
+  text-align: left;
+}
+
+/* Custom Badge Absolute - Replicates .position-absolute .top-0 .translate-middle-y .px-2 .text-left .z-1 */
+.custom-badge-absolute {
+  position: absolute;
+  top: 0;
+  left: 1rem; /* Align with padding of custom-section-border */
+  transform: translateY(-50%);
+  z-index: 1;
+}
+
+/* Custom Badge Text - Replicates .bg-body-tertiary .px-2 .text-body-secondary .fw-medium */
+.custom-badge-text {
+  background-color: var(--light-bg);
+  padding: 0.25rem 0.5rem;
+  color: var(--muted-text);
+  font-weight: 500;
+  border-radius: 0.25rem; /* Slightly rounded corners for the badge */
+}
+
+/* Custom Flex Wrap Group - Replicates .d-flex .flex-wrap .gap-2 */
+.custom-flex-wrap-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem; /* Increased gap for better spacing */
+  padding-top: 0.5rem; /* Add some padding if needed */
+}
+
+/* Custom Button (Pill-shaped) - Replicates .btn .rounded-pill .d-inline-flex .gap-1 .py-2 .px-2 .align-items-center .border */
+.custom-button {
+  display: inline-flex;
+  align-items: center; /* Crucial for vertical alignment of icon and text */
+  gap: 0.5rem; /* Space between icon and text */
+  padding: 0.5rem 1rem; /* Vertical and horizontal padding */
+  border-radius: 50rem; /* Pill shape */
+  border: 1px solid var(--primary-blue);
+  background-color: var(--primary-blue);
+  color: var(--white);
+  text-decoration: none;
+  cursor: pointer;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: center;
+  vertical-align: middle; /* Ensures button itself aligns well if placed inline */
+  user-select: none;
+  transition: all 0.15s ease-in-out; /* Smooth transition for hover effects */
+}
+
+.custom-button:hover,
+.custom-button:focus {
+  background-color: var(--primary-blue-dark);
+  border-color: var(--primary-blue-dark);
+  box-shadow: 0 0 0 0.25rem rgba(113, 147, 255, 0.25); /* Subtle focus/hover glow */
+  outline: none; /* Remove default outline */
+}
+
+.custom-button:active {
+  background-color: var(--primary-blue-darker);
+  border-color: var(--primary-blue-darker);
+}
+
+/* Icon within the button */
+.custom-button img {
+  width: 32px; /* Consistent icon size */
+  height: 32px; /* Consistent icon size */
+  flex-shrink: 0; /* Prevent icon from shrinking */
+  /* vertical-align: middle; (already handled by align-items: center on parent flex container) */
+}
+
+/* Custom Rounded Circle - Replicates .rounded-circle */
+.custom-rounded-circle {
+  border-radius: 50%;
+  object-fit: cover; /* Ensure images cover the circle area without distortion */
+}
+
+/* Custom margin bottom 0 - Replicates .mb-0 */
+.custom-mb-0 {
+  margin: 0; /* Remove all default margins */
+  font-size: 1rem; /* Adjust text size within button */
+  white-space: nowrap; /* Prevent text wrapping in pills */
+  line-height: 1; /* Ensure line height does not add extra space */
+}
+
+/* Custom margin top/bottom 3 - Replicates .mt-3 .mb-3 */
+.custom-mt-mb-3 {
+  margin-top: 1rem;
+  margin-bottom: 1rem;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .custom-container {
+    padding-right: 1rem;
+    padding-left: 1rem;
+  }
+
+  .custom-jumbotron {
+    padding: 2rem;
+  }
+
+  .custom-text-emphasis {
+    font-size: 2rem;
+  }
+
+  .custom-lead-text {
+    max-width: 95%;
+    font-size: 1.1rem;
+  }
+
+  .custom-button {
+    padding: 0.4rem 0.8rem;
+    gap: 0.4rem;
+  }
+
+  .custom-button img {
+    width: 28px;
+    height: 28px;
+  }
+
+  .custom-mb-0 {
+    font-size: 0.9rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .custom-container {
+    margin-top: 2rem;
+    margin-bottom: 2rem;
+  }
+
+  .custom-jumbotron {
+    padding: 1.5rem;
+  }
+
+  .custom-text-emphasis {
+    font-size: 1.8rem;
+  }
+
+  .custom-lead-text {
+    font-size: 1rem;
+  }
+
+  .custom-section-border {
+    padding: 2rem 1rem 1rem 1rem;
+  }
+
+  .custom-badge-text {
+    font-size: 0.8rem;
+  }
+} 
