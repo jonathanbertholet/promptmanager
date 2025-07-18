@@ -135,6 +135,33 @@ class InputBoxHandler {
       }
     }
 
+    // Perplexity (perplexity.ai)
+    if (url.includes('perplexity.ai')) {
+      const inputBox = document.querySelector('#ask-input');
+      if (inputBox) {
+        console.log('Input box found: Perplexity');
+        return inputBox;
+      }
+    }
+
+    // LMArena (lmarena.ai)
+    if (url.includes('lmarena.ai')) {
+      const inputBox = document.querySelector('textarea[name="message"]');
+      if (inputBox) {
+        console.log('Input box found: LMArena');
+        return inputBox;
+      }
+    }
+
+    // Google AI Studio (aistudio.google.com)
+    if (url.includes('aistudio.google.com')) {
+      const inputBox = document.querySelector('textarea[aria-label="Type something or tab to choose an example prompt"]');
+      if (inputBox) {
+        console.log('Input box found: Google AI Studio');
+        return inputBox;
+      }
+    }
+
     // ChatLLM (apps.abacus.ai/chatllm)
     if (url.includes('apps.abacus.ai')) {
       const inputBox = document.querySelector('textarea[placeholder="Write something..."]');
@@ -188,26 +215,40 @@ class InputBoxHandler {
       if (inputBox.contentEditable === 'true') {
         // For contenteditable elements (e.g., ChatGPT and Claude)
         inputBox.innerHTML = '';
-        // Line break handling for CodeMirror 
-        // Split content by line breaks and create elements for each line
-        const lines = content.split('\n');
-        lines.forEach((line, index) => {
-          if (line.trim()) {
-            // If line has text content, wrap it in a paragraph
-            const p = document.createElement('p');
-            p.textContent = line;
-            inputBox.appendChild(p);
-          } else if (index < lines.length - 1) {
-            // If line is empty (and not the last line), add p-wrapped-br
-            const p = document.createElement('p');
-            const br = document.createElement('br');
-            p.appendChild(br);
-            inputBox.appendChild(p);
-          }
-        });
 
-        // Add two spaces at the end
-        inputBox.appendChild(document.createTextNode('  '));
+        // Simulate a paste event for contenteditable elements
+        const dataTransfer = new DataTransfer();
+        dataTransfer.setData('text/plain', content);
+        const pasteEvent = new ClipboardEvent('paste', {
+          clipboardData: dataTransfer,
+          bubbles: true,
+          cancelable: true,
+        });
+        inputBox.dispatchEvent(pasteEvent);
+
+        // Fallback for line breaks if paste event doesn't handle them perfectly
+        // This part might need adjustment based on how Lexical handles new lines.
+        if (content.includes('\n')) {
+          const lines = content.split('\n');
+          inputBox.innerHTML = ''; // Clear again if paste didn't
+          lines.forEach((line, index) => {
+            if (line.trim()) {
+              const p = document.createElement('p');
+              p.textContent = line;
+              inputBox.appendChild(p);
+            } else if (index < lines.length - 1) {
+              const p = document.createElement('p');
+              const br = document.createElement('br');
+              p.appendChild(br);
+              inputBox.appendChild(p);
+            }
+          });
+        }
+
+        // Add two spaces at the end, if not handled by the paste event
+        if (!content.endsWith('  ')) {
+          inputBox.appendChild(document.createTextNode('  '));
+        }
 
         // Move cursor to the end of the content
         const range = document.createRange();

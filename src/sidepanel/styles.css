@@ -458,3 +458,9 @@ div.dataimpexp {
   vertical-align: baseline;
   align-items: end;
 }
+
+#prompt-list button.pressed {
+  transform: translateY(2px);
+  opacity: 0.7;
+  transition: transform 0.18s ease-out, opacity 0.18s ease-out; /* Smooth transition for release */
+}

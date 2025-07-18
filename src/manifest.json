@@ -1,7 +1,7 @@
 {
     "manifest_version": 3,
     "name": "Open Prompt Manager",
-    "version": "1.9.7",
+    "version": "2.0",
     "description": "Fully Open Source Prompt Manager for ChatGPT, Claude, Gemini, Grok, and more.",
     "permissions": [
         "sidePanel",
@@ -43,7 +43,9 @@
         "*://grok.com/*",
         "*://copilot.microsoft.com/*",
         "*://apps.abacus.ai/chatllm/*",
-        "*://aistudio.google.com/*"
+        "*://aistudio.google.com/*",
+        "*://www.perplexity.ai/*",
+        "*://lmarena.ai/*"
     ],
     "web_accessible_resources": [
         {

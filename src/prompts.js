@@ -165,11 +165,15 @@ export function updatePrompt(index, title, content) {
 }
 
 export function deletePrompt(index) {
-  chrome.storage.local.get('prompts', data => {
-    const prompts = data.prompts || [];
-    prompts.splice(index, 1);
-    chrome.storage.local.set({ prompts }, loadPrompts);
-  });
+  // Use chrome's built-in confirmation dialog before deleting
+  if (window.confirm('Are you sure you want to delete this prompt?')) {
+    chrome.storage.local.get('prompts', data => {
+      const prompts = data.prompts || [];
+      prompts.splice(index, 1);
+      chrome.storage.local.set({ prompts }, loadPrompts);
+    });
+  }
+  // If user cancels, do nothing
 }
 
 export function editPrompt(index) {
@@ -186,6 +190,14 @@ export function editPrompt(index) {
   });
 }
 
+// Helper function to animate button press
+function animateButtonPress(button) {
+  button.classList.add('pressed');
+  setTimeout(() => {
+    button.classList.remove('pressed');
+  }, 180); // short feedback
+}
+
 export function copyToClipboard(index) {
   chrome.storage.local.get('prompts', data => {
     const prompts = data.prompts || [];
@@ -193,12 +205,17 @@ export function copyToClipboard(index) {
       const prompt = prompts[index];
       navigator.clipboard.writeText(prompt.content)
         .then(() => {
-          console.log('Prompt content copied to clipboard');
-          // Optional: Provide user feedback (e.g., show a temporary message)
+          // Provide visual feedback by animating the button as "pressed"
+          const promptList = document.getElementById('prompt-list');
+          if (promptList && promptList.children[index]) {
+            // The copy button is the second child (after the title span)
+            const li = promptList.children[index];
+            const copyBtn = li.querySelector('button');
+            if (copyBtn) {
+              animateButtonPress(copyBtn);
+            }
+          }
         })
-        .catch(err => {
-          console.error('Failed to copy text: ', err);
-        });
     }
   });
 }
@@ -235,7 +252,7 @@ export function displayPrompts(prompts) {
     copyImg.height = 14;
     copyImg.style.verticalAlign = 'middle';
     copyBtn.style.display = 'none';
-    copyBtn.style.backgroundColor = '#ffffff00';  // Set background color to white
+    copyBtn.style.backgroundColor = '#ffffff00';  // white bg
 
     copyBtn.appendChild(copyImg);
     copyBtn.addEventListener('click', () => copyToClipboard(index));
@@ -250,10 +267,12 @@ export function displayPrompts(prompts) {
     editImg.height = 14;
     editImg.style.verticalAlign = 'middle';
     editBtn.style.display = 'none';
-    editBtn.style.backgroundColor = '#ffffff00';  // Set background color to white
+    editBtn.style.backgroundColor = '#ffffff00';  // white bg
 
     editBtn.appendChild(editImg);
-    editBtn.addEventListener('click', () => editPrompt(index));
+    editBtn.addEventListener('click', () => {
+      editPrompt(index);
+    });
     li.appendChild(editBtn);
 
     const delBtn = document.createElement('button');
@@ -261,13 +280,15 @@ export function displayPrompts(prompts) {
     delImg.src = '../icons/delete-icon.png';
     delImg.alt = 'Delete';
     delImg.title = 'Delete';
-    delImg.width = 10;
-    delImg.height = 10;
+    delImg.width = 18;
+    delImg.height = 18;
     delImg.style.verticalAlign = 'middle';
     delBtn.style.display = 'none';
-    delBtn.style.backgroundColor = '#ffffff00';  // Set background color to white
+    delBtn.style.backgroundColor = '#ffffff00';  // white bg
     delBtn.appendChild(delImg);
-    delBtn.addEventListener('click', () => deletePrompt(index));
+    delBtn.addEventListener('click', () => {
+      deletePrompt(index);
+    });
     li.appendChild(delBtn);
 
     li.addEventListener('mouseenter', () => {
@@ -286,7 +307,7 @@ export function displayPrompts(prompts) {
   });
 }
 
-// Add a function to ensure all prompts have uuid
+// Ensure all prompts have uuid
 export async function normalizePromptFormat() {
   try {
     const data = await chrome.storage.local.get('prompts');

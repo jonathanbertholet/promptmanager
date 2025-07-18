@@ -66,6 +66,24 @@
       "pattern": "*://aistudio.google.com/*",
       "url": "https://aistudio.google.com",
       "icon_url": "https://www.gstatic.com/aistudio/ai_studio_favicon_32x32.png"
+    },
+    {
+      "name": "Perplexity AI",
+      "pattern": "*://www.perplexity.ai/*",
+      "url": "https://www.perplexity.ai",
+      "icon_url": "../icons/perplexity-icon.png"
+    },
+    {
+      "name": "LMArena",
+      "pattern": "*://lmarena.ai/*",
+      "url": "https://lmarena.ai",
+      "icon_url": "../icons/lmarena-icon.png"
+    },
+    {
+      "name": "Google AI Studio",
+      "pattern": "*://aistudio.google.com/*",
+      "url": "https://aistudio.google.com",
+      "icon_url": "https://www.gstatic.com/aistudio/ai_studio_favicon_32x32.png"
     }
   ]
 }

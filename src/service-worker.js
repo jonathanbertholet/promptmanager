@@ -4,7 +4,7 @@ chrome.runtime.onInstalled.addListener(function (details) {
   chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true });
   console.log('onInstalled', details);
   // only verify permissions on install and update
-  if (!['install', 'update'].includes(details.reason)) {
+  if (!['install','update'].includes(details.reason)) {
     return;
   }
   chrome.tabs.create({ url: 'permissions/permissions.html' });

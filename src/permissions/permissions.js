@@ -25,12 +25,10 @@ document.addEventListener('DOMContentLoaded', function () {
         const iconUrl = providerInfo.iconUrl
 
         const elementHTML = `
-          <a id="perm-${key}" class="btn rounded-pill d-inline-flex gap-1 py-2 px-2 align-items-center border"
+          <a id="perm-${key}" class="custom-button"
              aria-current="true" href="#" data-provider="${key}" data-url-pattern="${providerInfo.urlPattern}">
-            <img src="${iconUrl}" alt="${key} icon" width="32" height="32" class="rounded-circle">
-            <div class="d-flex align-items-center">
-              <h6 class="mb-0">${key}</h6>
-            </div>
+            <img src="${iconUrl}" alt="${key} icon" width="32" height="32" class="custom-rounded-circle">
+            <span class="custom-mb-0">${key}</span>
           </a>`;
 
         let targetContainer;
@@ -61,7 +59,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
               chrome.permissions.request({ origins: [originPattern] }, function (granted) {
                 if (granted) {
-                  alert(`Permission granted for ${providerKey}`);
                   // Update storage
                   providersMap[providerKey].hasPermission = "Yes"; // Update the specific provider's status
                   chrome.storage.local.set({ aiProvidersMap: providersMap }, () => {

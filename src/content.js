@@ -1,3 +1,4 @@
+
 /* Global constants, helpers & styles */
 const THEME_COLORS = {
   primary: '#3674B5', primaryGradientStart: '#3674B5', primaryGradientEnd: '#578FCA',
@@ -104,7 +105,7 @@ function injectGlobalStyles() {
       --button-hover-light: ${THEME_COLORS.buttonHoverLight};
       --transition-speed: 0.3s;
       --border-radius: 8px;
-      --font-family: system-ui, -apple-system, BlinkMacSystemFont, ui-sans-serif, sans-serif;
+      --font-family: 'Roboto', sans-serif;
     }
     
     /* New scrollbar styling for our specific containers */
@@ -118,6 +119,9 @@ function injectGlobalStyles() {
       scrollbar-color: ${THEME_COLORS.primary}90 transparent !important;
     }
     
+    body {
+      font-family: var(--font-family);
+    }
     /* Prompt Button styling */
     .prompt-button {
       width: 100%;
@@ -409,19 +413,6 @@ function injectGlobalStyles() {
     }
     #hot-corner-container:hover #hot-corner-indicator {
       opacity: 1;
-    }
-    /* Scope font-family to our extension's elements only */
-    #${SELECTORS.PROMPT_LIST},
-    #${SELECTORS.PROMPT_BUTTON_CONTAINER},
-    #hot-corner-container,
-    .form-container,
-    .prompt-list-items,
-    .prompt-list-item,
-    .search-input,
-    .input-field,
-    .textarea-field,
-    .button {
-      font-family: var(--font-family);
     }
   `;
   document.head.appendChild(styleEl);
@@ -1038,17 +1029,7 @@ class PromptUIManager {
             const imported = JSON.parse(text);
             if (!Array.isArray(imported)) throw new Error('Invalid format');
             const merged = await PromptStorageManager.mergeImportedPrompts(imported);
-            
-            // Add these lines to properly refresh the UI after import
-            const displayMode = await PromptStorageManager.getDisplayMode();
-            PromptUIManager.cleanupAllUIComponents();
-            if (displayMode === 'standard') {
-              PromptUIManager.injectPromptManagerButton(merged);
-            } else {
-              PromptUIManager.injectHotCorner();
-            }
             PromptUIManager.refreshPromptList(merged);
-            
             importBtn.textContent = 'Import successful!';
             setTimeout(() => importBtn.textContent = 'Import Prompts', 2000);
           } catch (err) { alert('Invalid JSON file format.'); }
