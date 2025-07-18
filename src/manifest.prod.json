@@ -49,7 +49,10 @@
             "resources": [
                 "icons/*",
                 "changelog.html",
-                "info.html"
+                "info.html",
+                "src/promptStorage.js",
+                "promptStorage.js",
+                "src/utils.js"
             ],
             "matches": [
                 "<all_urls>"

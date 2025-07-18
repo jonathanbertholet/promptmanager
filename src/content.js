@@ -440,6 +440,7 @@ class EventBus {
 
 /* Storage Manager */
 class PromptStorageManager {
+  // Generic local-storage helpers (still used by non-prompt features)
   static getData(key, def) {
     return new Promise(resolve => {
       try {
@@ -450,6 +451,7 @@ class PromptStorageManager {
       } catch (err) { console.error(err); resolve(def); }
     });
   }
+
   static setData(key, value) {
     return new Promise(resolve => {
       try {
@@ -461,30 +463,113 @@ class PromptStorageManager {
       } catch (err) { console.error(err); resolve(false); }
     });
   }
-  static async getPrompts() { const p = await PromptStorageManager.getData('prompts', []); return Array.isArray(p) ? p : []; }
-  static async savePrompt(prompt) {
-    if (!prompt.uuid) prompt.uuid = crypto.randomUUID();
-    const prompts = await PromptStorageManager.getPrompts();
-    prompts.push(prompt);
-    await PromptStorageManager.setData('prompts', prompts);
-    // TWO-WAY SYNC: Also update 'prompts_storage' for sidebar compatibility
-    await chrome.storage.local.set({ prompts_storage: { version: 1, prompts: prompts.map(p => p.uuid ? p : { ...p, uuid: crypto.randomUUID() }) } });
-    return { success: true };
-  }
-  static async mergeImportedPrompts(imported) {
-    let prompts = await PromptStorageManager.getPrompts();
-    imported.forEach(im => {
-      if (im.id && !im.uuid) { im.uuid = im.id; delete im.id; }
-      delete im.createdAt;
-      if (!im.uuid) im.uuid = crypto.randomUUID();
-      const idx = prompts.findIndex(p => p.uuid === im.uuid);
-      if (idx !== -1) prompts[idx] = im; else prompts.push(im);
+  // ---- Unified prompt operations ----
+  static async _ps() {
+    // Already created? return it.
+    if (this.__ps) return this.__ps;
+
+    /* INLINE storage manager – content-script only (Option B) */
+    const generateUUID = () => 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+      const r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
+      return v.toString(16);
     });
-    prompts = prompts.map(p => p.uuid ? p : { ...p, uuid: crypto.randomUUID() });
-    await PromptStorageManager.setData('prompts', prompts);
-    // TWO-WAY SYNC: Also update 'prompts_storage' for sidebar compatibility
-    await chrome.storage.local.set({ prompts_storage: { version: 1, prompts } });
-    return prompts;
+
+    const STORAGE_KEY = 'prompts_storage';
+    const LEGACY_KEY = 'prompts';
+
+    const storageGet = keys => new Promise(res => chrome.storage.local.get(keys, res));
+    const storageSet = obj => new Promise(res => chrome.storage.local.set(obj, res));
+
+    const normalisePrompt = p => {
+      const out = {
+        uuid: p?.uuid || p?.id || generateUUID(),
+        title: typeof p?.title === 'string' ? p.title : '',
+        content: typeof p?.content === 'string' ? p.content : '',
+        createdAt: p?.createdAt || new Date().toISOString()
+      };
+      if (p?.updatedAt) out.updatedAt = p.updatedAt;
+      return out;
+    };
+
+    const normaliseArr = arr => Array.isArray(arr) ? arr.map(normalisePrompt) : [];
+
+    async function readPrompts() {
+      const data = await storageGet([STORAGE_KEY, LEGACY_KEY]);
+      if (data[STORAGE_KEY]?.prompts) return normaliseArr(data[STORAGE_KEY].prompts);
+      if (Array.isArray(data[LEGACY_KEY])) return normaliseArr(data[LEGACY_KEY]);
+      return [];
+    }
+
+    async function writePrompts(prompts) {
+      const clean = normaliseArr(prompts);
+      await storageSet({
+        [STORAGE_KEY]: { version: 1, prompts: clean },
+        [LEGACY_KEY]: clean
+      });
+      return clean;
+    }
+
+    /* public API */
+    this.__ps = {
+      getPrompts: readPrompts,
+      savePrompt: async ({ title, content, uuid }) => {
+        if (!title || !content) throw new Error('Title & content required');
+        const prompts = await readPrompts();
+        prompts.push(normalisePrompt({ title, content, uuid }));
+        await writePrompts(prompts);
+        return { success: true };
+      },
+      updatePrompt: async (uuid, partial) => {
+        const prompts = await readPrompts();
+        const idx = prompts.findIndex(p => p.uuid === uuid);
+        if (idx === -1) throw new Error('Prompt not found');
+        prompts[idx] = normalisePrompt({ ...prompts[idx], ...partial, updatedAt: new Date().toISOString() });
+        await writePrompts(prompts);
+        return prompts[idx];
+      },
+      deletePrompt: async uuid => {
+        const prompts = (await readPrompts()).filter(p => p.uuid !== uuid);
+        await writePrompts(prompts);
+        return true;
+      },
+      importPrompts: async source => {
+        let imported;
+        if (Array.isArray(source)) imported = source;
+        else if (source instanceof File) imported = JSON.parse(await source.text());
+        else if (typeof source === 'string') imported = JSON.parse(source);
+        else throw new Error('Unsupported import type');
+
+        if (!Array.isArray(imported)) throw new Error('Invalid prompts JSON');
+
+        const base = await readPrompts();
+        const map = new Map(base.map(p => [p.uuid, p]));
+        imported.forEach(raw => {
+          const norm = normalisePrompt(raw);
+          map.set(norm.uuid, norm);
+        });
+        const merged = Array.from(map.values());
+        await writePrompts(merged);
+        return merged;
+      }
+    };
+
+    return this.__ps;
+  }
+
+  static async getPrompts() {
+    const ps = await this._ps();
+    return await ps.getPrompts();
+  }
+
+  static async savePrompt(prompt) {
+    const ps = await this._ps();
+    return await ps.savePrompt(prompt);
+  }
+
+  static async mergeImportedPrompts(imported) {
+    const ps = await this._ps();
+    // imported may be array or JSON string
+    return await ps.importPrompts(imported);
   }
   static onChange(cb) { chrome.storage.onChanged.addListener(cb); }
   static async getButtonPosition() { return await PromptStorageManager.getData('buttonPosition', { x: 75, y: 100 }); }

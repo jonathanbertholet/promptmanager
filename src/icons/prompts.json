@@ -1,0 +1,14 @@
+[
+  {
+    "content": "Content Prompt 1",
+    "createdAt": "2025-07-18T21:44:07.076Z",
+    "title": "Prompt 1",
+    "uuid": "b3c0d2a4-1cb9-4c64-a25b-240d5a9cb58d"
+  },
+  {
+    "content": "demo prompt 2",
+    "createdAt": "2025-07-18T21:44:15.095Z",
+    "title": "Prompt 2",
+    "uuid": "bf8a17cf-ad0d-4a3e-9b80-d0effc9f5580"
+  }
+]

@@ -1,6 +1,8 @@
 // prompts.js
 
 import { generateUUID } from './utils.js';
+// Unified prompt storage (shared between content script & sidebar)
+import * as PromptStorage from './promptStorage.js';
 
 // Define the current storage version
 const PROMPT_STORAGE_VERSION = 1;
@@ -27,52 +29,23 @@ function normalizePromptArray(prompts) {
   return prompts.map(normalizePromptObject);
 }
 
-// Helper: Get the full prompt storage object (with version)
+// Wrapper around the new manager – returns canonical object shape
 async function getPromptStorage() {
-  const data = await chrome.storage.local.get('prompts_storage');
-  if (data.prompts_storage && typeof data.prompts_storage === 'object') {
-    // If version is missing, treat as legacy, upgrade below
-    return data.prompts_storage;
-  }
-  // Legacy: try to load 'prompts' array
-  const legacy = await chrome.storage.local.get('prompts');
-  if (Array.isArray(legacy.prompts)) {
-    return {
-      version: 0,
-      prompts: normalizePromptArray(legacy.prompts)
-    };
-  }
-  // Nothing found
-  return { version: PROMPT_STORAGE_VERSION, prompts: [] };
+  const prompts = await PromptStorage.getPrompts();
+  return { version: PROMPT_STORAGE_VERSION, prompts };
 }
 
-// Helper: Save the full prompt storage object (with version)
 async function setPromptStorage(storageObj) {
-  // Only allow writing if version matches current
-  if (storageObj.version !== PROMPT_STORAGE_VERSION) {
-    throw new Error('Prompt storage version mismatch. Refusing to overwrite.');
-  }
-  await chrome.storage.local.set({ prompts_storage: storageObj });
-  // QUICK FIX: Also update legacy 'prompts' array for content.js compatibility
-  await chrome.storage.local.set({ prompts: storageObj.prompts });
+  // Delegate – validation handled by PromptStorage
+  await PromptStorage.setPrompts(storageObj.prompts);
 }
 
 // Add a prompt to local storage (robust, versioned)
 export async function addPrompt(title, content) {
+  // Simplified – rely on unified manager
   if (!title || !content) return;
   try {
-    // Always normalize/upgrade storage before proceeding
-    let prompts = await normalizePromptFormat();
-    // Get the latest storage object
-    let storage = await getPromptStorage();
-    // If storage version is not current, upgrade in-place
-    if (storage.version !== PROMPT_STORAGE_VERSION) {
-      storage = { version: PROMPT_STORAGE_VERSION, prompts };
-      await setPromptStorage(storage);
-    }
-    const prompt = normalizePromptObject({ title, content });
-    storage.prompts.push(prompt);
-    await setPromptStorage(storage);
+    await PromptStorage.savePrompt({ title, content });
     document.getElementById('prompt-title').value = '';
     document.getElementById('prompt-content').value = '';
     loadPrompts();
@@ -82,47 +55,22 @@ export async function addPrompt(title, content) {
 }
 
 // Update an existing prompt by index (robust, versioned)
-export function updatePrompt(index, title, content) {
-  // Always normalize/upgrade storage before proceeding
-  normalizePromptFormat().then(prompts => {
-    getPromptStorage().then(async storage => {
-      // If storage version is not current, upgrade in-place
-      if (storage.version !== PROMPT_STORAGE_VERSION) {
-        storage = { version: PROMPT_STORAGE_VERSION, prompts };
-        await setPromptStorage(storage);
-      }
-      const promptsArr = storage.prompts;
-      if (index >= 0 && index < promptsArr.length) {
-        const updated = normalizePromptObject({
-          ...promptsArr[index],
-          title,
-          content,
-          updatedAt: new Date().toISOString()
-        });
-        promptsArr[index] = updated;
-        setPromptStorage(storage).then(loadPrompts);
-      }
-    });
-  });
+export async function updatePrompt(index, title, content) {
+  const prompts = await PromptStorage.getPrompts();
+  if (index < 0 || index >= prompts.length) return;
+  const uuid = prompts[index].uuid;
+  await PromptStorage.updatePrompt(uuid, { title, content });
+  loadPrompts();
 }
 
 // Delete a prompt by index (robust, versioned)
-export function deletePrompt(index) {
-  if (window.confirm('Are you sure you want to delete this prompt?')) {
-    // Always normalize/upgrade storage before proceeding
-    normalizePromptFormat().then(prompts => {
-      getPromptStorage().then(async storage => {
-        // If storage version is not current, upgrade in-place
-        if (storage.version !== PROMPT_STORAGE_VERSION) {
-          storage = { version: PROMPT_STORAGE_VERSION, prompts };
-          await setPromptStorage(storage);
-        }
-        const promptsArr = storage.prompts;
-        promptsArr.splice(index, 1);
-        setPromptStorage(storage).then(loadPrompts);
-      });
-    });
-  }
+export async function deletePrompt(index) {
+  if (!window.confirm('Are you sure you want to delete this prompt?')) return;
+  const prompts = await PromptStorage.getPrompts();
+  if (index < 0 || index >= prompts.length) return;
+  const uuid = prompts[index].uuid;
+  await PromptStorage.deletePrompt(uuid);
+  loadPrompts();
 }
 
 // Edit a prompt by index (populate form fields, robust)
@@ -247,30 +195,8 @@ export function displayPrompts(prompts) {
 
 // Normalize prompt format and upgrade storage if needed
 export async function normalizePromptFormat() {
-  try {
-    let storage = await getPromptStorage();
-    let needsUpdate = false;
-    // If legacy or missing version, upgrade to versioned format
-    if (typeof storage.version !== 'number' || !Array.isArray(storage.prompts)) {
-      storage = { version: PROMPT_STORAGE_VERSION, prompts: normalizePromptArray(storage.prompts || []) };
-      needsUpdate = true;
-    } else {
-      // Always normalize all prompts
-      const normalizedPrompts = normalizePromptArray(storage.prompts);
-      if (JSON.stringify(normalizedPrompts) !== JSON.stringify(storage.prompts)) {
-        storage.prompts = normalizedPrompts;
-        needsUpdate = true;
-      }
-    }
-    if (needsUpdate) {
-      await setPromptStorage(storage);
-      console.log('Normalized and upgraded prompt storage format.');
-    }
-    return storage.prompts;
-  } catch (error) {
-    console.error('Error normalizing prompt format:', error);
-    return [];
-  }
+  // Delegates – always returns up-to-date prompts
+  return await PromptStorage.getPrompts();
 }
 
 // Load prompts from local storage and display them

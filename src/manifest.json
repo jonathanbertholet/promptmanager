@@ -1,7 +1,7 @@
 {
     "manifest_version": 3,
     "name": "Open Prompt Manager",
-    "version": "2.0",
+    "version": "2.1",
     "description": "Fully Open Source Prompt Manager for ChatGPT, Claude, Gemini, Grok, and more.",
     "permissions": [
         "sidePanel",
@@ -54,7 +54,10 @@
             "resources": [
                 "icons/*",
                 "changelog.html",
-                "info.html"
+                "info.html",
+                "src/promptStorage.js",
+                "promptStorage.js",
+                "src/utils.js"
             ],
             "matches": [
                 "<all_urls>"
