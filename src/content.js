@@ -1176,7 +1176,7 @@ class PromptUIManager {
       text.textContent = p.title;
       const actions = createEl('div', { styles: { display: 'flex', gap: '4px' } });
       const editIcon = PromptUIManager.createIconButton('edit', () => { PromptUIManager.showEditForm(p, idx); });
-      const deleteIcon = PromptUIManager.createIconButton('delete', () => { if (confirm(`Delete "${p.title}"?`)) PromptUIManager.deletePrompt(idx); });
+      const deleteIcon = PromptUIManager.createIconButton('delete', () => { if (confirm(`Delete "${p.title}"?`)) PromptUIManager.deletePrompt(p.uuid); });
       actions.append(editIcon, deleteIcon);
       item.append(text, actions);
       promptsContainer.appendChild(item);
@@ -1198,9 +1198,11 @@ class PromptUIManager {
     const saveBtn = createEl('button', { innerHTML: 'Save Changes', className: `button ${getMode()}` });
     saveBtn.addEventListener('click', async e => {
       e.stopPropagation();
-      const prompts = await PromptStorageManager.getPrompts();
-      prompts[index] = { title: titleIn.value.trim(), content: contentArea.value.trim(), uuid: prompt.uuid };
-      await PromptStorageManager.setData('prompts', prompts);
+      const ps = await PromptStorageManager._ps();
+      await ps.updatePrompt(prompt.uuid, {
+        title: titleIn.value.trim(),
+        content: contentArea.value.trim()
+      });
       PromptUIManager.showEditView();
     });
     form.append(titleIn, contentArea, saveBtn);
@@ -1208,10 +1210,9 @@ class PromptUIManager {
     list.insertBefore(form, list.firstChild);
   }
 
-  static async deletePrompt(index) {
-    const prompts = await PromptStorageManager.getPrompts();
-    prompts.splice(index, 1);
-    await PromptStorageManager.setData('prompts', prompts);
+  static async deletePrompt(uuid) {
+    const ps = await PromptStorageManager._ps();
+    await ps.deletePrompt(uuid);
     const list = document.getElementById(SELECTORS.PROMPT_LIST);
     if (list) { PromptUIManager.resetPromptListContainer(); PromptUIManager.showEditView(); }
   }

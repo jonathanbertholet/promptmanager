@@ -300,11 +300,12 @@
     scrollbar-width: thin;
     scrollbar-color: #0077B6 #f0f0f000;
     position: static; /* Remove absolute, let flex handle layout */
+    margin-top: 5px;
   }
 
   #prompt-list {
     /* list-style-type: none; */
-    padding: 0;
+    padding-top: 5px;;
     margin: 0;
   }
 
@@ -506,4 +507,120 @@ footer.footer {
     .custom-col {
         max-width: 90%; /* Single column on small screens */
     }
+}
+
+/* ============================================================
+   Unified dark theme overrides (matches content script theme)
+   ============================================================ */
+@media (prefers-color-scheme: dark) {
+  body {
+    background-color: #1A202C;
+    color: #E2E8F0;
+  }
+
+  /* Headings adopt primary colour for contrast */
+  h2, h3 {
+    color: #3674B5;
+  }
+
+  /* Input & textarea fields */
+  input[type="text"], textarea {
+    background-color: #2D3748;
+    color: #E2E8F0;
+    border-color: #4A5568;
+  }
+
+  /* Main action buttons */
+  button.main {
+    background-color: #4C51BF;
+    color: #E2E8F0;
+  }
+  button.main:hover {
+    background-color: #434C5E;
+  }
+
+  /* Prompt list items */
+  #prompt-list li {
+    background-color: #2D3748;
+    color: #CBD5E0;
+  }
+  #prompt-list button:hover {
+    background-color: #434C5E;
+  }
+
+  /* Prompt list item hover (lift) */
+  #prompt-list li:hover {
+    background-color: #434C5E; /* hover-dark background */
+    transform: translateY(-2px);
+    color: #E2E8F0; /* ensure readable text */
+  }
+
+  /* Title heading & icons use light colour */
+  .title h2 {
+    color: #E2E8F0;
+  }
+  .header-icon,
+  .title img,
+  .footer-icons img,
+  #prompt-list button img {
+    filter: invert(100%) sepia(0%) saturate(0%) hue-rotate(213deg) brightness(130%) contrast(87%);
+  }
+
+  /* Footer background stays transparent but icons/text lighten */
+  footer.footer {
+    background: transparent;
+    color: #A0AEC0;
+  }
+}
+
+/* ============================================================
+   Unified LIGHT theme overrides (matches content script theme)
+   ============================================================ */
+:root {
+  --primary: #3674b5;
+  --hover-primary: #4b93e0;
+  --light-bg: #F7FAFC;
+}
+
+/* Headings adopt primary colour */
+h2, h3 {
+  color: var(--primary);
+}
+
+/* Inputs & textareas */
+input[type="text"], textarea {
+  border-color: var(--primary);
+}
+input[type="text"]:focus, textarea:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px rgba(54, 116, 181, 0.25);
+}
+
+/* Main buttons */
+button.main {
+  background-color: var(--primary);
+  border: none;
+  transition: box-shadow 0.3s ease, background-color 0.3s ease;  /* removed transform transition */
+}
+button.main:hover {
+  background-color: var(--hover-primary);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+}
+
+/* List item styling to match prompt list cards */
+#prompt-list li {
+  transition: background-color 0.3s ease, transform 0.3s ease;
+}
+
+@media (prefers-color-scheme: light) {
+  #prompt-list li:hover {
+    background-color: #e2e8f0;
+    transform: translateY(-2px);
+  }
+}
+
+/* Scrollbar colour */
+#prompt-list {
+  scrollbar-width: auto;
+  scrollbar-color: var(--primary)90 transparent;
 }

@@ -13,6 +13,40 @@ document.addEventListener('DOMContentLoaded', function () {
     return; // Stop execution if containers are missing
   }
 
+  function updateGetStartedButton(allowedProviders) {
+    if (allowedProviders.length > 0 && getStartedBtnContainer) {
+      // Fetch the LLM provider URLs from llm_providers.json
+      fetch(chrome.runtime.getURL('llm_providers.json'))
+        .then(response => response.json())
+        .then(data => {
+          // Find the first allowed provider in the llm_providers list (by name match)
+          const llmList = data.llm_providers || [];
+          let firstAllowedUrl = null;
+          for (const allowed of allowedProviders) {
+            const match = llmList.find(llm => llm.name === allowed.key);
+            if (match && match.url) {
+              firstAllowedUrl = match.url;
+              break;
+            }
+          }
+          if (firstAllowedUrl) {
+            // Create the Get Started button
+            getStartedBtnContainer.innerHTML = `<button id="get-started-btn" class="custom-button" style="font-size: 1.2rem; padding: 0.75rem 1rem; margin-top: 1rem; display: inline-flex; align-items: center; gap: 0.5rem;">
+                <img src="../icons/icon-button.png" alt="Open Prompt Manager Icon" width="28" height="28" style="object-fit: cover;"> 
+                <span style="vertical-align: middle;">Get Started</span>
+              </button>`;
+            // Add click event to open the URL in a new tab
+            document.getElementById('get-started-btn').addEventListener('click', function() {
+              window.open(firstAllowedUrl, '_blank');
+            });
+          }
+        });
+    } else if (getStartedBtnContainer) {
+      // Hide or clear the button if no allowed providers
+      getStartedBtnContainer.innerHTML = '';
+    }
+  }
+
   // Get the providers map from storage when the page loads
   chrome.storage.local.get(['aiProvidersMap'], function (result) {
     if (result.aiProvidersMap) {
@@ -74,6 +108,8 @@ document.addEventListener('DOMContentLoaded', function () {
                      // Remove the click listener as it's no longer needed
                      element.removeEventListener('click', arguments.callee);
                      // Optionally update element style/text
+                     allowedProviders.push({ key: providerKey, providerInfo: providersMap[providerKey] });
+                     updateGetStartedButton(allowedProviders);
                   });
                 } else {
                   alert(`Permission denied for ${providerKey}`);
@@ -84,41 +120,20 @@ document.addEventListener('DOMContentLoaded', function () {
         }
       }
       // After processing all providers, show the Get Started button if at least one is allowed
-      if (allowedProviders.length > 0 && getStartedBtnContainer) {
-        // Fetch the LLM provider URLs from llm_providers.json
-        fetch(chrome.runtime.getURL('llm_providers.json'))
-          .then(response => response.json())
-          .then(data => {
-            // Find the first allowed provider in the llm_providers list (by name match)
-            const llmList = data.llm_providers || [];
-            let firstAllowedUrl = null;
-            for (const allowed of allowedProviders) {
-              const match = llmList.find(llm => llm.name === allowed.key);
-              if (match && match.url) {
-                firstAllowedUrl = match.url;
-                break;
-              }
-            }
-            if (firstAllowedUrl) {
-              // Create the Get Started button
-              getStartedBtnContainer.innerHTML = `<button id="get-started-btn" class="custom-button" style="font-size: 1.2rem; padding: 0.75rem 1rem; margin-top: 1rem; display: inline-flex; align-items: center; gap: 0.5rem;">
-                <img src="../icons/icon-button.png" alt="Open Prompt Manager Icon" width="28" height="28" style="object-fit: cover;"> 
-                <span style="vertical-align: middle;">Get Started</span>
-              </button>`;
-              // Add click event to open the URL in a new tab
-              document.getElementById('get-started-btn').addEventListener('click', function() {
-                window.open(firstAllowedUrl, '_blank');
-              });
-            }
-          });
-      } else if (getStartedBtnContainer) {
-        // Hide or clear the button if no allowed providers
-        getStartedBtnContainer.innerHTML = '';
-      }
+      updateGetStartedButton(allowedProviders);
+      
     } else {
       console.log('No providersMap found in storage.');
       // Handle the case where the map doesn't exist yet
       requestPermissionContainer.innerHTML = '<p>No provider data found in storage.</p>'; // Example message
     }
   });
+
+  const isDarkMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+  if (isDarkMode) {
+    const headerIcon = document.getElementById('header-icon');
+    if (headerIcon) {
+      headerIcon.classList.add('dark-mode-icon');
+    }
+  }
 });
