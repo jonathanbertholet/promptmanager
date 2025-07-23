@@ -15,32 +15,55 @@ document.addEventListener('DOMContentLoaded', function () {
 
   function updateGetStartedButton(allowedProviders) {
     if (allowedProviders.length > 0 && getStartedBtnContainer) {
-      // Fetch the LLM provider URLs from llm_providers.json
-      fetch(chrome.runtime.getURL('llm_providers.json'))
-        .then(response => response.json())
-        .then(data => {
-          // Find the first allowed provider in the llm_providers list (by name match)
-          const llmList = data.llm_providers || [];
-          let firstAllowedUrl = null;
-          for (const allowed of allowedProviders) {
-            const match = llmList.find(llm => llm.name === allowed.key);
-            if (match && match.url) {
-              firstAllowedUrl = match.url;
-              break;
-            }
-          }
-          if (firstAllowedUrl) {
-            // Create the Get Started button
-            getStartedBtnContainer.innerHTML = `<button id="get-started-btn" class="custom-button" style="font-size: 1.2rem; padding: 0.75rem 1rem; margin-top: 1rem; display: inline-flex; align-items: center; gap: 0.5rem;">
-                <img src="../icons/icon-button.png" alt="Open Prompt Manager Icon" width="28" height="28" style="object-fit: cover;"> 
-                <span style="vertical-align: middle;">Get Started</span>
-              </button>`;
-            // Add click event to open the URL in a new tab
-            document.getElementById('get-started-btn').addEventListener('click', function() {
-              window.open(firstAllowedUrl, '_blank');
+      /*
+        Try to use the URL that we already have in memory (it was populated via
+        service-worker.js -> checkProviderPermissions). This removes the need for
+        an extra fetch request and avoids potential path issues when the
+        permissions page lives in a sub-folder ("src/permissions") while the JSON
+        file is located in "src/llm_providers.json".
+      */
+      let firstAllowedUrl = null;
+
+      for (const allowed of allowedProviders) {
+        if (allowed.providerInfo && allowed.providerInfo.url) {
+          firstAllowedUrl = allowed.providerInfo.url;
+          break;
+        }
+      }
+
+      // Fallback – if, for some reason, the providerInfo does not contain a
+      // URL, we fetch the JSON file (using the correct path) and try to look it
+      // up. This keeps backwards-compatibility with existing logic.
+      const ensureUrlPromise = firstAllowedUrl
+        ? Promise.resolve(firstAllowedUrl)
+        : fetch(chrome.runtime.getURL('/llm_providers.json'))
+            .then(response => response.json())
+            .then(data => {
+              const llmList = data.llm_providers || [];
+              for (const allowed of allowedProviders) {
+                const match = llmList.find(llm => llm.name === allowed.key);
+                if (match && match.url) {
+                  return match.url;
+                }
+              }
+              return null;
             });
-          }
-        });
+
+      ensureUrlPromise.then(resolvedUrl => {
+        if (resolvedUrl) {
+          // Create (or replace) the Get Started button
+          getStartedBtnContainer.innerHTML = `<button id="get-started-btn" class="custom-button" style="font-size: 1.2rem; padding: 0.75rem 1rem; margin-top: 1rem; display: inline-flex; align-items: center; gap: 0.5rem;">
+              <img src="../icons/icon-button.png" alt="Open Prompt Manager Icon" width="28" height="28" style="object-fit: cover;"> 
+              <span style="vertical-align: middle;">Get Started</span>
+            </button>`;
+
+          // Open the provider in a new tab when the button is clicked
+          document.getElementById('get-started-btn').addEventListener('click', () => {
+            window.open(resolvedUrl, '_blank');
+          });
+        }
+      });
+
     } else if (getStartedBtnContainer) {
       // Hide or clear the button if no allowed providers
       getStartedBtnContainer.innerHTML = '';
@@ -91,31 +114,41 @@ document.addEventListener('DOMContentLoaded', function () {
         if (needsClickListener) {
           const element = document.getElementById(`perm-${key}`); // Get the newly added element
           if (element) {
-            element.addEventListener('click', function (event) {
-              event.preventDefault(); // Prevent default link behavior
+            // Create a named handler so we can later remove it cleanly
+            const handleProviderClick = function (event) {
+              event.preventDefault();
+
               const providerKey = this.dataset.provider;
               const originPattern = this.dataset.urlPattern;
               console.log(`Requesting permission for ${providerKey} with pattern: ${originPattern}`);
 
-              chrome.permissions.request({ origins: [originPattern] }, function (granted) {
+              chrome.permissions.request({ origins: [originPattern] }, (granted) => {
                 if (granted) {
-                  // Update storage
-                  providersMap[providerKey].hasPermission = "Yes"; // Update the specific provider's status
+                  // Mark provider as granted inside the stored map
+                  providersMap[providerKey].hasPermission = "Yes";
+
+                  // Persist changes and update UI
                   chrome.storage.local.set({ aiProvidersMap: providersMap }, () => {
-                     console.log(`Storage updated for ${providerKey}`);
-                     // Move the element visually
-                     permissionGrantedContainer.appendChild(element);
-                     // Remove the click listener as it's no longer needed
-                     element.removeEventListener('click', arguments.callee);
-                     // Optionally update element style/text
-                     allowedProviders.push({ key: providerKey, providerInfo: providersMap[providerKey] });
-                     updateGetStartedButton(allowedProviders);
+                    console.log(`Storage updated for ${providerKey}`);
+
+                    // Visually move the element to the granted container
+                    permissionGrantedContainer.appendChild(element);
+
+                    // Remove the now-unneeded click handler
+                    element.removeEventListener('click', handleProviderClick);
+
+                    // Update in-memory list of allowed providers and refresh the button
+                    allowedProviders.push({ key: providerKey, providerInfo: providersMap[providerKey] });
+                    updateGetStartedButton(allowedProviders);
                   });
                 } else {
                   alert(`Permission denied for ${providerKey}`);
                 }
               });
-            });
+            };
+
+            // Attach the listener
+            element.addEventListener('click', handleProviderClick);
           }
         }
       }

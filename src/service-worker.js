@@ -200,6 +200,13 @@ chrome.runtime.onStartup.addListener(() => {
   createPromptContextMenu();
 });
 
+// Listen for storage changes and update the context menu
+chrome.storage.onChanged.addListener((changes, namespace) => {
+  if (changes.prompts_storage || changes.prompts) {
+    createPromptContextMenu();
+  }
+});
+
 // When a context menu item is clicked
 chrome.contextMenus.onClicked.addListener(async (info, tab) => {
   if (info.menuItemId.startsWith('prompt-')) {
