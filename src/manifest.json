@@ -8,8 +8,7 @@
         "storage",
         "tabs",
         "scripting",
-        "activeTab",
-        "contextMenus"
+        "activeTab"
     ],
     "side_panel": {
         "default_path": "sidepanel/index.html"
@@ -25,7 +24,8 @@
             "16": "/icons/icon16.png",
             "48": "/icons/icon48.png",
             "128": "/icons/icon128.png"
-        }
+        },
+        "type": "side_panel"
     },
     "background": {
         "service_worker": "service-worker.js",
@@ -42,11 +42,7 @@
         "*://x.com/i/grok*",
         "*://grok.com/*",
         "*://copilot.microsoft.com/*",
-        "*://apps.abacus.ai/chatllm/*",
-        "*://aistudio.google.com/*",
-        "*://www.perplexity.ai/*",
-        "*://lmarena.ai/*",
-        "*://chat.qwen.ai/*"
+        "*://apps.abacus.ai/chatllm/*"
     ],
     "web_accessible_resources": [
         {
@@ -54,8 +50,9 @@
                 "icons/*",
                 "changelog.html",
                 "info.html",
+                "src/promptStorage.js",
                 "promptStorage.js",
-                "utils.js"
+                "src/utils.js"
             ],
             "matches": [
                 "<all_urls>"
