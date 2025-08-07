@@ -70,90 +70,91 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   }
 
+  // Function to populate providers UI
+  function populateProviders(providersMap) {
+    console.log('Populating UI with providers map:', providersMap);
+
+    // Clear existing content
+    permissionGrantedContainer.innerHTML = '';
+    requestPermissionContainer.innerHTML = '';
+
+    const allowedProviders = [];
+
+    for (const [key, providerInfo] of Object.entries(providersMap)) {
+      const iconUrl = providerInfo.iconUrl;
+      const isAllowed = providerInfo.hasPermission === "Yes";
+
+      // For allowed providers, clicking should open their website in a new tab.
+      // For not-yet-allowed providers, the link remains "#" and we attach the
+      // permission-request listener below.
+      const elementHTML = isAllowed
+        ? `<a id="perm-${key}" class="custom-button"
+               aria-current="true" href="${providerInfo.url}" target="_blank" rel="noopener">
+              <img src="${iconUrl}" alt="${key} icon" width="32" height="32" class="custom-rounded-circle">
+              <span class="custom-mb-0">${key}</span>
+            </a>`
+        : `<a id="perm-${key}" class="custom-button"
+               aria-current="true" href="#" data-provider="${key}" data-url-pattern="${providerInfo.urlPattern}">
+              <img src="${iconUrl}" alt="${key} icon" width="32" height="32" class="custom-rounded-circle">
+              <span class="custom-mb-0">${key}</span>
+            </a>`;
+
+      let targetContainer;
+      let needsClickListener = false;
+
+      if (providerInfo.hasPermission == "Yes") {
+        targetContainer = permissionGrantedContainer;
+        allowedProviders.push({ key, providerInfo }); // Collect allowed providers
+      } else {
+        targetContainer = requestPermissionContainer;
+        needsClickListener = true;
+      }
+
+      targetContainer.insertAdjacentHTML('beforeend', elementHTML);
+
+      if (needsClickListener) {
+        const element = document.getElementById(`perm-${key}`);
+        if (element) {
+          const handleProviderClick = function (event) {
+            event.preventDefault();
+
+            const providerKey = this.dataset.provider;
+            const originPattern = this.dataset.urlPattern;
+
+            chrome.permissions.request({ origins: [originPattern] }, (granted) => {
+              if (granted) {
+                // Update local providersMap and persist
+                providersMap[providerKey].hasPermission = "Yes";
+                // Persist change; UI will refresh via storage.onChanged listener
+                chrome.storage.local.set({ aiProvidersMap: providersMap });
+              } else {
+                alert(`Permission denied for ${providerKey}`);
+              }
+            });
+          };
+          element.addEventListener('click', handleProviderClick);
+        }
+      }
+    }
+
+    updateGetStartedButton(allowedProviders);
+  }
+
+  // Listen for changes to aiProvidersMap in storage and update UI
+  chrome.storage.onChanged.addListener((changes, areaName) => {
+    if (areaName === 'local' && changes.aiProvidersMap && changes.aiProvidersMap.newValue) {
+      populateProviders(changes.aiProvidersMap.newValue);
+    }
+  });
+
   // Get the providers map from storage when the page loads
   chrome.storage.local.get(['aiProvidersMap'], function (result) {
     if (result.aiProvidersMap) {
       const providersMap = result.aiProvidersMap;
       console.log('Retrieved providersMap from storage:', providersMap);
 
-      // Store allowed providers for Get Started logic
-      const allowedProviders = [];
-
-      // Process the provider map data
-      for (const [key, providerInfo] of Object.entries(providersMap)) {
-        // Assume providerInfo contains name, iconUrl, urlPattern, and hasPermission
-        // Example: providerInfo = { name: 'ChatGPT', iconUrl: '...', urlPattern: 'https://*.openai.com/*', hasPermission: 'Yes' }
-        // If iconUrl is not directly available, you might need to construct it or use a default.
-        const iconUrl = providerInfo.iconUrl
-
-        const elementHTML = `
-          <a id="perm-${key}" class="custom-button"
-             aria-current="true" href="#" data-provider="${key}" data-url-pattern="${providerInfo.urlPattern}">
-            <img src="${iconUrl}" alt="${key} icon" width="32" height="32" class="custom-rounded-circle">
-            <span class="custom-mb-0">${key}</span>
-          </a>`;
-
-        let targetContainer;
-        let needsClickListener = false;
-
-        if (providerInfo.hasPermission == "Yes") {
-          console.log(`Provider: ${key}, Has Permission: Yes`);
-          targetContainer = permissionGrantedContainer;
-          allowedProviders.push({ key, providerInfo }); // Collect allowed providers
-          // Optionally add styling or text to indicate granted status within the element if needed
-        } else {
-          console.log(`Provider: ${key}, Has Permission: No`);
-          targetContainer = requestPermissionContainer;
-          needsClickListener = true; // Only add listener if permission needs to be requested
-        }
-
-        // Append the element
-        targetContainer.insertAdjacentHTML('beforeend', elementHTML);
-
-        // Add click listener AFTER the element is in the DOM if needed
-        if (needsClickListener) {
-          const element = document.getElementById(`perm-${key}`); // Get the newly added element
-          if (element) {
-            // Create a named handler so we can later remove it cleanly
-            const handleProviderClick = function (event) {
-              event.preventDefault();
-
-              const providerKey = this.dataset.provider;
-              const originPattern = this.dataset.urlPattern;
-              console.log(`Requesting permission for ${providerKey} with pattern: ${originPattern}`);
-
-              chrome.permissions.request({ origins: [originPattern] }, (granted) => {
-                if (granted) {
-                  // Mark provider as granted inside the stored map
-                  providersMap[providerKey].hasPermission = "Yes";
-
-                  // Persist changes and update UI
-                  chrome.storage.local.set({ aiProvidersMap: providersMap }, () => {
-                    console.log(`Storage updated for ${providerKey}`);
-
-                    // Visually move the element to the granted container
-                    permissionGrantedContainer.appendChild(element);
-
-                    // Remove the now-unneeded click handler
-                    element.removeEventListener('click', handleProviderClick);
-
-                    // Update in-memory list of allowed providers and refresh the button
-                    allowedProviders.push({ key: providerKey, providerInfo: providersMap[providerKey] });
-                    updateGetStartedButton(allowedProviders);
-                  });
-                } else {
-                  alert(`Permission denied for ${providerKey}`);
-                }
-              });
-            };
-
-            // Attach the listener
-            element.addEventListener('click', handleProviderClick);
-          }
-        }
-      }
-      // After processing all providers, show the Get Started button if at least one is allowed
-      updateGetStartedButton(allowedProviders);
+      // Use the helper to populate UI and attach listeners
+      populateProviders(providersMap);
       
     } else {
       console.log('No providersMap found in storage.');

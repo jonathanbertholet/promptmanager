@@ -43,14 +43,20 @@ const UI_STYLES = {
 // Time delay for auto close
 const PROMPT_CLOSE_DELAY = 10000;
 
-// Selectors for DOM elements
+// Selectors for DOM elements (namespaced with opm-)
 const SELECTORS = {
-  PROMPT_BUTTON_CONTAINER: 'prompt-button-container',
-  PROMPT_BUTTON: 'prompt-button',
-  PROMPT_LIST: 'prompt-list',
-  PROMPT_SEARCH_INPUT: 'prompt-search-input',
-  PROMPT_ITEMS_CONTAINER: 'prompt-items-container',
-  ONBOARDING_POPUP: 'onboarding-popup'
+  ROOT: 'opm-root',
+  PROMPT_BUTTON_CONTAINER: 'opm-prompt-button-container',
+  PROMPT_BUTTON: 'opm-prompt-button',
+  PROMPT_LIST: 'opm-prompt-list',
+  PANEL_CONTENT: 'opm-panel-content',
+  PROMPT_SEARCH_INPUT: 'opm-prompt-search-input',
+  PROMPT_ITEMS_CONTAINER: 'opm-prompt-items-container',
+  ONBOARDING_POPUP: 'opm-onboarding-popup',
+  HOT_CORNER_CONTAINER: 'opm-hot-corner-container',
+  HOT_CORNER_INDICATOR: 'opm-hot-corner-indicator',
+  INFO_CONTENT: 'opm-info-content',
+  CHANGELOG_CONTENT: 'opm-changelog-content'
 };
 
 // Helper function for creating DOM elements
@@ -65,12 +71,32 @@ const createEl = (tag, { id, className, styles, attributes, innerHTML, eventList
   return el;
 };
 
+/* ---------------------------------------------------------------------------
+ * Utility: debounce
+ * Provides a simple debounce wrapper to coalesce rapid successive calls.
+ * Example:
+ *   const debouncedFn = debounce(() => console.log('run'), 300);
+ * -------------------------------------------------------------------------*/
+const debounce = (fn, wait = 300) => {
+  let timeout;
+  return (...args) => {
+    clearTimeout(timeout);
+    timeout = setTimeout(() => fn.apply(null, args), wait);
+  };
+};
+
 // Helper functions for theme and UI manipulation
 const getMode = () => (isDarkMode() ? 'dark' : 'light');
-const applyTheme = el => { el.classList.remove('light', 'dark'); el.classList.add(getMode()); };
-const showEl = el => { el.style.display = 'block'; void el.offsetHeight; el.classList.add('visible'); };
+const applyTheme = el => { el.classList.remove('opm-light', 'opm-dark'); el.classList.add(`opm-${getMode()}`); };
+const showEl = el => {
+  // Respect intended display for our panel
+  const isPromptList = el.classList && el.classList.contains('opm-prompt-list');
+  el.style.display = isPromptList ? 'flex' : 'block';
+  void el.offsetHeight;
+  el.classList.add('opm-visible');
+};
 const hideEl = el => {
-  el.classList.remove('visible');
+  el.classList.remove('opm-visible');
   setTimeout(() => {
     el.style.display = 'none';
     const items = el.querySelector(`.${SELECTORS.PROMPT_ITEMS_CONTAINER}`);
@@ -84,7 +110,7 @@ const hideEl = el => {
 function injectGlobalStyles() {
   const styleEl = createEl('style');
   styleEl.textContent = `
-    :root {
+    #${SELECTORS.ROOT} {
       --primary: ${THEME_COLORS.primary};
       --primary-gradient-start: ${THEME_COLORS.primaryGradientStart};
       --primary-gradient-end: ${THEME_COLORS.primaryGradientEnd};
@@ -109,21 +135,36 @@ function injectGlobalStyles() {
     }
     
     /* New scrollbar styling for our specific containers */
-    .prompt-list *,
-    .prompt-list-items,
-    #${SELECTORS.PROMPT_LIST} *,
-    .${SELECTORS.PROMPT_ITEMS_CONTAINER},
-    #info-content,
-    #changelog-content {
+    /* Legacy selectors kept temporarily for smoother transition; safe under #opm-root */
+    #${SELECTORS.ROOT} .opm-prompt-list-items,
+    #${SELECTORS.ROOT} .opm-prompt-list-items *,
+    #${SELECTORS.ROOT} #opm-info-content,
+    #${SELECTORS.ROOT} #opm-changelog-content {
       scrollbar-width: auto !important;
       scrollbar-color: ${THEME_COLORS.primary}90 transparent !important;
     }
-    
-    body {
-      font-family: var(--font-family);
+
+    /* WebKit scrollbar styling for consistency */
+    #${SELECTORS.ROOT} .opm-prompt-list-items::-webkit-scrollbar,
+    #${SELECTORS.ROOT} #opm-info-content::-webkit-scrollbar,
+    #${SELECTORS.ROOT} #opm-changelog-content::-webkit-scrollbar {
+      width: 10px;
     }
+    #${SELECTORS.ROOT} .opm-prompt-list-items::-webkit-scrollbar-thumb,
+    #${SELECTORS.ROOT} #opm-info-content::-webkit-scrollbar-thumb,
+    #${SELECTORS.ROOT} #opm-changelog-content::-webkit-scrollbar-thumb {
+      background-color: ${THEME_COLORS.primary}90;
+      border-radius: 8px;
+    }
+    #${SELECTORS.ROOT} .opm-prompt-list-items::-webkit-scrollbar-track,
+    #${SELECTORS.ROOT} #opm-info-content::-webkit-scrollbar-track,
+    #${SELECTORS.ROOT} #opm-changelog-content::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    
+    #${SELECTORS.ROOT}, #${SELECTORS.ROOT} * { font-family: var(--font-family); }
     /* Prompt Button styling */
-    .prompt-button {
+    #${SELECTORS.ROOT} .opm-prompt-button {
       width: 100%;
       height: 100%;
       border-radius: 50%;
@@ -140,7 +181,7 @@ function injectGlobalStyles() {
     }
     
     /* Toggle switch styling */
-    .toggle-switch {
+    #${SELECTORS.ROOT} .opm-toggle-switch {
       position: relative;
       width: 40px;
       height: 20px;
@@ -149,23 +190,23 @@ function injectGlobalStyles() {
       transition: background-color var(--transition-speed) ease;
     }
     
-    .toggle-switch.light {
+    #${SELECTORS.ROOT} .opm-toggle-switch.opm-light {
       background-color: #cbd5e0;
     }
     
-    .toggle-switch.dark {
+    #${SELECTORS.ROOT} .opm-toggle-switch.opm-dark {
       background-color: #4a5568;
     }
     
-    .toggle-switch.active.light {
+    #${SELECTORS.ROOT} .opm-toggle-switch.active.opm-light {
       background-color: var(--primary);
     }
     
-    .toggle-switch.active.dark {
+    #${SELECTORS.ROOT} .opm-toggle-switch.active.opm-dark {
       background-color: var(--primary);
     }
     
-    .toggle-switch::after {
+    #${SELECTORS.ROOT} .opm-toggle-switch::after {
       content: '';
       position: absolute;
       top: 2px;
@@ -177,12 +218,12 @@ function injectGlobalStyles() {
       transition: transform var(--transition-speed) ease;
     }
     
-    .toggle-switch.active::after {
+    #${SELECTORS.ROOT} .opm-toggle-switch.active::after {
       transform: translateX(20px);
     }
     
     /* Prompt Button styling */
-    .prompt-button::after {
+    #${SELECTORS.ROOT} .opm-prompt-button::after {
       content: "";
       position: absolute;
       top: 0;
@@ -194,12 +235,12 @@ function injectGlobalStyles() {
       background-position: center;
       background-repeat: no-repeat;
     }
-    .prompt-button:hover {
+    #${SELECTORS.ROOT} .opm-prompt-button:hover {
       transform: scale(1.05);
       box-shadow: var(--dark-shadow);
     }
     /* Prompt list container styling */
-    .prompt-list {
+    #${SELECTORS.ROOT} .opm-prompt-list {
       position: absolute;
       bottom: 50px;
       right: 0;
@@ -212,34 +253,45 @@ function injectGlobalStyles() {
       transform: translateY(10px);
       transition: opacity var(--transition-speed) ease, transform var(--transition-speed) ease;
       backdrop-filter: blur(12px);
+      /* Constrain panel and let inner list scroll */
+      display: flex;
+      flex-direction: column;
+      max-height: 450px;
+      overflow: hidden;
     }
-    .prompt-list.visible {
+    /* Dedicated scrollable content container inside the panel */
+    #${SELECTORS.ROOT} #${SELECTORS.PANEL_CONTENT} {
+      flex: 1 1 auto;
+      min-height: 0;
+      overflow: hidden;
+    }
+    #${SELECTORS.ROOT} .opm-prompt-list.opm-visible {
       opacity: 1;
       transform: translateY(0);
     }
-    .prompt-list.light {
+    #${SELECTORS.ROOT} .opm-prompt-list.opm-light {
       background-color: var(--light-bg);
       border: 1px solid var(--light-border);
       box-shadow: var(--light-shadow);
     }
-    .prompt-list.dark {
+    #${SELECTORS.ROOT} .opm-prompt-list.opm-dark {
       background-color: var(--dark-bg);
       border: 1px solid var(--dark-border);
       box-shadow: var(--dark-shadow);
     }
     /* List Items styled as modern cards */
-    .prompt-list-items {
+    #${SELECTORS.ROOT} .opm-prompt-list-items {
       max-height: 350px;
       overflow-y: auto;
       margin-bottom: 8px;
     }
-    .prompt-list-items.light {
+    #${SELECTORS.ROOT} .opm-prompt-list-items.opm-light {
       background-color: var(--light-bg);
     }
-    .prompt-list-items.dark {
+    #${SELECTORS.ROOT} .opm-prompt-list-items.opm-dark {
       background-color: var(--dark-bg);
     }
-    .prompt-list-item {
+    #${SELECTORS.ROOT} .opm-prompt-list-item {
       border-radius: var(--border-radius);
       font-size: 14px;
       cursor: pointer;
@@ -247,18 +299,17 @@ function injectGlobalStyles() {
       display: flex;
       align-items: center;
       padding: 8px 8px;
-      margin: 6px 0;
     }
-    .prompt-list-item.light:hover {
+    #${SELECTORS.ROOT} .opm-prompt-list-item.opm-light:hover {
       background-color: #e2e8f0;
       transform: translateY(-2px);
     }
-    .prompt-list-item.dark:hover {
+    #${SELECTORS.ROOT} .opm-prompt-list-item.opm-dark:hover {
       background-color: #2d3748;
       transform: translateY(-2px);
     }
     /* Bottom menu styling */
-    .bottom-menu {
+    #${SELECTORS.ROOT} .opm-bottom-menu {
       position: sticky;
       bottom: 0;
       display: flex;
@@ -266,16 +317,17 @@ function injectGlobalStyles() {
       gap: 10px;
       padding: 10px;
       border-top: 1px solid var(--light-border);
+      flex: none;
     }
-    .bottom-menu.light {
+    #${SELECTORS.ROOT} .opm-bottom-menu.opm-light {
       background-color: var(--light-bg);
     }
-    .bottom-menu.dark {
+    #${SELECTORS.ROOT} .opm-bottom-menu.opm-dark {
       background-color: var(--dark-bg);
       border-top: 1px solid var(--dark-border);
     }
     /* Search input styling */
-    .search-input {
+    #${SELECTORS.ROOT} .opm-prompt-list .opm-search-input {
       width: 100%;
       padding: 8px;
       font-size: 14px;
@@ -285,20 +337,20 @@ function injectGlobalStyles() {
       line-height: 20px;
       outline: none;
       transition: border-color var(--transition-speed) ease, box-shadow var(--transition-speed) ease;
-      display: none;
+      display: none; /* initially hidden until Prompt Manager list opens */
     }
-    .search-input.light {
+    #${SELECTORS.ROOT} .opm-prompt-list .opm-search-input.opm-light {
       border: var(--input-light-border);
       background-color: var(--input-light-bg);
       color: var(--input-light-text);
     }
-    .search-input.dark {
+    #${SELECTORS.ROOT} .opm-prompt-list .opm-search-input.opm-dark {
       border: var(--input-dark-border);
       background-color: var(--input-dark-bg);
       color: var(--input-dark-text);
     }
     /* Form fields styling */
-    .input-field, .textarea-field {
+    #${SELECTORS.ROOT} .opm-input-field, #${SELECTORS.ROOT} .opm-textarea-field {
       width: 100%;
       padding: 10px;
       border-radius: 6px;
@@ -308,24 +360,24 @@ function injectGlobalStyles() {
       color: var(--input-text);
       margin-bottom: 8px;
     }
-    .input-field.light {
+    #${SELECTORS.ROOT} .opm-input-field.opm-light {
       border: var(--input-light-border);
       background-color: var(--input-light-bg);
       color: var(--input-light-text);
     }
-    .input-field.dark {
+    #${SELECTORS.ROOT} .opm-input-field.opm-dark {
       border: var(--input-dark-border);
       background-color: var(--input-dark-bg);
       color: var(--input-dark-text);
     }
-    .textarea-field.light {
+    #${SELECTORS.ROOT} .opm-textarea-field.opm-light {
       border: var(--input-light-border);
       background-color: var(--input-light-bg);
       color: var(--input-light-text);
       min-height: 120px;
       resize: vertical;
     }
-    .textarea-field.dark {
+    #${SELECTORS.ROOT} .opm-textarea-field.opm-dark {
       border: var(--input-dark-border);
       background-color: var(--input-dark-bg);
       color: var(--input-dark-text);
@@ -333,7 +385,7 @@ function injectGlobalStyles() {
       resize: vertical;
     }
     /* Button styling */
-    .button {
+    #${SELECTORS.ROOT} .opm-button {
       padding: 10px;
       width: 100%;
       border: none;
@@ -343,17 +395,17 @@ function injectGlobalStyles() {
       transition: background-color var(--transition-speed) ease;
       color: #fff;
     }
-    .button.light {
+    #${SELECTORS.ROOT} .opm-button.opm-light {
       background-color: var(--primary);
     }
-    .button.dark {
+    #${SELECTORS.ROOT} .opm-button.opm-dark {
       background-color: var(--hover-primary);
     }
-    .button:hover {
+    #${SELECTORS.ROOT} .opm-button:hover {
       opacity: 0.9;
     }
     /* Icon button styling */
-    .icon-button {
+    #${SELECTORS.ROOT} .opm-icon-button {
       width: 28px;
       height: 28px;
       padding: 6px;
@@ -366,52 +418,52 @@ function injectGlobalStyles() {
       justify-content: center;
       transition: background-color var(--transition-speed) ease;
     }
-    .icon-button:hover {
+    #${SELECTORS.ROOT} .opm-icon-button:hover {
       background-color: rgba(0, 0, 0, 0.1);
     }
     /* Focus style for input inside prompt list */
-    #${SELECTORS.PROMPT_LIST} input:focus {
+    #${SELECTORS.ROOT} #${SELECTORS.PROMPT_LIST} input:focus {
       border-color: var(--primary);
       box-shadow: 0 0 0 2px rgba(90, 103, 216, 0.3);
       outline: none;
     }
     /* Keyboard navigation styling */
-    .prompt-list-item.keyboard-selected {
+    #${SELECTORS.ROOT} .opm-prompt-list-item.opm-keyboard-selected {
       background-color: var(--dark-bg);
       transform: translateY(-2px);
     }
-    .prompt-list-item.light.keyboard-selected {
+    #${SELECTORS.ROOT} .opm-prompt-list-item.opm-light.opm-keyboard-selected {
       background-color: #e2e8f0;
       transform: translateY(-2px);
     }
-    .prompt-list-item.dark.keyboard-selected {
+    #${SELECTORS.ROOT} .opm-prompt-list-item.opm-dark.opm-keyboard-selected {
       background-color: #2d3748;
       transform: translateY(-2px);
     }
     /* Ensure prompt list stays visible during keyboard navigation */
-    .prompt-list.visible:focus-within {
+    #${SELECTORS.ROOT} .opm-prompt-list.opm-visible:focus-within {
       display: block;
       opacity: 1;
       transform: translateY(0);
     }
     /* Onboarding animation */
-    @keyframes onboarding-bounce {
+    @keyframes opm-onboarding-bounce {
       0%, 100% { transform: translateX(-50%) translateY(0); }
       50% { transform: translateX(-50%) translateY(-5px); }
     }
     /* Responsive styles for onboarding popup */
     @media (max-width: 768px) {
-      #${SELECTORS.ONBOARDING_POPUP} {
+      #${SELECTORS.ROOT} #${SELECTORS.ONBOARDING_POPUP} {
         font-size: 12px;
         padding: 6px 10px;
       }
     }
     /* Hot corner styling */
-    #hot-corner-indicator {
+    #${SELECTORS.ROOT} #${SELECTORS.HOT_CORNER_INDICATOR} {
       opacity: 0.7;
       transition: opacity 0.3s ease, border-width 0.3s ease, border-color 0.3s ease;
     }
-    #hot-corner-container:hover #hot-corner-indicator {
+    #${SELECTORS.ROOT} #${SELECTORS.HOT_CORNER_CONTAINER}:hover #${SELECTORS.HOT_CORNER_INDICATOR} {
       opacity: 1;
     }
   `;
@@ -420,16 +472,46 @@ function injectGlobalStyles() {
 injectGlobalStyles();
 
 // Dark Mode Handling
+/* ---------------------------------------------------------------------------
+ * Theme handling (dark / light) with subscription hook
+ * -------------------------------------------------------------------------*/
 let isDarkModeActive = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+/* Subscribers that want notifications whenever the theme flips */
+const __themeListeners = [];
+
+/* Read current mode */
+const isDarkMode = () => isDarkModeActive;
+
+/* Register listener – fires immediately with current value and on every change */
+const onThemeChange = cb => {
+  if (typeof cb === 'function') {
+    __themeListeners.push(cb);
+    cb(isDarkMode());
+  }
+};
+
+/* Notify all listeners */
+const _notifyThemeChange = () => {
+  __themeListeners.forEach(listener => {
+    try { listener(isDarkMode()); } catch (err) { console.warn(err); }
+  });
+};
+
+/* Listen to OS-level preference changes */
 if (window.matchMedia) {
-  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
+  const mql = window.matchMedia('(prefers-color-scheme: dark)');
+  mql.addEventListener('change', e => {
     isDarkModeActive = e.matches;
-    document.body.classList.toggle('dark', isDarkMode());
-    document.body.classList.toggle('light', !isDarkMode());
+    const root = document.getElementById(SELECTORS.ROOT);
+    if (root) {
+      root.classList.toggle('opm-dark', isDarkMode());
+      root.classList.toggle('opm-light', !isDarkMode());
+    }
     PromptUIManager.updateThemeForUI();
+    _notifyThemeChange();
   });
 }
-const isDarkMode = () => isDarkModeActive;
 
 /* Simple Event Bus */
 class EventBus {
@@ -608,6 +690,15 @@ const ICON_SVGS = {
 
 /* UI Manager */
 class PromptUIManager {
+  static _ensureRoot() {
+    let root = document.getElementById(SELECTORS.ROOT);
+    if (!root) {
+      root = createEl('div', { id: SELECTORS.ROOT });
+      document.body.appendChild(root);
+      root.classList.add(`opm-${getMode()}`);
+    }
+    return root;
+  }
   // Add a static flag to track manual view changes.
   static manuallyOpened = false;
   static inVariableInputMode = false;
@@ -619,11 +710,11 @@ class PromptUIManager {
     if (document.getElementById(SELECTORS.PROMPT_BUTTON_CONTAINER)) return;
     PromptStorageManager.getButtonPosition().then(pos => {
       const container = createEl('div', { id: SELECTORS.PROMPT_BUTTON_CONTAINER, styles: UI_STYLES.getPromptButtonContainerStyle(pos) });
-      const button = createEl('button', { id: SELECTORS.PROMPT_BUTTON, className: 'prompt-button' });
+      const button = createEl('button', { id: SELECTORS.PROMPT_BUTTON, className: 'opm-prompt-button' });
       container.appendChild(button);
-      const listEl = createEl('div', { id: SELECTORS.PROMPT_LIST, className: `prompt-list ${getMode()}` });
+      const listEl = createEl('div', { id: SELECTORS.PROMPT_LIST, className: `opm-prompt-list opm-${getMode()}` });
       container.appendChild(listEl);
-      document.body.appendChild(container);
+      PromptUIManager._ensureRoot().appendChild(container);
       PromptUIManager.refreshPromptList(prompts);
       PromptUIManager.attachButtonEvents(button, listEl, container, prompts);
       PromptUIManager.makeDraggable(container);
@@ -644,7 +735,7 @@ class PromptUIManager {
     if (existingPopup) existingPopup.remove();
     const popup = createEl('div', {
       id: SELECTORS.ONBOARDING_POPUP,
-      className: `onboarding-popup ${getMode()}`,
+      className: `opm-onboarding-popup opm-${getMode()}`,
       styles: {
         position: 'absolute', top: '-42px', left: '50%',
         transform: 'translateX(-50%)', backgroundColor: `${THEME_COLORS.primary}dd`,
@@ -709,9 +800,9 @@ class PromptUIManager {
     document.addEventListener('click', e => {
       const isMenu = e.target.closest(`#${SELECTORS.PROMPT_LIST}`) ||
         e.target.closest(`.${SELECTORS.PROMPT_ITEMS_CONTAINER}`) ||
-        e.target.closest('.icon-button') ||
-        e.target.closest('.form-container') ||
-        e.target.closest('.button') ||
+        e.target.closest('.opm-icon-button') ||
+        e.target.closest('.opm-form-container') ||
+        e.target.closest('.opm-button') ||
         button.contains(e.target);
       if (isOpen && !isMenu) {
         PromptUIManager.hidePromptList(listEl);
@@ -781,29 +872,32 @@ class PromptUIManager {
     if (!listEl) return;
     applyTheme(listEl);
     listEl.innerHTML = '';
-    const container = createEl('div', { className: `${SELECTORS.PROMPT_ITEMS_CONTAINER} prompt-list-items ${getMode()}` });
+    // Build unified content area, then mount list and bottom menu inside
+    const content = createEl('div', { id: SELECTORS.PANEL_CONTENT });
+    const container = createEl('div', { className: `${SELECTORS.PROMPT_ITEMS_CONTAINER} opm-prompt-list-items opm-${getMode()}` });
     prompts.forEach(p => container.appendChild(PromptUIManager.createPromptItem(p)));
-    listEl.appendChild(container);
-    listEl.appendChild(PromptUIManager.createBottomMenu());
+    content.appendChild(container);
+    content.appendChild(PromptUIManager.createBottomMenu());
+    listEl.appendChild(content);
   }
 
   static resetPromptListContainer() {
     const listEl = document.getElementById(SELECTORS.PROMPT_LIST);
-    const wasVisible = listEl && listEl.classList.contains('visible');
+    const wasVisible = listEl && listEl.classList.contains('opm-visible');
     PromptUIManager.buildPromptListContainer();
     if (wasVisible) {
       const updated = document.getElementById(SELECTORS.PROMPT_LIST);
-      if (updated) { updated.style.display = 'block'; void updated.offsetHeight; updated.classList.add('visible'); }
+      if (updated) { updated.style.display = 'block'; void updated.offsetHeight; updated.classList.add('opm-visible'); }
     }
   }
 
   static createPromptItem(prompt) {
     const item = createEl('div', {
-      className: `prompt-list-item ${getMode()}`,
+      className: `opm-prompt-list-item opm-${getMode()}`,
       eventListeners: {
         click: () => PromptUIManager.emitPromptSelect(prompt),
         mouseenter: () => {
-          document.querySelectorAll('.prompt-list-item').forEach(i => i.classList.remove('keyboard-selected'));
+          document.querySelectorAll(`#${SELECTORS.ROOT} .opm-prompt-list-item`).forEach(i => i.classList.remove('opm-keyboard-selected'));
           PromptUIManager.cancelCloseTimer();
         }
       }
@@ -818,12 +912,12 @@ class PromptUIManager {
 
   static createBottomMenu() {
     const menu = createEl('div', {
-      className: `bottom-menu ${getMode()}`,
+      className: `opm-bottom-menu opm-${getMode()}`,
       styles: { display: 'flex', flexDirection: 'column', gap: '10px', padding: '10px 10px 5px 10px', borderTop: '1px solid var(--light-border)' }
     });
     const search = createEl('input', {
       id: SELECTORS.PROMPT_SEARCH_INPUT,
-      className: `search-input ${getMode()}`,
+      className: `opm-search-input opm-${getMode()}`,
       attributes: { type: 'text', placeholder: 'Type to search', style: 'border-radius: 4px;' }
     });
     search.addEventListener('keydown', e => {
@@ -861,16 +955,16 @@ class PromptUIManager {
   }
 
   static createIconButton(type, onClick) {
-    return createEl('button', { className: 'icon-button', eventListeners: { click: onClick }, innerHTML: ICON_SVGS[type] || '' });
+    return createEl('button', { className: 'opm-icon-button', eventListeners: { click: onClick }, innerHTML: ICON_SVGS[type] || '' });
   }
 
   static showPromptList(listEl) {
     if (!listEl) return;
     showEl(listEl);
-    listEl.classList.add('visible');
+    listEl.classList.add('opm-visible');
     document.addEventListener('keydown', PromptUIManager.handleKeyboardNavigation);
     document.addEventListener('keydown', PromptUIManager.handleGlobalEscape);
-    const first = listEl.querySelector('.prompt-list-item');
+    const first = listEl.querySelector('.opm-prompt-list-item');
     if (first) setTimeout(() => first.focus(), 50);
     PromptUIManager.focusSearchInput();
     PromptStorageManager.setOnboardingCompleted();
@@ -892,16 +986,16 @@ class PromptUIManager {
 
   static handleKeyboardNavigation(e, context = 'list') {
     const list = document.getElementById(SELECTORS.PROMPT_LIST);
-    if (!list || !list.classList.contains('visible')) return;
+    if (!list || !list.classList.contains('opm-visible')) return;
     PromptUIManager.cancelCloseTimer();
     let items = [];
     if (context === 'search') {
       const container = document.querySelector(`.${SELECTORS.PROMPT_ITEMS_CONTAINER}`);
       if (!container) return;
-      items = Array.from(container.querySelectorAll('.prompt-list-item'))
-        .filter(item => item.style.display !== 'none' && !item.classList.contains('shortcut-container'));
+      items = Array.from(container.querySelectorAll('.opm-prompt-list-item'))
+        .filter(item => item.style.display !== 'none' && !item.classList.contains('opm-shortcut-container'));
     } else {
-      items = Array.from(list.querySelectorAll('.prompt-list-item'));
+      items = Array.from(list.querySelectorAll('.opm-prompt-list-item'));
     }
     if (items.length === 0) return;
     let idx = context === 'search' ? PromptUIManager.selectedSearchIndex : items.indexOf(document.activeElement);
@@ -938,13 +1032,13 @@ class PromptUIManager {
   static handleGlobalEscape(e) {
     if (e.key === 'Escape') {
       const listEl = document.getElementById(SELECTORS.PROMPT_LIST);
-      if (listEl && listEl.classList.contains('visible')) {
+      if (listEl && listEl.classList.contains('opm-visible')) {
         e.preventDefault();
         PromptUIManager.selectedSearchIndex = -1;
         const container = document.querySelector(`.${SELECTORS.PROMPT_ITEMS_CONTAINER}`);
         if (container) {
-          const items = Array.from(container.querySelectorAll('.prompt-list-item'))
-            .filter(item => item.style.display !== 'none' && !item.classList.contains('shortcut-container'));
+          const items = Array.from(container.querySelectorAll('.opm-prompt-list-item'))
+            .filter(item => item.style.display !== 'none' && !item.classList.contains('opm-shortcut-container'));
           PromptUIManager.updateSelection(items, -1);
         }
         PromptUIManager.hidePromptList(listEl);
@@ -953,32 +1047,35 @@ class PromptUIManager {
   }
 
   static updateThemeForUI() {
-    document.body.classList.toggle('dark', isDarkMode());
-    document.body.classList.toggle('light', !isDarkMode());
+    const root = document.getElementById(SELECTORS.ROOT);
+    if (root) {
+      root.classList.toggle('opm-dark', isDarkMode());
+      root.classList.toggle('opm-light', !isDarkMode());
+    }
     const themeElements = document.querySelectorAll([
-      '.prompt-list',
-      '.prompt-list-items',
-      '.prompt-list-item',
-      '.search-input',
-      '.input-field',
-      '.textarea-field',
-      '.button',
-      '.toggle-switch',
-      '.form-container',
-      '.bottom-menu'
+      `#${SELECTORS.ROOT} .opm-prompt-list`,
+      `#${SELECTORS.ROOT} .opm-prompt-list-items`,
+      `#${SELECTORS.ROOT} .opm-prompt-list-item`,
+      `#${SELECTORS.ROOT} .opm-search-input`,
+      `#${SELECTORS.ROOT} .opm-input-field`,
+      `#${SELECTORS.ROOT} .opm-textarea-field`,
+      `#${SELECTORS.ROOT} .opm-button`,
+      `#${SELECTORS.ROOT} .opm-toggle-switch`,
+      `#${SELECTORS.ROOT} .opm-form-container`,
+      `#${SELECTORS.ROOT} .opm-bottom-menu`
     ].join(','));
     themeElements.forEach(el => {
-      el.classList.remove('light', 'dark');
-      el.classList.add(getMode());
+      el.classList.remove('opm-light', 'opm-dark');
+      el.classList.add(`opm-${getMode()}`);
     });
     const container = document.getElementById(SELECTORS.PROMPT_BUTTON_CONTAINER);
     if (container) {
-      const btn = container.querySelector(`.${SELECTORS.PROMPT_BUTTON}`);
+      const btn = container.querySelector(`#${SELECTORS.PROMPT_BUTTON}`) || container.querySelector('.opm-prompt-button');
       if (btn) {
         btn.style.boxShadow = isDarkMode() ? THEME_COLORS.darkShadow : THEME_COLORS.lightShadow;
       }
     }
-    const icons = document.querySelectorAll('.icon-button img');
+    const icons = document.querySelectorAll(`#${SELECTORS.ROOT} .opm-icon-button img`);
     icons.forEach(icon => {
       icon.style.filter = isDarkMode()
         ? 'invert(93%) sepia(0%) saturate(0%) hue-rotate(213deg) brightness(107%) contrast(87%)'
@@ -1022,7 +1119,7 @@ class PromptUIManager {
     listEl.innerHTML = '';
     const dark = isDarkMode();
     const form = createEl('div', {
-      className: `form-container ${getMode()}`,
+      className: `opm-form-container opm-${getMode()}`,
       styles: { padding: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }
     });
     const varContainer = createEl('div', {
@@ -1032,7 +1129,7 @@ class PromptUIManager {
     variables.forEach(v => {
       const row = createEl('div', { styles: { display: 'flex', flexDirection: 'column', gap: '4px' } });
       const label = createEl('label', { innerHTML: v, styles: { fontSize: '12px', fontWeight: 'bold', color: dark ? THEME_COLORS.inputDarkText : '#333' } });
-      const inputField = createEl('input', { attributes: { type: 'text', placeholder: `${v} value` }, className: `input-field ${getMode()}` });
+      const inputField = createEl('input', { attributes: { type: 'text', placeholder: `${v} value` }, className: `opm-input-field opm-${getMode()}` });
       inputField.addEventListener('input', () => { varValues[v] = inputField.value; });
       inputField.addEventListener('keydown', e => { if (e.key === 'Enter') submitBtn.click(); });
       row.append(label, inputField);
@@ -1041,13 +1138,13 @@ class PromptUIManager {
     });
     form.appendChild(varContainer);
     const btnContainer = createEl('div', { styles: { display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '8px' } });
-    const submitBtn = createEl('button', { innerHTML: 'Submit', className: `button ${getMode()}` });
+    const submitBtn = createEl('button', { innerHTML: 'Submit', className: `opm-button opm-${getMode()}` });
     submitBtn.addEventListener('click', () => {
       PromptUIManager.inVariableInputMode = false;
       onSubmit(varValues);
     });
     const backBtn = createEl('button', {
-      innerHTML: 'Back', className: `button ${getMode()}`,
+      innerHTML: 'Back', className: `opm-button opm-${getMode()}`,
       styles: { marginTop: '4px', backgroundColor: dark ? '#4A5568' : '#CBD5E0', color: dark ? THEME_COLORS.inputDarkText : '#333' }
     });
     backBtn.addEventListener('click', () => {
@@ -1065,15 +1162,15 @@ class PromptUIManager {
   static createPromptCreationForm(prefill = '') {
     const search = document.getElementById(SELECTORS.PROMPT_SEARCH_INPUT);
     if (search) search.style.display = 'none';
-    const form = createEl('div', { className: `form-container ${getMode()}`, styles: { padding: '0', display: 'flex', flexDirection: 'column', gap: '8px' } });
-    const titleIn = createEl('input', { attributes: { placeholder: 'Prompt Title' }, className: `input-field ${getMode()}`, styles: { borderRadius: '4px' } });
+    const form = createEl('div', { className: `opm-form-container opm-${getMode()}`, styles: { padding: '0', display: 'flex', flexDirection: 'column', gap: '8px' } });
+    const titleIn = createEl('input', { attributes: { placeholder: 'Prompt Title' }, className: `opm-input-field opm-${getMode()}`, styles: { borderRadius: '4px' } });
     const contentArea = createEl('textarea', {
       attributes: { placeholder: 'Enter your prompt here. Add variables with #examplevariable#' },
-      className: `textarea-field ${getMode()}`,
+      className: `opm-textarea-field opm-${getMode()}`,
       styles: { minHeight: '220px' }
     });
     contentArea.value = prefill;
-    const saveBtn = createEl('button', { innerHTML: 'Create Prompt', className: `button ${getMode()}` });
+    const saveBtn = createEl('button', { innerHTML: 'Create Prompt', className: `opm-button opm-${getMode()}` });
     saveBtn.addEventListener('click', async e => {
       e.stopPropagation();
       const t = titleIn.value.trim(), c = contentArea.value.trim();
@@ -1093,8 +1190,8 @@ class PromptUIManager {
     const dark = isDarkMode();
     const search = document.getElementById(SELECTORS.PROMPT_SEARCH_INPUT);
     if (search) search.style.display = 'none';
-    const form = createEl('div', { className: `form-container ${getMode()}`, styles: { padding: '12px', display: 'flex', flexDirection: 'column', gap: '8px' } });
-    const exportBtn = createEl('button', { innerHTML: 'Export Prompts', className: `button ${getMode()}` });
+    const form = createEl('div', { className: `opm-form-container opm-${getMode()}`, styles: { padding: '12px', display: 'flex', flexDirection: 'column', gap: '8px' } });
+    const exportBtn = createEl('button', { innerHTML: 'Export Prompts', className: `opm-button opm-${getMode()}` });
     exportBtn.addEventListener('click', async e => {
       e.stopPropagation();
       const prompts = await PromptStorageManager.getPrompts();
@@ -1107,7 +1204,7 @@ class PromptUIManager {
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
     });
-    const importBtn = createEl('button', { innerHTML: 'Import Prompts', className: `button ${getMode()}`, styles: { marginTop: '8px' } });
+    const importBtn = createEl('button', { innerHTML: 'Import Prompts', className: `opm-button opm-${getMode()}`, styles: { marginTop: '8px' } });
     importBtn.addEventListener('click', async e => {
       e.stopPropagation();
       const fileInput = createEl('input', { attributes: { type: 'file', accept: '.json' } });
@@ -1143,11 +1240,11 @@ class PromptUIManager {
   static async createEditView() {
     const dark = isDarkMode();
     const prompts = await PromptStorageManager.getPrompts();
-    const container = createEl('div', { className: `form-container ${getMode()}`, styles: { padding: '0', display: 'flex', flexDirection: 'column' } });
-    const promptsContainer = createEl('div', { className: `${SELECTORS.PROMPT_ITEMS_CONTAINER} prompt-list-items ${getMode()}`, styles: { maxHeight: '350px', overflowY: 'auto', marginBottom: '4px' } });
+    const container = createEl('div', { className: `opm-form-container opm-${getMode()}`, styles: { padding: '0', display: 'flex', flexDirection: 'column' } });
+    const promptsContainer = createEl('div', { className: `${SELECTORS.PROMPT_ITEMS_CONTAINER} opm-prompt-list-items opm-${getMode()}`, styles: { maxHeight: '350px', overflowY: 'auto', marginBottom: '4px' } });
     prompts.forEach((p, idx) => {
       const item = createEl('div', {
-        className: `prompt-list-item ${getMode()}`,
+        className: `opm-prompt-list-item opm-${getMode()}`,
         styles: {
           justifyContent: 'space-between',
           padding: '4px 10px',
@@ -1159,9 +1256,9 @@ class PromptUIManager {
       item.addEventListener('dragstart', e => {
         e.dataTransfer.effectAllowed = 'move';
         e.dataTransfer.setData('text/plain', idx);
-        item.classList.add('dragging');
+        item.classList.add('opm-dragging');
       });
-      item.addEventListener('dragend', e => item.classList.remove('dragging'));
+      item.addEventListener('dragend', e => item.classList.remove('opm-dragging'));
       item.addEventListener('dragover', e => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; });
       item.addEventListener('drop', e => {
         e.preventDefault();
@@ -1190,12 +1287,12 @@ class PromptUIManager {
     const list = document.getElementById(SELECTORS.PROMPT_LIST);
     if (!list) return;
     PromptUIManager.resetPromptListContainer();
-    const form = createEl('div', { className: `form-container ${getMode()}`, styles: { padding: '0', display: 'flex', flexDirection: 'column', gap: '8px' } });
-    const titleIn = createEl('input', { className: `input-field ${getMode()}`, attributes: { type: 'text', placeholder: 'Prompt Title' } });
+    const form = createEl('div', { className: `opm-form-container opm-${getMode()}`, styles: { padding: '0', display: 'flex', flexDirection: 'column', gap: '8px' } });
+    const titleIn = createEl('input', { className: `opm-input-field opm-${getMode()}`, attributes: { type: 'text', placeholder: 'Prompt Title' } });
     titleIn.value = prompt.title;
-    const contentArea = createEl('textarea', { className: `textarea-field ${getMode()}`, styles: { minHeight: '250px' } });
+    const contentArea = createEl('textarea', { className: `opm-textarea-field opm-${getMode()}`, styles: { minHeight: '250px' } });
     contentArea.value = prompt.content;
-    const saveBtn = createEl('button', { innerHTML: 'Save Changes', className: `button ${getMode()}` });
+    const saveBtn = createEl('button', { innerHTML: 'Save Changes', className: `opm-button opm-${getMode()}` });
     saveBtn.addEventListener('click', async e => {
       e.stopPropagation();
       const ps = await PromptStorageManager._ps();
@@ -1231,9 +1328,9 @@ class PromptUIManager {
     PromptUIManager.showPromptList(list);
     PromptUIManager.resetPromptListContainer();
     const dark = isDarkMode();
-    const container = createEl('div', { className: `form-container ${getMode()}`, styles: { padding: '0', display: 'flex', flexDirection: 'column', gap: '4px' } });
+    const container = createEl('div', { className: `opm-form-container opm-${getMode()}`, styles: { padding: '0', display: 'flex', flexDirection: 'column', gap: '4px' } });
     const title = createEl('div', { styles: { fontWeight: 'bold', fontSize: '16px', marginBottom: '6px' }, innerHTML: 'Navigation' });
-    const info = createEl('div', { id: 'info-content', styles: { maxHeight: '300px', overflowY: 'auto', padding: '4px', borderRadius: '6px', color: dark ? THEME_COLORS.inputDarkText : THEME_COLORS.inputLightText } });
+    const info = createEl('div', { id: SELECTORS.INFO_CONTENT, styles: { maxHeight: '300px', overflowY: 'auto', padding: '4px', borderRadius: '6px', color: dark ? THEME_COLORS.inputDarkText : THEME_COLORS.inputLightText } });
     fetch(chrome.runtime.getURL('info.html')).then(r => r.text()).then(html => { info.innerHTML = html; });
     container.append(title, info);
     list.insertBefore(container, list.firstChild);
@@ -1245,9 +1342,9 @@ class PromptUIManager {
     PromptUIManager.showPromptList(list);
     PromptUIManager.resetPromptListContainer();
     const dark = isDarkMode();
-    const container = createEl('div', { className: `form-container ${getMode()}`, styles: { padding: '0', display: 'flex', flexDirection: 'column', gap: '6px' } });
+    const container = createEl('div', { className: `opm-form-container opm-${getMode()}`, styles: { padding: '0', display: 'flex', flexDirection: 'column', gap: '6px' } });
     const title = createEl('div', { styles: { fontWeight: 'bold', fontSize: '16px', marginBottom: '6px' }, innerHTML: 'Changelog' });
-    const info = createEl('div', { id: 'changelog-content', styles: { maxHeight: '250px', overflowY: 'auto', padding: '4px', borderRadius: '6px', color: dark ? THEME_COLORS.inputDarkText : THEME_COLORS.inputLightText } });
+    const info = createEl('div', { id: SELECTORS.CHANGELOG_CONTENT, styles: { maxHeight: '250px', overflowY: 'auto', padding: '4px', borderRadius: '6px', color: dark ? THEME_COLORS.inputDarkText : THEME_COLORS.inputLightText } });
     fetch(chrome.runtime.getURL('changelog.html')).then(r => r.text()).then(html => { info.innerHTML = html; });
     container.append(title, info);
     list.insertBefore(container, list.firstChild);
@@ -1262,7 +1359,7 @@ class PromptUIManager {
   }
   static createSettingsForm() {
     const dark = isDarkMode();
-    const form = createEl('div', { className: `form-container ${getMode()}`, styles: { padding: '12px', display: 'flex', flexDirection: 'column', gap: '8px' } });
+    const form = createEl('div', { className: `opm-form-container opm-${getMode()}`, styles: { padding: '12px', display: 'flex', flexDirection: 'column', gap: '8px' } });
     const title = createEl('div', { styles: { fontWeight: 'bold', fontSize: '16px', marginBottom: '10px' }, innerHTML: 'Settings' });
     const settings = createEl('div', { styles: { display: 'flex', flexDirection: 'column', gap: '12px' } });
     const displayModeRow = createEl('div', { styles: { display: 'flex', justifyContent: 'space-between', alignItems: 'center' } });
@@ -1270,7 +1367,7 @@ class PromptUIManager {
     PromptStorageManager.getDisplayMode().then(mode => {
       const isHotCorner = mode === 'hotCorner';
       const toggleSwitch = createEl('div', {
-        className: `toggle-switch ${getMode()} ${isHotCorner ? 'active' : ''}`,
+        className: `opm-toggle-switch opm-${getMode()} ${isHotCorner ? 'active' : ''}`,
         eventListeners: {
           click: e => {
             e.stopPropagation();
@@ -1294,7 +1391,7 @@ class PromptUIManager {
       item.style.backgroundColor = '';
       item.style.border = '';
       item.style.transform = '';
-      item.classList.toggle('keyboard-selected', idx === selIndex);
+      item.classList.toggle('opm-keyboard-selected', idx === selIndex);
       if (idx === selIndex) {
         const container = item.parentElement, top = item.offsetTop, bottom = top + item.offsetHeight,
           cTop = container.scrollTop, cBottom = cTop + container.offsetHeight;
@@ -1308,17 +1405,17 @@ class PromptUIManager {
 
   // HOT CORNER MODE
   static injectHotCorner() {
-    if (document.getElementById('hot-corner-container')) return;
+    if (document.getElementById(SELECTORS.HOT_CORNER_CONTAINER)) return;
 
     // container with active zone
     const container = createEl('div', {
-      id: 'hot-corner-container',
+      id: SELECTORS.HOT_CORNER_CONTAINER,
       styles: UI_STYLES.hotCornerActiveZone
     });
 
     //  visual indicator
     const indicator = createEl('div', {
-      id: 'hot-corner-indicator',
+      id: SELECTORS.HOT_CORNER_INDICATOR,
       styles: {
         position: 'fixed', bottom: '0', right: '0',
         width: '0', height: '0', zIndex: '9999',
@@ -1333,7 +1430,7 @@ class PromptUIManager {
     // Create the prompt list container with some positioning rules
     const listEl = createEl('div', {
       id: SELECTORS.PROMPT_LIST,
-      className: `prompt-list ${getMode()}`,
+      className: `opm-prompt-list opm-${getMode()}`,
       styles: {
         position: 'absolute',
         right: '30px',
@@ -1341,7 +1438,7 @@ class PromptUIManager {
       }
     });
     container.appendChild(listEl);
-    document.body.appendChild(container);
+    PromptUIManager._ensureRoot().appendChild(container);
 
     // Setup event handlers
     this.setupHotCornerEvents(container, indicator, listEl);
@@ -1368,6 +1465,15 @@ class PromptUIManager {
     });
 
     // Existing mouseleave handler
+    // Cancel the close-timer when mouse re-enters the prompt list itself
+    listEl.addEventListener('mouseenter', () => {
+      PromptUIManager.cancelCloseTimer();
+    });
+    // Restart the timer when leaving the prompt list
+    listEl.addEventListener('mouseleave', e => {
+      PromptUIManager.startCloseTimer(e, listEl, () => { });
+    });
+
     container.addEventListener('mouseleave', e => {
       e.stopPropagation();
       indicator.style.borderWidth = '0 0 20px 20px';
@@ -1379,12 +1485,12 @@ class PromptUIManager {
     const documentClickHandler = e => {
       const isMenu = e.target.closest(`#${SELECTORS.PROMPT_LIST}`) ||
         e.target.closest(`.${SELECTORS.PROMPT_ITEMS_CONTAINER}`) ||
-        e.target.closest('.icon-button') ||
-        e.target.closest('.form-container') ||
-        e.target.closest('.button') ||
+        e.target.closest('.opm-icon-button') ||
+        e.target.closest('.opm-form-container') ||
+        e.target.closest('.opm-button') ||
         container.contains(e.target);
 
-      if (listEl.classList.contains('visible') && !isMenu) {
+      if (listEl.classList.contains('opm-visible') && !isMenu) {
         PromptUIManager.hidePromptList(listEl);
       }
     };
@@ -1412,7 +1518,7 @@ class PromptUIManager {
     }
 
     // Clean up hot corner container
-    const hotCornerContainer = document.getElementById('hot-corner-container');
+    const hotCornerContainer = document.getElementById(SELECTORS.HOT_CORNER_CONTAINER);
     if (hotCornerContainer) {
       // Remove the document click handler if it exists
       if (hotCornerContainer.documentClickHandler) {
@@ -1442,34 +1548,32 @@ class PromptUIManager {
     PromptUIManager.refreshPromptList(prompts);
     // If switching modes from settings, we should close any open menu
     const listEl = document.getElementById(SELECTORS.PROMPT_LIST);
-    if (listEl && listEl.classList.contains('visible')) {
+    if (listEl && listEl.classList.contains('opm-visible')) {
       PromptUIManager.hidePromptList(listEl);
     }
   }
 
   setupMutationObserver() {
-    let observerTimeout = null;
     const target = document.querySelector('main') || document.body;
-    const observer = new MutationObserver(async () => {
-      if (observerTimeout) clearTimeout(observerTimeout);
-      observerTimeout = setTimeout(async () => {
-        const inputBox = InputBoxHandler.getInputBox();
-        if (inputBox) {
-          const displayMode = await PromptStorageManager.getDisplayMode();
-          // cleanupAllUIComponents method to ensure clean state
-          if (!document.getElementById(SELECTORS.PROMPT_BUTTON_CONTAINER) &&
-            !document.getElementById('hot-corner-container')) {
-            PromptUIManager.cleanupAllUIComponents();
-            const prompts = await PromptStorageManager.getPrompts();
-            if (displayMode === 'standard') {
-              PromptUIManager.injectPromptManagerButton(prompts);
-            } else {
-              PromptUIManager.injectHotCorner();
-            }
+
+    const debouncedHandler = debounce(async () => {
+      const inputBox = InputBoxHandler.getInputBox();
+      if (inputBox) {
+        const displayMode = await PromptStorageManager.getDisplayMode();
+        if (!document.getElementById(SELECTORS.PROMPT_BUTTON_CONTAINER) &&
+            !document.getElementById(SELECTORS.HOT_CORNER_CONTAINER)) {
+          PromptUIManager.cleanupAllUIComponents();
+          const prompts = await PromptStorageManager.getPrompts();
+          if (displayMode === 'standard') {
+            PromptUIManager.injectPromptManagerButton(prompts);
+          } else {
+            PromptUIManager.injectHotCorner();
           }
         }
-      }, 300);
-    });
+      }
+    }, 300);
+
+    const observer = new MutationObserver(debouncedHandler);
     observer.observe(target, { childList: true, subtree: true });
   }
 }
@@ -1539,28 +1643,26 @@ class PromptMediator {
   }
 
   setupMutationObserver() {
-    let observerTimeout = null;
     const target = document.querySelector('main') || document.body;
-    const observer = new MutationObserver(async () => {
-      if (observerTimeout) clearTimeout(observerTimeout);
-      observerTimeout = setTimeout(async () => {
-        const inputBox = InputBoxHandler.getInputBox();
-        if (inputBox) {
-          const displayMode = await PromptStorageManager.getDisplayMode();
-          // cleanupAllUIComponents method to ensure clean state
-          if (!document.getElementById(SELECTORS.PROMPT_BUTTON_CONTAINER) &&
-            !document.getElementById('hot-corner-container')) {
-            PromptUIManager.cleanupAllUIComponents();
-            const prompts = await PromptStorageManager.getPrompts();
-            if (displayMode === 'standard') {
-              PromptUIManager.injectPromptManagerButton(prompts);
-            } else {
-              PromptUIManager.injectHotCorner();
-            }
+
+    const debouncedHandler = debounce(async () => {
+      const inputBox = InputBoxHandler.getInputBox();
+      if (inputBox) {
+        const displayMode = await PromptStorageManager.getDisplayMode();
+        if (!document.getElementById(SELECTORS.PROMPT_BUTTON_CONTAINER) &&
+            !document.getElementById(SELECTORS.HOT_CORNER_CONTAINER)) {
+          PromptUIManager.cleanupAllUIComponents();
+          const prompts = await PromptStorageManager.getPrompts();
+          if (displayMode === 'standard') {
+            PromptUIManager.injectPromptManagerButton(prompts);
+          } else {
+            PromptUIManager.injectHotCorner();
           }
         }
-      }, 300);
-    });
+      }
+    }, 300);
+
+    const observer = new MutationObserver(debouncedHandler);
     observer.observe(target, { childList: true, subtree: true });
   }
 
@@ -1579,7 +1681,7 @@ class PromptMediator {
         e.preventDefault();
         const listEl = document.getElementById(SELECTORS.PROMPT_LIST);
         if (listEl) {
-          if (listEl.classList.contains('visible')) {
+          if (listEl.classList.contains('opm-visible')) {
             PromptUIManager.hidePromptList(listEl);
           } else {
             // Mark as manually opened
