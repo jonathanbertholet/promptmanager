@@ -115,12 +115,37 @@ document.addEventListener('DOMContentLoaded', () => {
   const exportBtn = document.getElementById('export-btn');
   const importBtn = document.getElementById('import-btn');
   const importFile = document.getElementById('import-file');
+  // COMMENT: Info banner elements for close/dismiss behavior
+  const infoBanner = document.getElementById('info-banner');
+  const infoBannerClose = document.getElementById('info-banner-close');
 
   // Load prompts and display
   loadPrompts();
 
   // COMMENT: Refresh UI whenever prompts change in storage
   PromptStorage.onPromptsChanged(loadPrompts);
+
+  // COMMENT: Restore banner visibility from localStorage (persist dismissal)
+  try {
+    const dismissed = localStorage.getItem('spm_info_banner_dismissed');
+    if (dismissed === 'false' && infoBanner) {
+      infoBanner.style.display = 'none';
+    }
+  } catch (err) {
+    // Swallow storage access issues, banner will show by default
+  }
+
+  // COMMENT: Close banner and persist choice
+  if (infoBannerClose) {
+    infoBannerClose.addEventListener('click', () => {
+      if (infoBanner) infoBanner.style.display = 'none';
+      try {
+        localStorage.setItem('spm_info_banner_dismissed', 'true');
+      } catch (err) {
+        // Ignore storage errors
+      }
+    });
+  }
 
   // Add or update prompt
   form.addEventListener('submit', event => {

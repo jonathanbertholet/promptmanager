@@ -4,7 +4,7 @@ import { getPrompts, onPromptsChanged } from './promptStorage.js'; // COMMENT: U
 chrome.runtime.onInstalled.addListener(function (details) {
   chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true });
   console.log('onInstalled', details);
-  // only verify permissions on install and update
+  // note to self : for updates, add 'update' in array
   if (!['install','update'].includes(details.reason)) {
     return;
   }

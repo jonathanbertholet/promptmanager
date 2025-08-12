@@ -40,6 +40,60 @@
     grid-row: 0;
   }
 
+  /* Info banner block placed after the form, above the prompt list */
+  .info-banner {
+    position: relative;
+    margin: 8px 0 10px 0;
+    padding: 10px 12px;
+    border-radius: 8px;
+    background-color: #E6F0FF; /* light theme base (will be overridden by theme vars below) */
+    color: #1F2937;
+    border: 1px solid #BBD3FF;
+  }
+
+  .info-banner-title {
+    margin: 0 24px 4px 0; /* leave room for the close button */
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--primary);
+  }
+
+  .info-banner-text {
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.4;
+  }
+
+  /* Bulleted list inside info banner - consistent spacing and markers */
+  .info-banner-list {
+    margin: 6px 0 0 18px; /* indent bullets a bit */
+    padding: 0;
+    list-style: disc; /* default disc bullets */
+  }
+  .info-banner-list li {
+    margin: 4px 0;
+    padding: 0;
+  }
+
+  .info-banner-close {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 22px;
+    height: 22px;
+    border-radius: 6px;
+    background: transparent;
+    color: inherit;
+    border: none;
+    font-size: 16px;
+    line-height: 1;
+    cursor: pointer;
+  }
+
+  .info-banner-close:hover {
+    background-color: rgba(0,0,0,0.06);
+  }
+
   input[type="text"],
   textarea {
     width: 100%;
@@ -260,6 +314,21 @@
     #prompt-list li {
       background-color: #0f2f57;
       color: #cdc9c9;
+    }
+
+    /* Dark theme banner */
+    .info-banner {
+      background-color: #25324a;
+      color: #E2E8F0;
+      border-color: #3b4a67;
+    }
+
+    .info-banner-list {
+      list-style: disc;
+    }
+
+    .info-banner-close:hover {
+      background-color: rgba(255,255,255,0.08);
     }
 
     select#prompt-dropdown {
@@ -548,6 +617,16 @@ footer.footer {
     background-color: #434C5E;
   }
 
+    /* Info banner unified dark theme */
+    .info-banner {
+      background-color: #2E3A4E;
+      border-color: #3E4C66;
+      color: #E2E8F0;
+    }
+    .info-banner-list {
+      list-style: disc;
+    }
+
   /* Prompt list item hover (lift) */
   #prompt-list li:hover {
     background-color: #434C5E; /* hover-dark background */
@@ -611,6 +690,21 @@ button.main:hover {
 #prompt-list li {
   transition: background-color 0.3s ease, transform 0.3s ease;
 }
+
+  /* Info banner light theme polish */
+  .info-banner {
+    background-color: rgba(54, 116, 181, 0.08);
+    border-color: rgba(54, 116, 181, 0.35);
+  }
+  .info-banner-close:hover {
+    background-color: rgba(54,116,181,0.12);
+  }
+
+  /* Ensure bullet color/spacing consistent in light theme */
+  .info-banner-list {
+    list-style: disc;
+    font-size: 13px;
+  }
 
 @media (prefers-color-scheme: light) {
   #prompt-list li:hover {

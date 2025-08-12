@@ -29,6 +29,26 @@
       Cancel
     </button>
   </form>
+  <div id="info-banner" class="info-banner" role="status" aria-live="polite">
+    <button id="info-banner-close" class="info-banner-close" aria-label="Dismiss info banner">&times;</button>
+    <h3 class="info-banner-title">Permissions Update - Please Read</h3>
+    <br />
+    <p class="info-banner-text">To enable support for new LLMs without disabling the extension every time, I've added the "Tabs" permission.</p> 
+    <br />
+    <p class="info-banner-text">It's used for two purposes only:</p>
+    <ul class="info-banner-list">
+      <li>Detecting if you're on a site that supports the extension</li>
+      <li>Opening the permissions manager upon installing the extension</li>
+    </ul>
+    <br />
+    <p class="info-banner-text">Unfortunately, the "tabs" permission translates to "Read your browser history", <strong>which I will never do.</strong></p>
+    <br />
+    <p class="info-banner-text">Permissions management is handled using the <strong><a href="../permissions/permissions.html" target="_blank">lock icon</a></strong> on the bottom right of the side panel.</p>
+    <br />
+    <p class="info-banner-text">For the many users that have shown support, shared feedback, and used the extension, I'd like to take the occasion to say <strong>thank you</strong>.</p>
+    <br />
+    <p class="info-banner-text">Don't hesitate to review <a href="https://chromewebstore.google.com/detail/open-prompt-manager/gmhaghdbihgenofhnmdbglbkbplolain" target="_blank">Open Prompt Manager</a> on the Chrome Web Store.</p>
+  </div>
   <div class="prompts-container">
     <div class="prompts-section">
       <ul id="prompt-list">
@@ -90,7 +110,7 @@
       <a id="link" href="https://github.com/jonathanbertholet/promptmanager"
         target="_blank" title="Github"><img class="footer-icons" src="../icons/github-icon.png" alt="Github"
           style="margin-right: 5px" /></a>
-      <a id="link" href="https://chromewebstore.google.com/detail/simple-prompt-manager-cha/gmhaghdbihgenofhnmdbglbkbplolain?authuser=0&hl=en-GB"
+      <a id="link" href="https://chromewebstore.google.com/detail/open-prompt-manager/gmhaghdbihgenofhnmdbglbkbplolain"
         target="_blank" title="Review me"><img class="footer-icons" src="../icons/review-icon.png" alt="Review me"
           style="margin-right: 5px" /></a>
       <a id="link" href="../settings.html" style="margin-right: 5px" title="Settings"><img id="settings-icon" class="footer-icons"

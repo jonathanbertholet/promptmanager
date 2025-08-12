@@ -75,6 +75,67 @@ class InputBoxHandler {
       }
     }
 
+    // Kimi (kimi.com)
+    // COMMENT: Kimi's chat box is a contenteditable div with class `chat-input-editor`.
+    // COMMENT: We prefer a direct, stable selector over brittle full DOM paths.
+    if (url.includes('kimi.com')) {
+      const inputBox = document.querySelector('div.chat-input-editor[contenteditable="true"]')
+        || document.querySelector('div.chat-input-editor');
+      if (inputBox) {
+        console.log('Input box found: Kimi');
+        return inputBox;
+      }
+    }
+
+    // GitHub Copilot Chat (github.com)
+    // COMMENT: The Copilot chat textarea in GitHub UI uses a stable id `copilot-chat-textarea`.
+    // COMMENT: We target it directly so prompts can be inserted while browsing repositories, PRs, etc.
+    if (url.includes('github.com')) {
+      const inputBox = document.querySelector('#copilot-chat-textarea');
+      if (inputBox) {
+        console.log('Input box found: GitHub Copilot');
+        return inputBox;
+      }
+    }
+
+    // OpenAI Platform Chat (platform.openai.com)
+    // COMMENT: The Platform chat uses a <textarea> with a stable placeholder "Chat with your prompt...".
+    // COMMENT: Target by placeholder first to avoid brittle deep selectors; fall back to a textarea under #root.
+    if (url.includes('platform.openai.com')) {
+      const inputBox = document.querySelector('textarea[placeholder="Chat with your prompt..."]')
+        || document.querySelector('#root textarea');
+      if (inputBox) {
+        console.log('Input box found: OpenAI Platform Chat');
+        return inputBox;
+      }
+    }
+
+    // Mistral Le Chat (chat.mistral.ai)
+    // COMMENT: Le Chat uses a plain <textarea> with name `message.text` and a clear placeholder.
+    // COMMENT: We target by name first, then placeholder, then a safe form textarea fallback.
+    if (url.includes('chat.mistral.ai')) {
+      const inputBox = document.querySelector('textarea[name="message.text"]')
+        || document.querySelector('textarea[placeholder="Ask Le Chat anything"]')
+        || document.querySelector('form textarea');
+      if (inputBox) {
+        console.log('Input box found: Mistral Le Chat');
+        return inputBox;
+      }
+    }
+
+    // OpenRouter (openrouter.ai)
+    // COMMENT: OpenRouter uses a plain <textarea> with placeholder "Start a new message...".
+    // COMMENT: Prefer placeholder targeting; fall back to a generic form textarea to remain resilient.
+    if (url.includes('openrouter.ai')) {
+      const inputBox = document.querySelector('textarea[placeholder="Start a new message..."]')
+        || document.querySelector('form textarea')
+        || document.querySelector('textarea');
+      if (inputBox) {
+        console.log('Input box found: OpenRouter');
+        return inputBox;
+      }
+    }
+
     // Grok (grok.com)
     if (url.includes('grok.com')) {
 

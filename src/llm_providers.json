@@ -56,6 +56,36 @@
       "icon_url": "https://copilot.microsoft.com/sa/simg/favicon-cplt.ico"
     },
     {
+      "name": "GitHub Copilot",
+      "pattern": "*://github.com/*",
+      "url": "https://github.com",
+      "icon_url": "https://github.githubassets.com/favicons/favicon.svg"
+    },
+    {
+      "name": "Kimi",
+      "pattern": "*://www.kimi.com/*",
+      "url": "https://www.kimi.com",
+      "icon_url": "https://www.kimi.com/favicon.ico"
+    },
+    {
+      "name": "Mistral Le Chat",
+      "pattern": "*://chat.mistral.ai/*",
+      "url": "https://chat.mistral.ai",
+      "icon_url": "https://chat.mistral.ai/favicon.ico"
+    },
+    {
+      "name": "OpenAI Playground",
+      "pattern": "*://platform.openai.com/*",
+      "url": "https://platform.openai.com/chat",
+      "icon_url": "../icons/openai-pg-icon.png"
+    },
+    {
+      "name": "OpenRouter",
+      "pattern": "*://openrouter.ai/*",
+      "url": "https://openrouter.ai",
+      "icon_url": "https://openrouter.ai/favicon.ico"
+    },
+    {
       "name": "ChatLLM",
       "pattern": "*://apps.abacus.ai/chatllm/*",
       "url": "https://apps.abacus.ai",
