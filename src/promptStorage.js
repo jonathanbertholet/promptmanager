@@ -12,7 +12,7 @@ import { generateUUID } from './utils.js';
 // ---------------------------
 // Constants & helpers
 // ---------------------------
-export const PROMPT_STORAGE_VERSION = 1;            // bump when schema changes
+export const PROMPT_STORAGE_VERSION = 2;            // bump when schema changes (v2 adds folders + tags)
 const STORAGE_KEY = 'prompts_storage';             // canonical
 const LEGACY_KEY  = 'prompts';                     // kept in sync for old code
 
@@ -34,6 +34,18 @@ function normalisePrompt(p = {}) {
     createdAt: p.createdAt || new Date().toISOString()
   };
   if (p.updatedAt) out.updatedAt = p.updatedAt;
+  // COMMENT: v2 fields – ensure new properties exist with safe defaults
+  // - tags: array of unique string tags
+  if (Array.isArray(p.tags)) {
+    const seen = new Set();
+    out.tags = p.tags
+      .map(t => (typeof t === 'string' ? t.trim() : ''))
+      .filter(t => t.length > 0 && !seen.has(t) && seen.add(t));
+  } else {
+    out.tags = [];
+  }
+  // - folderId: string or null
+  out.folderId = typeof p.folderId === 'string' && p.folderId.length > 0 ? p.folderId : null;
   return out;
 }
 function normaliseArray(arr) {
@@ -50,36 +62,70 @@ async function readRawStorage() {
     const store = data[STORAGE_KEY];
     // Guard against corrupt version
     if (store.version !== PROMPT_STORAGE_VERSION) {
-      // Silently upgrade – future-proofing
-      store.version = PROMPT_STORAGE_VERSION;
-      store.prompts = normaliseArray(store.prompts);
-      await writeStorage(store.prompts); // persist upgrade
+      // COMMENT: v2 upgrade – add folders container and normalize new fields
+      const upgraded = {
+        version: PROMPT_STORAGE_VERSION,
+        prompts: normaliseArray(store.prompts),
+        folders: Array.isArray(store.folders) ? normaliseFolderArray(store.folders) : []
+      };
+      await writeStore(upgraded); // persist upgrade atomically
+      return upgraded;
     }
-    return store;
+    // Ensure folders exists in v2 store
+    if (!Array.isArray(store.folders)) {
+      store.folders = [];
+      await writeStore({ version: PROMPT_STORAGE_VERSION, prompts: normaliseArray(store.prompts), folders: [] });
+    }
+    return { version: store.version, prompts: normaliseArray(store.prompts), folders: normaliseFolderArray(store.folders) };
   }
   // 2) Legacy migration – only the bare array exists
   if (Array.isArray(data[LEGACY_KEY])) {
     const migrated = {
       version: PROMPT_STORAGE_VERSION,
-      prompts: normaliseArray(data[LEGACY_KEY])
+      prompts: normaliseArray(data[LEGACY_KEY]),
+      folders: []
     };
-    await writeStorage(migrated.prompts); // persist in both keys
+    await writeStore(migrated); // persist new shape
     return migrated;
   }
   // 3) Nothing stored yet
-  return { version: PROMPT_STORAGE_VERSION, prompts: [] };
+  return { version: PROMPT_STORAGE_VERSION, prompts: [], folders: [] };
 }
 
-async function writeStorage(prompts) {
-  const storeObj = {
+// COMMENT: Low-level writer for the full store object (prompts + folders)
+async function writeStore(storeObj) {
+  const normalizedStore = {
     version: PROMPT_STORAGE_VERSION,
-    prompts: normaliseArray(prompts)
+    prompts: normaliseArray(storeObj.prompts || []),
+    folders: normaliseFolderArray(storeObj.folders || [])
   };
-  // Write canonical + legacy mirror so older code keeps working
   await storageSet({
-    [STORAGE_KEY]: storeObj,
-    [LEGACY_KEY]: storeObj.prompts
+    [STORAGE_KEY]: normalizedStore,
+    [LEGACY_KEY]: normalizedStore.prompts // legacy mirror for older code paths
   });
+}
+
+// COMMENT: Back-compat writer that accepts just prompts and preserves folders
+async function writeStorage(prompts) {
+  const data = await storageGet([STORAGE_KEY]);
+  const currentFolders = (data[STORAGE_KEY] && Array.isArray(data[STORAGE_KEY].folders)) ? data[STORAGE_KEY].folders : [];
+  await writeStore({ prompts, folders: currentFolders });
+}
+
+// ---------------------------
+// Folder helpers (v2)
+// ---------------------------
+function normaliseFolder(folder = {}) {
+  return {
+    id: typeof folder.id === 'string' && folder.id ? folder.id : generateUUID(),
+    name: typeof folder.name === 'string' ? folder.name : '',
+    parentId: typeof folder.parentId === 'string' && folder.parentId ? folder.parentId : null,
+    createdAt: folder.createdAt || new Date().toISOString(),
+    ...(folder.updatedAt ? { updatedAt: folder.updatedAt } : {})
+  };
+}
+function normaliseFolderArray(folders) {
+  return Array.isArray(folders) ? folders.map(normaliseFolder) : [];
 }
 
 // ---------------------------
@@ -95,10 +141,10 @@ export async function setPrompts(prompts) {
   await writeStorage(prompts);
 }
 
-export async function savePrompt({ title, content, uuid }) {
+export async function savePrompt({ title, content, uuid, tags = [], folderId = null }) {
   if (!title || !content) throw new Error('Title & content are required');
   const prompts = await getPrompts();
-  const prompt = normalisePrompt({ uuid, title, content });
+  const prompt = normalisePrompt({ uuid, title, content, tags, folderId });
   prompts.push(prompt);
   await writeStorage(prompts);
   return { success: true, prompt };
@@ -139,6 +185,82 @@ export async function mergePrompts(imported) {
   return merged;
 }
 
+// ---------------------------
+// Tag & Folder API (v2)
+// ---------------------------
+
+// COMMENT: Folders CRUD
+export async function getFolders() {
+  const { folders } = await readRawStorage();
+  return folders;
+}
+
+export async function setFolders(folders) {
+  const { prompts } = await readRawStorage();
+  await writeStore({ version: PROMPT_STORAGE_VERSION, prompts, folders });
+}
+
+export async function saveFolder({ name, parentId = null, id }) {
+  if (!name || typeof name !== 'string') throw new Error('Folder name is required');
+  const folders = await getFolders();
+  const folder = normaliseFolder({ id, name: name.trim(), parentId });
+  folders.push(folder);
+  await setFolders(folders);
+  return folder;
+}
+
+export async function updateFolder(id, partial) {
+  const folders = await getFolders();
+  const idx = folders.findIndex(f => f.id === id);
+  if (idx === -1) throw new Error('Folder not found');
+  folders[idx] = normaliseFolder({ ...folders[idx], ...partial, updatedAt: new Date().toISOString() });
+  await setFolders(folders);
+  return folders[idx];
+}
+
+export async function deleteFolder(id) {
+  const { prompts, folders } = await readRawStorage();
+  const remainingFolders = folders.filter(f => f.id !== id);
+  // COMMENT: Detach prompts from the deleted folder (non-destructive)
+  const updatedPrompts = prompts.map(p => (p.folderId === id ? { ...p, folderId: null } : p));
+  await writeStore({ version: PROMPT_STORAGE_VERSION, prompts: updatedPrompts, folders: remainingFolders });
+  return true;
+}
+
+// COMMENT: Prompt <-> Folder linkage helper
+export async function movePromptToFolder(promptUuid, folderId = null) {
+  // Allow null to remove from any folder; if provided, ensure folder exists
+  if (folderId) {
+    const folders = await getFolders();
+    if (!folders.find(f => f.id === folderId)) throw new Error('Target folder does not exist');
+  }
+  return await updatePrompt(promptUuid, { folderId });
+}
+
+// COMMENT: Prompt tags helpers
+export async function addTagToPrompt(promptUuid, tag) {
+  const clean = typeof tag === 'string' ? tag.trim() : '';
+  if (!clean) return await getPrompts();
+  const prompts = await getPrompts();
+  const idx = prompts.findIndex(p => p.uuid === promptUuid);
+  if (idx === -1) throw new Error('Prompt not found');
+  const set = new Set(prompts[idx].tags || []);
+  set.add(clean);
+  return await updatePrompt(promptUuid, { tags: Array.from(set) });
+}
+
+export async function removeTagFromPrompt(promptUuid, tag) {
+  const prompts = await getPrompts();
+  const idx = prompts.findIndex(p => p.uuid === promptUuid);
+  if (idx === -1) throw new Error('Prompt not found');
+  const next = (prompts[idx].tags || []).filter(t => t !== tag);
+  return await updatePrompt(promptUuid, { tags: next });
+}
+
+export async function setTagsForPrompt(promptUuid, tags = []) {
+  return await updatePrompt(promptUuid, { tags });
+}
+
 // ---------- import / export helpers ----------
 export async function exportPrompts() {
   const json = JSON.stringify(await getPrompts(), null, 2);
@@ -168,8 +290,21 @@ export async function importPrompts(source) {
   } else {
     throw new Error('Unsupported import source');
   }
-  if (!Array.isArray(imported)) throw new Error('Invalid JSON format – expected an array');
-  return await mergePrompts(imported);
+  // COMMENT: Accept both legacy array and new store-object with folders
+  if (Array.isArray(imported)) {
+    return await mergePrompts(imported);
+  }
+  if (imported && typeof imported === 'object') {
+    const { prompts = [], folders = [] } = imported;
+    const mergedPrompts = await mergePrompts(prompts);
+    // Merge folders by id
+    const currentFolders = await getFolders();
+    const map = new Map(currentFolders.map(f => [f.id, f]));
+    normaliseFolderArray(folders).forEach(f => { map.set(f.id, f); });
+    await setFolders(Array.from(map.values()));
+    return mergedPrompts;
+  }
+  throw new Error('Invalid JSON format – expected an array or store object');
 }
 
 // Change listener convenience wrapper

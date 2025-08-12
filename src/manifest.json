@@ -1,8 +1,8 @@
 {
     "manifest_version": 3,
-    "name": "Open Prompt Manager",
-    "version": "2.1.5",
-    "description": "Fully Open Source Prompt Manager for ChatGPT, Claude, Gemini, Grok, and more.",
+    "name": "Open Prompt Manager BETA",
+    "version": "2.2",
+    "description": "THIS EXTENSION IS FOR BETA TESTING",
     "permissions": [
         "sidePanel",
         "storage",

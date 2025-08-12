@@ -1,4 +1,5 @@
 import { getProviders } from './llm_providers.js'; // Import the correct function
+import { getPrompts, onPromptsChanged } from './promptStorage.js'; // COMMENT: Unified prompt storage API
 
 chrome.runtime.onInstalled.addListener(function (details) {
   chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true });
@@ -151,19 +152,9 @@ async function checkProviderPermissions() {
 
 // --- CONTEXT MENU FOR PROMPT MANAGER ---
 
-// Helper: Get all prompts from storage
+// Helper: Get all prompts via the unified manager (single source of truth)
 async function getAllPrompts() {
-  // Try to get the current prompt storage
-  const data = await chrome.storage.local.get('prompts_storage');
-  if (data.prompts_storage && Array.isArray(data.prompts_storage.prompts)) {
-    return data.prompts_storage.prompts;
-  }
-  // Fallback: try legacy key
-  const legacy = await chrome.storage.local.get('prompts');
-  if (Array.isArray(legacy.prompts)) {
-    return legacy.prompts;
-  }
-  return [];
+  return await getPrompts();
 }
 
 // Create the context menu
@@ -200,11 +191,10 @@ chrome.runtime.onStartup.addListener(() => {
   createPromptContextMenu();
 });
 
-// Listen for storage changes and update the context menu
-chrome.storage.onChanged.addListener((changes, namespace) => {
-  if (changes.prompts_storage || changes.prompts) {
-    createPromptContextMenu();
-  }
+// Listen for prompts changes via the unified API and update the context menu
+onPromptsChanged(() => {
+  // COMMENT: Regenerate the context menu whenever prompts change
+  createPromptContextMenu();
 });
 
 // When a context menu item is clicked

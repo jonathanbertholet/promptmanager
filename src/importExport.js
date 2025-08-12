@@ -1,6 +1,6 @@
 // importExport.js
 
-import { loadPrompts } from './prompts.js';
+// COMMENT: Use unified prompt storage; remove dependency on prompts.js
 import * as PromptStorage from './promptStorage.js';
 
 // Export prompts from local storage as JSON
@@ -11,8 +11,6 @@ export async function exportPrompts() {
 
 // Import prompts from a JSON file and merge with local prompts
 export function importPrompts(file) {
-  // Delegate to unified manager then refresh UI on completion
-  PromptStorage.importPrompts(file)
-    .then(loadPrompts)
-    .catch(err => console.error('Import failed:', err));
+  // COMMENT: Delegate to unified manager; callers should re-render via onPromptsChanged
+  PromptStorage.importPrompts(file).catch(err => console.error('Import failed:', err));
 }

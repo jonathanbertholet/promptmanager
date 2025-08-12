@@ -1,4 +1,5 @@
 import { exportSyncPrompts } from './importExport.js';
+import { setPrompts } from './promptStorage.js'; // COMMENT: Use unified manager for destructive ops
 
 console.log('settings.js loaded'); // Debug line
 
@@ -15,10 +16,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
 document.getElementById('delete-all-prompts').addEventListener('click', deleteAllPrompts);
 
-function deleteAllPrompts() {
+async function deleteAllPrompts() {
+  // COMMENT: Use unified prompt storage to clear all prompts (canonical + legacy mirrored)
   if (confirm('Are you sure you want to delete all prompts? This action cannot be undone.')) {
-    chrome.storage.local.set({ prompts: [] }, () => {
-      alert('All prompts have been deleted');
-    });
+    await setPrompts([]);
+    alert('All prompts have been deleted');
   }
 }
