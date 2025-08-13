@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog],
 and this project adheres to [Semantic Versioning].
 
+## [2.2.1]
+
+### Added
+
+- Responsive Sidebar design instead of popup
+- Permissions manager
+- Support for 11 new platforms
+- Copy to clipboard from context menu
+- Copy to cipboard from Sidebar
+- Refactored content.js, storagemanager.js, and more
+- Improved onboarding
+- Improved design
+
 ## [1.9.7] - 2025-04-20
 
 ### Added

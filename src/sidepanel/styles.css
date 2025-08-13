@@ -8,7 +8,7 @@
     padding: 10px;
     padding-bottom: 0px;
     margin-bottom: 10px;
-    background-color: #f5f5f5;
+    background-color: var(--light-bg);
     display: flex;
     flex-direction: column;
     align-items: stretch;
@@ -22,7 +22,7 @@
   h2,
   h3 {
     margin-top: 0;
-    color: #0077B6;
+    color: var(--primary);
     margin-bottom: 12px;
     padding-bottom: 0px;
   }
@@ -100,7 +100,9 @@
     box-sizing: border-box;
     margin-bottom: 6px; /* Reduced from 4px to 2px to tighten spacing between fields */
     font-family: Helvetica, Verdana, Geneva, Tahoma, sans-serif;
-    border-color: #0077B6;
+    background-color: #FFFFFF;
+    color: #2D3748;
+    border-color: #CBD5E0;
     border-width: 1px;
     border-style: solid;
     border-radius: 6px;
@@ -110,7 +112,7 @@
 
   input[type="text"]:focus,
   textarea:focus {
-    border-color: #0077B6;
+    border-color: var(--primary);
   }
 
   textarea {
@@ -132,7 +134,7 @@
   }
 
   button.main {
-    background-color: #0077B6;
+    background-color: var(--primary);
     color: white;
     border: none;
     padding: 10px 20px;
@@ -149,7 +151,7 @@
   }
 
   button.main:hover {
-    background-color: #00679f;
+    background-color: var(--hover-primary);
 
     /* Darker shade on hover */
   }
@@ -213,7 +215,7 @@
 
   #cancel-edit-button {
     background-color: #dfdfdf;
-    color: #023E8A;
+    color: var(--primary);
     border: none;
     padding: 10px 20px;
     text-align: center;
@@ -230,7 +232,7 @@
   #cancel-edit-button:hover {
     background-color: #c0c0c0;
     cursor: pointer;
-    border: #0077B6;
+    border-color: var(--primary);
   }
 
   .title {
@@ -248,106 +250,7 @@
     padding: 0;
   }
 
-  /* Dark mode styles */
-  @media (prefers-color-scheme: dark) {
-    body {
-      background-color: #020f3b;
-
-      /* Dark background */
-      color: #cdc9c9;
-
-      /* Light text */
-    }
-
-    input[type="text"],
-    textarea {
-      background-color: #333333;
-
-      /* Dark background for inputs */
-      color: #cdc9c9;
-
-      /* Light text */
-      border: 1px solid #0077B6;
-    }
-
-    button.main {
-      background-color: #0f2f57;
-
-      /* Adjusted color for dark mode */
-      color: #cdc9c9;
-    }
-
-    button.main:hover {
-      background-color: #0056b3;
-
-      /* Adjusted hover color for dark mode */
-    }
-
-    button.main.import {
-      background-color: #0f2f57;
-    }
-
-    button.main.import:hover {
-      background-color: #0056b3;
-    }
-
-    button.main.export {
-      background-color: #0f2f57;
-      margin-top: 4px;
-    }
-
-    button.main.export:hover {
-      background-color: #0056b3;
-    }
-
-    h2,
-    h3 {
-      color: #dbdbdb;
-    }
-
-    #link {
-      color: #1682a5;
-      text-decoration: none;
-    }
-
-    /* Add dark mode styles for other elements if necessary */
-    #prompt-list li {
-      background-color: #0f2f57;
-      color: #cdc9c9;
-    }
-
-    /* Dark theme banner */
-    .info-banner {
-      background-color: #25324a;
-      color: #E2E8F0;
-      border-color: #3b4a67;
-    }
-
-    .info-banner-list {
-      list-style: disc;
-    }
-
-    .info-banner-close:hover {
-      background-color: rgba(255,255,255,0.08);
-    }
-
-    select#prompt-dropdown {
-      background-color: #333333;
-
-      /* Dark background for dropdown */
-      color: #ffffff;
-
-      /* Light text */
-    }
-
-    .link-container img,
-    .footer-table img,
-    .header-icon img,
-    #submit-button img {
-      opacity: 0.9;
-      filter: brightness(0) saturate(100%) invert(100%);
-    }
-  }
+  /* Dark mode styles are unified below; removing earlier overlapping block */
 
   /* Prompts container takes available space, but never less than 200px */
   .prompts-container {
@@ -367,7 +270,7 @@
     max-height: 100%;
     overflow-y: auto; /* Make prompt list scrollable */
     scrollbar-width: thin;
-    scrollbar-color: #0077B6 #f0f0f000;
+    scrollbar-color: var(--primary) #f0f0f000;
     position: static; /* Remove absolute, let flex handle layout */
     margin-top: 5px;
   }
@@ -583,7 +486,7 @@ footer.footer {
    ============================================================ */
 @media (prefers-color-scheme: dark) {
   body {
-    background-color: #1A202C;
+    background-color: #0A2647;
     color: #E2E8F0;
   }
 
@@ -594,14 +497,16 @@ footer.footer {
 
   /* Input & textarea fields */
   input[type="text"], textarea {
-    background-color: #2D3748;
+    background-color: #144272;
     color: #E2E8F0;
     border-color: #4A5568;
   }
+  /* Placeholder in dark */
+  ::placeholder { color: #A0AEC0; opacity: 1; }
 
   /* Main action buttons */
   button.main {
-    background-color: #4C51BF;
+    background-color: var(--primary);
     color: #E2E8F0;
   }
   button.main:hover {
@@ -610,7 +515,7 @@ footer.footer {
 
   /* Prompt list items */
   #prompt-list li {
-    background-color: #2D3748;
+    background-color: #205295;
     color: #CBD5E0;
   }
   #prompt-list button:hover {
@@ -643,6 +548,17 @@ footer.footer {
   .footer-icons img,
   #prompt-list button img {
     filter: invert(100%) sepia(0%) saturate(0%) hue-rotate(213deg) brightness(130%) contrast(87%);
+  }
+
+  /* Info banner links: force readable white in dark mode (override UA visited purple) */
+  .info-banner a,
+  .info-banner a:visited {
+    color: #FFFFFF;
+  }
+  .info-banner a:hover,
+  .info-banner a:focus {
+    color: #FFFFFF;
+    text-decoration: underline;
   }
 
   /* Footer background stays transparent but icons/text lighten */
@@ -716,5 +632,12 @@ button.main:hover {
 /* Scrollbar colour */
 #prompt-list {
   scrollbar-width: auto;
-  scrollbar-color: var(--primary)90 transparent;
+  scrollbar-color: var(--primary) transparent;
 }
+
+/* ============================================================
+   Header icon colour rules
+   - Light mode: use baked-in coloured asset
+   - Dark mode: white via filter for non-header icons, header uses dark asset
+   ============================================================ */
+/* No special light-mode filter needed; using coloured PNG via <picture> */

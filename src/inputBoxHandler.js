@@ -283,44 +283,81 @@ class InputBoxHandler {
     inputBox.focus();
     try {
       console.log('Inserting prompt:', { content, inputBox, promptList });
-      if (inputBox.contentEditable === 'true') {
-        inputBox.innerHTML = '';
-
-        // Simulate a paste event for contenteditable elements
-        const dataTransfer = new DataTransfer();
-        dataTransfer.setData('text/plain', content);
-        const pasteEvent = new ClipboardEvent('paste', {
-          clipboardData: dataTransfer,
-          bubbles: true,
-          cancelable: true,
-        });
-        inputBox.dispatchEvent(pasteEvent);
-
-        // Fallback for line breaks if paste event doesn't handle them perfectly
-        if (content.includes('\n')) {
-          const lines = content.split('\n');
-          inputBox.innerHTML = '';
-          lines.forEach((line, index) => {
-            if (line.trim()) {
-              const p = document.createElement('p');
-              p.textContent = line;
-              inputBox.appendChild(p);
-            } else if (index < lines.length - 1) {
-              const p = document.createElement('p');
-              const br = document.createElement('br');
-              p.appendChild(br);
-              inputBox.appendChild(p);
-            }
+      // COMMENT: Read setting that controls append vs overwrite behavior
+      const disableOverwrite = await new Promise(resolve => {
+        try {
+          chrome.storage.local.get('disableOverwrite', data => {
+            if (chrome.runtime?.lastError) { resolve(false); return; }
+            resolve(Boolean(data?.disableOverwrite));
           });
+        } catch (_) { resolve(false); }
+      });
+
+      if (inputBox.contentEditable === 'true') {
+        if (disableOverwrite) {
+          // COMMENT: Append mode — add content at the end without clearing existing text
+          // Ensure caret is at the end before appending
+          const endRange = document.createRange();
+          endRange.selectNodeContents(inputBox);
+          endRange.collapse(false);
+          const selection = window.getSelection();
+          selection.removeAllRanges();
+          selection.addRange(endRange);
+
+          if (content.includes('\n')) {
+            const lines = content.split('\n');
+            lines.forEach((line, index) => {
+              const p = document.createElement('p');
+              if (line.trim()) {
+                p.textContent = line;
+              } else {
+                p.appendChild(document.createElement('br'));
+              }
+              inputBox.appendChild(p);
+            });
+          } else {
+            const lastNode = inputBox.lastChild;
+            const needsSpace = lastNode && lastNode.nodeType === Node.TEXT_NODE && !lastNode.textContent.endsWith(' ');
+            const prefix = needsSpace ? ' ' : '';
+            inputBox.appendChild(document.createTextNode(prefix + content));
+          }
         } else {
-          // For single-line prompts, ensure content is set
-          inputBox.textContent = content;
+          // COMMENT: Overwrite mode — replace content and simulate a paste for better compatibility
+          inputBox.innerHTML = '';
+
+          const dataTransfer = new DataTransfer();
+          dataTransfer.setData('text/plain', content);
+          const pasteEvent = new ClipboardEvent('paste', {
+            clipboardData: dataTransfer,
+            bubbles: true,
+            cancelable: true,
+          });
+          inputBox.dispatchEvent(pasteEvent);
+
+          // Fallback for line breaks if paste event doesn't handle them perfectly
+          if (content.includes('\n')) {
+            const lines = content.split('\n');
+            inputBox.innerHTML = '';
+            lines.forEach((line, index) => {
+              if (line.trim()) {
+                const p = document.createElement('p');
+                p.textContent = line;
+                inputBox.appendChild(p);
+              } else if (index < lines.length - 1) {
+                const p = document.createElement('p');
+                const br = document.createElement('br');
+                p.appendChild(br);
+                inputBox.appendChild(p);
+              }
+            });
+          } else {
+            // For single-line prompts, ensure content is set
+            inputBox.textContent = content;
+          }
         }
 
-        // Add two spaces at the end, if not handled by the paste event
-        if (!content.endsWith('  ')) {
-          inputBox.appendChild(document.createTextNode('  '));
-        }
+        // Add two spaces at the end
+        inputBox.appendChild(document.createTextNode('  '));
 
         // Move cursor to the end of the content
         const range = document.createRange();
@@ -339,7 +376,15 @@ class InputBoxHandler {
           inputBox.dispatchEvent(new Event('input', { bubbles: true }));
         }
       } else if (inputBox.tagName.toLowerCase() === 'textarea') {
-        inputBox.value = content + '  ';
+        // COMMENT: For textareas, either overwrite or append
+        if (disableOverwrite) {
+          const existing = inputBox.value || '';
+          const needsSpace = existing && !/\s$/.test(existing);
+          const spacer = needsSpace ? ' ' : '';
+          inputBox.value = existing + spacer + content + '  ';
+        } else {
+          inputBox.value = content + '  ';
+        }
         inputBox.dispatchEvent(new Event('input', { bubbles: true }));
         inputBox.dispatchEvent(new Event('change', { bubbles: true }));
         inputBox.style.height = 'auto';

@@ -2,8 +2,8 @@
 /* Global constants, helpers & styles */
 const THEME_COLORS = {
   primary: '#3674B5', primaryGradientStart: '#3674B5', primaryGradientEnd: '#578FCA',
-  hoverPrimary: '#4C51BF', darkBackground: '#1A202C', lightBackground: '#F7FAFC',
-  darkBorder: '#2D3748', lightBorder: '#E2E8F0',
+  hoverPrimary: '#205295', darkBackground: '#0A2647', lightBackground: '#F7FAFC',
+  darkBorder: '#144272', lightBorder: '#E2E8F0',
   darkShadow: '0 4px 20px rgba(0,0,0,0.3)', lightShadow: '0 4px 20px rgba(0,0,0,0.15)',
   inputDarkBorder: '1px solid #4A5568', inputLightBorder: '1px solid #CBD5E0',
   inputDarkBg: '#2D3748', inputLightBg: '#FFFFFF',
@@ -422,6 +422,13 @@ function injectGlobalStyles() {
     #${SELECTORS.ROOT} .opm-icon-button:hover {
       background-color: rgba(0, 0, 0, 0.1);
     }
+    
+    /* Make bottom menu icons white-ish in dark mode only */
+    /* COMMENT: Force white-ish appearance for bottom menu icons when in dark mode */
+    #${SELECTORS.ROOT}.opm-dark .opm-bottom-menu .opm-icon-button img {
+      /* COMMENT: Use a high-contrast invert with no saturation; keep light mode untouched */
+      filter: invert(100%) saturate(0%) brightness(115%) contrast(100%) !important;
+    }
     /* Focus style for input inside prompt list */
     #${SELECTORS.ROOT} #${SELECTORS.PROMPT_LIST} input:focus {
       border-color: var(--primary);
@@ -608,6 +615,16 @@ class PromptStorageManager {
   static async setOnboardingCompleted() { return await PromptStorageManager.setData('onboardingCompleted', true); }
   static async getDisplayMode() { return await PromptStorageManager.getData('displayMode', 'standard'); }
   static async saveDisplayMode(mode) { return await PromptStorageManager.setData('displayMode', mode); }
+
+  // COMMENT: Preference to append prompts instead of overwriting the input area
+  static async getDisableOverwrite() {
+    // COMMENT: Default is false (overwrite existing content as before)
+    return await PromptStorageManager.getData('disableOverwrite', false);
+  }
+  static async saveDisableOverwrite(value) {
+    // COMMENT: Persist the user's preference for append vs overwrite
+    return await PromptStorageManager.setData('disableOverwrite', !!value);
+  }
 }
 
 /* Icon SVGs */
@@ -820,6 +837,26 @@ const PromptUI = (() => {
         });
         displayModeRow.append(displayModeLabel, toggleSwitch);
         settings.appendChild(displayModeRow);
+      });
+
+      // COMMENT: Toggle to control whether prompts append or overwrite input area
+      const overwriteRow = createEl('div', { styles: { display: 'flex', justifyContent: 'space-between', alignItems: 'center' } });
+      const overwriteLabel = createEl('label', { innerHTML: 'Append prompts to text', styles: { fontSize: '14px' } });
+      PromptStorageManager.getDisableOverwrite().then(disable => {
+        const overwriteToggle = createEl('div', {
+          className: `opm-toggle-switch opm-${getMode()} ${disable ? 'active' : ''}`,
+          eventListeners: {
+            click: e => {
+              e.stopPropagation();
+              overwriteToggle.classList.toggle('active');
+              const nextValue = overwriteToggle.classList.contains('active');
+              // COMMENT: Persist setting; no immediate UI rebuild needed
+              PromptStorageManager.saveDisableOverwrite(nextValue);
+            }
+          }
+        });
+        overwriteRow.append(overwriteLabel, overwriteToggle);
+        settings.appendChild(overwriteRow);
       });
       form.append(title, settings);
       return form;
@@ -1574,14 +1611,22 @@ class PromptUIManager {
     });
     // Restart the timer when leaving the prompt list
     listEl.addEventListener('mouseleave', e => {
-      PromptUIManager.startCloseTimer(e, listEl, () => { });
+      // COMMENT: Ensure flags are reset when auto-closing so future hovers work
+      PromptUIManager.startCloseTimer(e, listEl, () => {
+        PromptUIManager.manuallyOpened = false;
+        PromptUIManager.inVariableInputMode = false;
+      });
     });
 
     container.addEventListener('mouseleave', e => {
       e.stopPropagation();
       indicator.style.borderWidth = '0 0 20px 20px';
       indicator.style.borderColor = `transparent transparent ${THEME_COLORS.primary}90 transparent`;
-      PromptUIManager.startCloseTimer(e, listEl, () => { });
+      // COMMENT: Reset flags on timed close to avoid getting stuck in a "manually opened" state
+      PromptUIManager.startCloseTimer(e, listEl, () => {
+        PromptUIManager.manuallyOpened = false;
+        PromptUIManager.inVariableInputMode = false;
+      });
     });
 
     //  document click handler for closing the prompt list when clicking outside
@@ -1603,6 +1648,19 @@ class PromptUIManager {
 
     // Add the event listener to the document
     document.addEventListener('click', documentClickHandler);
+
+    // COMMENT: When the tab is hidden and later shown again, make sure the UI resets properly
+    // COMMENT: This prevents a stale state where hovers no longer trigger due to lingering flags
+    const visibilityHandler = () => {
+      if (document.hidden) {
+        // COMMENT: Reset flags and hide the list silently when tab loses visibility
+        PromptUIManager.manuallyOpened = false;
+        PromptUIManager.inVariableInputMode = false;
+        PromptUI.Behaviors.hideList(listEl);
+      }
+    };
+    document.addEventListener('visibilitychange', visibilityHandler);
+    container.visibilityHandler = visibilityHandler;
 
     // Set onboarding as completed when hovering over hot corner
     container.addEventListener('mouseenter', () => {
@@ -1626,6 +1684,10 @@ class PromptUIManager {
       // Remove the document click handler if it exists
       if (hotCornerContainer.documentClickHandler) {
         document.removeEventListener('click', hotCornerContainer.documentClickHandler);
+      }
+      // COMMENT: Remove the visibilitychange handler we registered in hot-corner mode
+      if (hotCornerContainer.visibilityHandler) {
+        document.removeEventListener('visibilitychange', hotCornerContainer.visibilityHandler);
       }
       hotCornerContainer.remove();
     }

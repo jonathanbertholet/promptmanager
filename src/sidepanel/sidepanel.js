@@ -128,7 +128,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // COMMENT: Restore banner visibility from localStorage (persist dismissal)
   try {
     const dismissed = localStorage.getItem('spm_info_banner_dismissed');
-    if (dismissed === 'false' && infoBanner) {
+    if (dismissed === 'true' && infoBanner) {
       infoBanner.style.display = 'none';
     }
   } catch (err) {

@@ -10,7 +10,10 @@
 
 <body>
   <div class="title">
-    <img class="header-icon" src="../icons/icon128.png" alt="Extension Icon" style="width: 22px; height: 22px" />
+      <picture>
+        <source media="(prefers-color-scheme: dark)" srcset="../icons/icon-main-s.png">
+        <img class="header-icon" src="../icons/icon-main-s color.png" alt="Extension Icon" style="width: 22px; height: 22px" />
+      </picture>
     <h2>Open Prompt Manager</h2>
     <a href="index.html" target="_blank">
       <img id="open-new-tab" class="header-icon" src="../icons/open_in_new.svg" alt="Open in New Tab"
@@ -31,23 +34,27 @@
   </form>
   <div id="info-banner" class="info-banner" role="status" aria-live="polite">
     <button id="info-banner-close" class="info-banner-close" aria-label="Dismiss info banner">&times;</button>
-    <h3 class="info-banner-title">Permissions Update - Please Read</h3>
+    <h3 class="info-banner-title">New updates, new features!</h3>
     <br />
-    <p class="info-banner-text">To enable support for new LLMs without disabling the extension every time, I've added the "Tabs" permission.</p> 
+    <p class="info-banner-text">Hey there,</p> 
     <br />
-    <p class="info-banner-text">It's used for two purposes only:</p>
+    <p class="info-banner-text">I won't do this often, but I'm happy to share that V2 finally got delivered! It brings new features and improvements, and is a foundation for some pretty cool stuff.</p>
     <ul class="info-banner-list">
-      <li>Detecting if you're on a site that supports the extension</li>
-      <li>Opening the permissions manager upon installing the extension</li>
+      <li>Now supporting 19 LLMs!</li>
+      <li>Permissions manager for new LLMs.</li>
+      <li>Responsive sidepanel for composing prompts.</li>
+      <li>Copy & paste from the side panel & right click menu.</li>
+      <li>New setting : Append the prompt to input.</li> 
+      <li>Now looks better than ever, both in light & dark mode.</li>      
     </ul>
-    <br />
-    <p class="info-banner-text">Unfortunately, the "tabs" permission translates to "Read your browser history", <strong>which I will never do.</strong></p>
     <br />
     <p class="info-banner-text">Permissions management is handled using the <strong><a href="../permissions/permissions.html" target="_blank">lock icon</a></strong> on the bottom right of the side panel.</p>
     <br />
     <p class="info-banner-text">For the many users that have shown support, shared feedback, and used the extension, I'd like to take the occasion to say <strong>thank you</strong>.</p>
     <br />
     <p class="info-banner-text">Don't hesitate to review <a href="https://chromewebstore.google.com/detail/open-prompt-manager/gmhaghdbihgenofhnmdbglbkbplolain" target="_blank">Open Prompt Manager</a> on the Chrome Web Store.</p>
+    <br />
+    <p class="info-banner-text">Thanks again!</p>
   </div>
   <div class="prompts-container">
     <div class="prompts-section">
@@ -58,7 +65,7 @@
       <div id="empty-state" class="shortcut-container" style="display: none">
         <h3>Keyboard Navigation &amp; Shortcuts</h3>
         <p style="display: flex; align-items: center; margin: 8px 0"> <span style="
-                background-color: #0077b6;
+                background-color: var(--primary);
                 color: white;
                 padding: 4px 8px;
                 border-radius: 4px;
@@ -66,7 +73,7 @@
               ">
             Hover/Click </span> <span>Open prompt list buttons</span> </p>
         <p style="display: flex; align-items: center; margin: 8px 0"> <span style="
-                background-color: #0077b6;
+                background-color: var(--primary);
                 color: white;
                 padding: 4px 8px;
                 border-radius: 4px;
@@ -74,21 +81,21 @@
               ">
             ⌘ + ⇧ + P or Ctrl + M </span> <span>Open / close prompt list</span> </p>
         <p style="display: flex; align-items: center; margin: 8px 0"> <span style="
-                background-color: #0077b6;
+                background-color: var(--primary);
                 color: white;
                 padding: 4px 8px;
                 border-radius: 4px;
                 margin-right: 10px;
               ">↑↓</span> <span>Navigate the prompt list</span> </p>
         <p style="display: flex; align-items: center; margin: 8px 0"> <span style="
-                background-color: #0077b6;
+                background-color: var(--primary);
                 color: white;
                 padding: 4px 8px;
                 border-radius: 4px;
                 margin-right: 10px;
               ">Enter</span> <span>Select a prompt</span> </p>
         <p style="display: flex; align-items: center; margin: 8px 0"> <span style="
-                background-color: #0077b6;
+                background-color: var(--primary);
                 color: white;
                 padding: 4px 8px;
                 border-radius: 4px;
