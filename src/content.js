@@ -75,7 +75,7 @@ const debounce = (fn, wait = 100) => {
 
 // Helper functions for theme and UI manipulation
 const getMode = () => (isDarkMode() ? 'dark' : 'light');
-const applyTheme = el => { el.classList.remove('opm-light', 'opm-dark'); el.classList.add(`opm-${getMode()}`); };
+const applyTheme = el => { Theme.applyNode(el); };
 const showEl = el => {
   // Respect intended display for our panel
   const isPromptList = el.classList && el.classList.contains('opm-prompt-list');
@@ -91,6 +91,150 @@ const hideEl = el => {
     if (items) Array.from(items.children).forEach(i => i.style.display = 'flex');
   }, 200);
 };
+
+/* ---------------------------------------------------------------------------
+ * Theme helper
+ * COMMENT: Centralize applying light/dark class across our subtree
+ * -------------------------------------------------------------------------*/
+const Theme = {
+  // COMMENT: Apply current mode class to a single node
+  applyNode(node) {
+    if (!node) return;
+    node.classList?.remove('opm-light', 'opm-dark');
+    node.classList?.add(`opm-${getMode()}`);
+  },
+  // COMMENT: Apply to all nodes that opt into theming within our root
+  applyAll() {
+    const root = document.getElementById(SELECTORS.ROOT);
+    if (!root) return;
+    // Root carries mode for global styles
+    root.classList.toggle('opm-dark', isDarkMode());
+    root.classList.toggle('opm-light', !isDarkMode());
+    // Update all nodes that have any opm-* class
+    const themedNodes = root.querySelectorAll('[class*="opm-"]');
+    themedNodes.forEach(el => this.applyNode(el));
+  }
+};
+
+/* ---------------------------------------------------------------------------
+ * Selector helpers (scoped under our root)
+ * COMMENT: Small helpers to reduce query noise and keep scope consistent
+ * -------------------------------------------------------------------------*/
+const $root = () => document.getElementById(SELECTORS.ROOT);
+const qs = (sel, root = $root()) => (root ? root.querySelector(sel) : null);
+const qsa = (sel, root = $root()) => (root ? Array.from(root.querySelectorAll(sel)) : []);
+
+/* ---------------------------------------------------------------------------
+ * Panel view states and tiny router
+ * COMMENT: Centralizes view switching and search visibility
+ * -------------------------------------------------------------------------*/
+const PanelView = Object.freeze({
+  LIST: 'LIST',
+  CREATE: 'CREATE',
+  EDIT: 'EDIT',
+  SETTINGS: 'SETTINGS',
+  HELP: 'HELP',
+  CHANGELOG: 'CHANGELOG'
+});
+
+const PanelRouter = (() => {
+  let currentView = null;
+
+  // COMMENT: Build nodes for non-list views; list view uses refresh to rebuild the panel
+  const buildView = async (view) => {
+    if (view === PanelView.CREATE) {
+      return PromptUIManager.createPromptCreationForm('');
+    }
+    if (view === PanelView.EDIT) {
+      return await PromptUIManager.createEditView();
+    }
+    if (view === PanelView.SETTINGS) {
+      return PromptUIManager.createSettingsForm();
+    }
+    if (view === PanelView.HELP) {
+      // COMMENT: Build Help container and populate asynchronously
+      const dark = isDarkMode();
+      const container = createEl('div', { className: `opm-form-container opm-${getMode()}`, styles: { padding: '0', display: 'flex', flexDirection: 'column', gap: '4px' } });
+      const title = createEl('div', { styles: { fontWeight: 'bold', fontSize: '16px', marginBottom: '6px' }, innerHTML: 'Navigation & Features' });
+      const info = createEl('div', { id: SELECTORS.INFO_CONTENT, styles: { maxHeight: '300px', overflowY: 'auto', padding: '4px', borderRadius: '6px', color: dark ? THEME_COLORS.inputDarkText : THEME_COLORS.inputLightText } });
+      container.append(title, info);
+      fetch(chrome.runtime.getURL('info.html')).then(r => r.text()).then(html => { info.innerHTML = html; });
+      return container;
+    }
+    if (view === PanelView.CHANGELOG) {
+      // COMMENT: Build Changelog container and populate asynchronously
+      const dark = isDarkMode();
+      const container = createEl('div', { className: `opm-form-container opm-${getMode()}`, styles: { padding: '0', display: 'flex', flexDirection: 'column', gap: '6px' } });
+      const title = createEl('div', { styles: { fontWeight: 'bold', fontSize: '16px', marginBottom: '6px' }, innerHTML: 'Changelog' });
+      const info = createEl('div', { id: SELECTORS.CHANGELOG_CONTENT, styles: { maxHeight: '250px', overflowY: 'auto', padding: '4px', borderRadius: '6px', color: dark ? THEME_COLORS.inputDarkText : THEME_COLORS.inputLightText } });
+      container.append(title, info);
+      fetch(chrome.runtime.getURL('changelog.html')).then(r => r.text()).then(html => { info.innerHTML = html; });
+      return container;
+    }
+    return null;
+  };
+
+  const mount = async (view) => {
+    // Always rebuild EDIT to reflect latest prompt order; keep other views cached
+    if (currentView === view && ![PanelView.LIST, PanelView.EDIT].includes(view)) {
+      const listEl = qs(`#${SELECTORS.PROMPT_LIST}`);
+      if (listEl) PromptUIManager.showPromptList(listEl);
+      return;
+    }
+    currentView = view;
+
+    const listEl = qs(`#${SELECTORS.PROMPT_LIST}`);
+    if (!listEl) return;
+
+    if (view === PanelView.LIST) {
+      const prompts = await PromptStorageManager.getPrompts();
+      PromptUIManager.refreshPromptList(prompts);
+      // COMMENT: Search visible only on list view
+      PromptUIManager.setSearchVisibility(true);
+      PromptUIManager.showPromptList(listEl);
+      Theme.applyAll();
+      return;
+    }
+
+    // COMMENT: Non-list views build a node and replace panel content
+    const node = await buildView(view);
+    if (node) {
+      PromptUIManager.resetPromptListContainer();
+      PromptUIManager.replacePanelMainContent(node);
+    }
+    // COMMENT: Hide search for non-list views
+    PromptUIManager.setSearchVisibility(false);
+    PromptUIManager.showPromptList(listEl);
+    Theme.applyAll();
+  };
+
+  return { mount, get currentView() { return currentView; } };
+})();
+
+/* ---------------------------------------------------------------------------
+ * Centralized outside-click closer
+ * COMMENT: Single document-level handler that works for both modes
+ * -------------------------------------------------------------------------*/
+const OutsideClickCloser = (() => {
+  let attached = false;
+  const handler = e => {
+    const listEl = qs(`#${SELECTORS.PROMPT_LIST}`);
+    if (!listEl || !listEl.classList.contains('opm-visible')) return;
+    const isMenu = e.target.closest(`#${SELECTORS.PROMPT_LIST}`)
+      || e.target.closest(`.${SELECTORS.PROMPT_ITEMS_CONTAINER}`)
+      || e.target.closest('.opm-icon-button')
+      || e.target.closest('.opm-form-container')
+      || e.target.closest('.opm-button');
+    if (!isMenu) PromptUIManager.hidePromptList(listEl);
+  };
+  return {
+    ensure() {
+      if (attached) return;
+      document.addEventListener('click', handler);
+      attached = true;
+    }
+  };
+})();
 
 /* ============================================================================
    Inject Global Styles
@@ -277,6 +421,11 @@ function injectGlobalStyles() {
     #${SELECTORS.ROOT} .opm-prompt-list-items.opm-dark {
       background-color: var(--dark-bg);
     }
+    /* Generic text colors for common containers */
+    #${SELECTORS.ROOT} .opm-form-container.opm-light { color: var(--input-light-text); }
+    #${SELECTORS.ROOT} .opm-form-container.opm-dark { color: var(--input-dark-text); }
+    #${SELECTORS.ROOT} .opm-prompt-list-item.opm-light { color: var(--input-light-text); }
+    #${SELECTORS.ROOT} .opm-prompt-list-item.opm-dark { color: var(--input-dark-text); }
     #${SELECTORS.ROOT} .opm-prompt-list-item {
       border-radius: var(--border-radius);
       font-size: 14px;
@@ -284,7 +433,7 @@ function injectGlobalStyles() {
       transition: background-color var(--transition-speed) ease, transform var(--transition-speed) ease;
       display: flex;
       align-items: center;
-      padding: 8px 6px;
+      padding: 10px 8px;
     }
     #${SELECTORS.ROOT} .opm-prompt-list-item.opm-light:hover {
       background-color: #e2e8f0;
@@ -481,20 +630,16 @@ injectGlobalStyles();
  * Theme handling (dark / light) with subscription hook
  * -------------------------------------------------------------------------*/
 let isDarkModeActive = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+let isDarkModeForced = false; // when true, override to dark regardless of OS
 
 /* Read current mode */
-const isDarkMode = () => isDarkModeActive;
+const isDarkMode = () => (isDarkModeForced ? true : isDarkModeActive);
 
 /* Listen to OS-level preference changes */
 if (window.matchMedia) {
   const mql = window.matchMedia('(prefers-color-scheme: dark)');
   mql.addEventListener('change', e => {
     isDarkModeActive = e.matches;
-    const root = document.getElementById(SELECTORS.ROOT);
-    if (root) {
-      root.classList.toggle('opm-dark', isDarkMode());
-      root.classList.toggle('opm-light', !isDarkMode());
-    }
     PromptUIManager.updateThemeForUI();
   });
 }
@@ -592,6 +737,8 @@ class PromptStorageManager {
   static async setOnboardingCompleted() { return await PromptStorageManager.setData('onboardingCompleted', true); }
   static async getDisplayMode() { return await PromptStorageManager.getData('displayMode', 'standard'); }
   static async saveDisplayMode(mode) { return await PromptStorageManager.setData('displayMode', mode); }
+  static async getForceDarkMode() { return await PromptStorageManager.getData('forceDarkMode', false); }
+  static async saveForceDarkMode(enabled) { return await PromptStorageManager.setData('forceDarkMode', !!enabled); }
 
   // COMMENT: Preference to append prompts instead of overwriting the input area
   static async getDisableOverwrite() {
@@ -629,7 +776,6 @@ const PromptUI = (() => {
   const State = {
     // COMMENT: Tracks whether the list was opened via user action
     manuallyOpened: false,
-    // COMMENT: Tracks whether we are in variable input collection mode
     inVariableInputMode: false,
     // COMMENT: Close timer reference to coordinate delayed hide
     closeTimer: null
@@ -675,12 +821,12 @@ const PromptUI = (() => {
       const btns = ['list', 'add', 'edit', 'help', 'changelog', 'settings'];
       // COMMENT: Ensure manual flag set before action handlers
       const actions = {
-        list: e => { e.stopPropagation(); PromptUIManager.manuallyOpened = true; PromptUIManager.refreshAndShowPromptList(); },
-        add: e => { e.stopPropagation(); PromptUIManager.manuallyOpened = true; PromptUIManager.showPromptCreationForm(); },
-        edit: e => { e.stopPropagation(); PromptUIManager.manuallyOpened = true; PromptUIManager.showEditView(); },
-        settings: e => { e.stopPropagation(); PromptUIManager.manuallyOpened = true; PromptUIManager.showSettingsForm(); },
-        help: e => { e.stopPropagation(); PromptUIManager.manuallyOpened = true; PromptUIManager.showHelp(); },
-        changelog: e => { e.stopPropagation(); PromptUIManager.manuallyOpened = true; PromptUIManager.showChangelog(); },
+        list: e => { e.stopPropagation(); PromptUIManager.manuallyOpened = true; PanelRouter.mount(PanelView.LIST); },
+        add: e => { e.stopPropagation(); PromptUIManager.manuallyOpened = true; PanelRouter.mount(PanelView.CREATE); },
+        edit: e => { e.stopPropagation(); PromptUIManager.manuallyOpened = true; PanelRouter.mount(PanelView.EDIT); },
+        settings: e => { e.stopPropagation(); PromptUIManager.manuallyOpened = true; PanelRouter.mount(PanelView.SETTINGS); },
+        help: e => { e.stopPropagation(); PromptUIManager.manuallyOpened = true; PanelRouter.mount(PanelView.HELP); },
+        changelog: e => { e.stopPropagation(); PromptUIManager.manuallyOpened = true; PanelRouter.mount(PanelView.CHANGELOG); },
       };
       btns.forEach(type => bar.appendChild(Elements.createIconButton(type, actions[type])));
       return bar;
@@ -708,6 +854,114 @@ const PromptUI = (() => {
       menu.appendChild(search);
       menu.appendChild(Elements.createMenuBar());
       return menu;
+    }
+  };
+
+  // Drag & Drop reorder helper for Edit view
+  const Reorder = {
+    attach(promptsContainer, prompts, onReorder) {
+      const placeholder = createEl('div', { className: 'opm-drop-placeholder' });
+      let dropIndex = null;
+
+      const itemNodes = () => Array.from(promptsContainer.children)
+        .filter(n => n.classList && n.classList.contains('opm-prompt-list-item'));
+
+      const computeContainerDropPosition = (clientY) => {
+        const nodes = itemNodes();
+        if (nodes.length === 0) { dropIndex = 0; return; }
+        for (let i = 0; i < nodes.length; i++) {
+          const node = nodes[i];
+          const rect = node.getBoundingClientRect();
+          const midY = rect.top + rect.height / 2;
+          if (clientY < midY) {
+            placeholder.style.height = `${rect.height}px`;
+            if (node.previousSibling !== placeholder) {
+              promptsContainer.insertBefore(placeholder, node);
+            }
+            dropIndex = parseInt(node.dataset.index, 10);
+            return;
+          }
+        }
+        const last = nodes[nodes.length - 1];
+        const lastRect = last.getBoundingClientRect();
+        placeholder.style.height = `${lastRect.height}px`;
+        if (last.nextSibling !== placeholder) {
+          promptsContainer.insertBefore(placeholder, last.nextSibling);
+        }
+        dropIndex = prompts.length;
+      };
+
+      const handleDrop = e => {
+        e.preventDefault();
+        e.stopPropagation();
+        const from = parseInt(e.dataTransfer.getData('text/plain'), 10);
+        if (Number.isNaN(from)) return;
+        let to = dropIndex !== null ? dropIndex : prompts.length;
+        if (from < to) to = to - 1;
+        if (from === to) {
+          if (placeholder.parentNode) placeholder.parentNode.removeChild(placeholder);
+          dropIndex = null;
+          return;
+        }
+        const newPrompts = [...prompts];
+        const [moved] = newPrompts.splice(from, 1);
+        newPrompts.splice(Math.max(0, Math.min(newPrompts.length, to)), 0, moved);
+        if (placeholder.parentNode) placeholder.parentNode.removeChild(placeholder);
+        dropIndex = null;
+        onReorder(newPrompts);
+      };
+
+      promptsContainer.addEventListener('dragover', e => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        computeContainerDropPosition(e.clientY);
+      });
+      promptsContainer.addEventListener('drop', handleDrop);
+
+      const wireItem = (item, idx, dragHandle) => {
+        // Ensure drop is allowed when hovering over items, and set precise placeholder position
+        item.addEventListener('dragover', e => {
+          e.preventDefault();
+          e.dataTransfer.dropEffect = 'move';
+          const rect = item.getBoundingClientRect();
+          const offset = e.clientY - rect.top;
+          const placeBefore = offset < rect.height / 2;
+          placeholder.style.height = `${rect.height}px`;
+          if (placeBefore) {
+            if (item.previousSibling !== placeholder) {
+              item.parentNode.insertBefore(placeholder, item);
+            }
+            dropIndex = parseInt(item.dataset.index, 10);
+          } else {
+            if (item.nextSibling !== placeholder) {
+              item.parentNode.insertBefore(placeholder, item.nextSibling);
+            }
+            dropIndex = parseInt(item.dataset.index, 10) + 1;
+          }
+        });
+        dragHandle.setAttribute('draggable', 'true');
+        dragHandle.addEventListener('dragstart', e => {
+          e.stopPropagation();
+          e.dataTransfer.effectAllowed = 'move';
+          e.dataTransfer.setData('text/plain', idx);
+          dropIndex = idx;
+          item.classList.add('opm-dragging');
+          const rect = item.getBoundingClientRect();
+          const offsetX = e.clientX - rect.left;
+          const offsetY = e.clientY - rect.top;
+          if (typeof e.dataTransfer.setDragImage === 'function') {
+            e.dataTransfer.setDragImage(item, offsetX, offsetY);
+          }
+        });
+        dragHandle.addEventListener('dragend', e => {
+          e.stopPropagation();
+          item.classList.remove('opm-dragging');
+          if (placeholder.parentNode) placeholder.parentNode.removeChild(placeholder);
+          dropIndex = null;
+        });
+      };
+
+      return { wireItem };
     }
   };
 
@@ -741,7 +995,7 @@ const PromptUI = (() => {
         if (!t || !c) { alert('Please fill in both title and content.'); return; }
         const res = await PromptStorageManager.savePrompt({ title: t, content: c });
         if (!res.success) { alert('Error saving prompt.'); return; }
-        PromptUIManager.refreshAndShowPromptList();
+        PanelRouter.mount(PanelView.LIST);
       });
       form.append(titleIn, contentArea, saveBtn);
       form.addEventListener('click', e => e.stopPropagation());
@@ -752,8 +1006,9 @@ const PromptUI = (() => {
       const form = createEl('div', { className: `opm-form-container opm-${getMode()}`, styles: { padding: '12px', display: 'flex', flexDirection: 'column', gap: '8px' } });
       const title = createEl('div', { styles: { fontWeight: 'bold', fontSize: '16px', marginBottom: '10px' }, innerHTML: 'Settings' });
       const settings = createEl('div', { styles: { display: 'flex', flexDirection: 'column', gap: '12px' } });
+ 
       const displayModeRow = createEl('div', { styles: { display: 'flex', justifyContent: 'space-between', alignItems: 'center' } });
-      const displayModeLabel = createEl('label', { innerHTML: 'Enable Hot Corner Mode', styles: { fontSize: '14px' } });
+      const displayModeLabel = createEl('label', { innerHTML: 'Hot Corner Mode', styles: { fontSize: '14px' } });
       PromptStorageManager.getDisplayMode().then(mode => {
         const isHotCorner = mode === 'hotCorner';
         const toggleSwitch = createEl('div', {
@@ -790,6 +1045,29 @@ const PromptUI = (() => {
         overwriteRow.append(overwriteLabel, overwriteToggle);
         settings.appendChild(overwriteRow);
       });
+
+        // Dark mode override toggle
+        const forceDarkRow = createEl('div', { styles: { display: 'flex', justifyContent: 'space-between', alignItems: 'center' } });
+        const forceDarkLabel = createEl('label', { innerHTML: 'Force Dark Mode', styles: { fontSize: '14px' } });
+        PromptStorageManager.getForceDarkMode().then(enabled => {
+          isDarkModeForced = !!enabled;
+          const toggleSwitch = createEl('div', {
+            className: `opm-toggle-switch opm-${getMode()} ${enabled ? 'active' : ''}`,
+            eventListeners: {
+              click: e => {
+                e.stopPropagation();
+                toggleSwitch.classList.toggle('active');
+                const next = toggleSwitch.classList.contains('active');
+                isDarkModeForced = next;
+                PromptStorageManager.saveForceDarkMode(next).then(() => {
+                  PromptUIManager.updateThemeForUI();
+                });
+              }
+            }
+          });
+          forceDarkRow.append(forceDarkLabel, toggleSwitch);
+          settings.appendChild(forceDarkRow);
+        });
 
       // Comment : Import & Export functionality in settings menu
       const dataSectionTitle = createEl('div', { styles: { fontWeight: 'bold', fontSize: '14px', marginTop: '6px' }, innerHTML: 'Prompt Management' });
@@ -846,89 +1124,14 @@ const PromptUI = (() => {
       const prompts = await PromptStorageManager.getPrompts();
       const container = createEl('div', { className: `opm-form-container opm-${getMode()}`, styles: { padding: '0', display: 'flex', flexDirection: 'column' } });
       const promptsContainer = createEl('div', { className: `${SELECTORS.PROMPT_ITEMS_CONTAINER} opm-prompt-list-items opm-${getMode()}`, styles: { maxHeight: '350px', overflowY: 'auto', marginBottom: '4px' } });
-      // COMMENT: Keep a single placeholder element reused during drag to displace items visually
-      const placeholder = createEl('div', { className: 'opm-drop-placeholder' });
-      let dragFromIndex = null;
-      let dropIndex = null;
-      // COMMENT: Compute drop position relative to all items in the container (handles gaps and placeholder drops)
-      const computeContainerDropPosition = (clientY) => {
-        const itemNodes = Array.from(promptsContainer.children).filter(n => n.classList && n.classList.contains('opm-prompt-list-item'));
-        if (itemNodes.length === 0) { dropIndex = 0; return; }
-        for (let i = 0; i < itemNodes.length; i++) {
-          const node = itemNodes[i];
-          const rect = node.getBoundingClientRect();
-          const midY = rect.top + rect.height / 2;
-          // COMMENT: Insert before the first item whose midpoint is below the cursor
-          if (clientY < midY) {
-            // COMMENT: Match placeholder height with the target node for stability
-            placeholder.style.height = `${rect.height}px`;
-            if (node.previousSibling !== placeholder) {
-              promptsContainer.insertBefore(placeholder, node);
-            }
-            dropIndex = parseInt(node.dataset.index, 10);
-            return;
-          }
-        }
-        // COMMENT: If cursor is below all items, append placeholder at end
-        const last = itemNodes[itemNodes.length - 1];
-        const lastRect = last.getBoundingClientRect();
-        placeholder.style.height = `${lastRect.height}px`;
-        if (last.nextSibling !== placeholder) {
-          promptsContainer.insertBefore(placeholder, last.nextSibling);
-        }
-        dropIndex = prompts.length; // after last
-      };
-      promptsContainer.addEventListener('dragover', e => {
-        e.preventDefault();
-        e.dataTransfer.dropEffect = 'move';
-        computeContainerDropPosition(e.clientY);
-      });
-      promptsContainer.addEventListener('drop', e => {
-        e.preventDefault();
-        e.stopPropagation();
-        const from = parseInt(e.dataTransfer.getData('text/plain'), 10);
-        if (Number.isNaN(from)) return;
-        let to = dropIndex !== null ? dropIndex : prompts.length;
-        if (from < to) to = to - 1; // COMMENT: Adjust for removal shifting indices when moving downward
-        if (from === to) {
-          if (placeholder.parentNode) placeholder.parentNode.removeChild(placeholder);
-          dragFromIndex = null; dropIndex = null;
-          return;
-        }
-        const newPrompts = [...prompts];
-        const [moved] = newPrompts.splice(from, 1);
-        newPrompts.splice(Math.max(0, Math.min(newPrompts.length, to)), 0, moved);
-        if (placeholder.parentNode) placeholder.parentNode.removeChild(placeholder);
-        dragFromIndex = null; dropIndex = null;
-        // COMMENT: Persist the new order via unified storage manager
-        PromptStorageManager.setPrompts(newPrompts).then(() => { PromptUIManager.showEditView(); });
-      });
+      const reorder = Reorder.attach(
+        promptsContainer,
+        prompts,
+        (newPrompts) => { PromptStorageManager.setPrompts(newPrompts).then(() => { PanelRouter.mount(PanelView.EDIT); }); }
+      );
       prompts.forEach((p, idx) => {
         const item = createEl('div', { className: `opm-prompt-list-item opm-${getMode()}`, styles: { justifyContent: 'space-between', padding: '4px 4px', margin: '6px 0' } });
         item.dataset.index = idx;
-        // COMMENT: On dragover, compute whether to place placeholder before or after based on cursor position
-        item.addEventListener('dragover', e => {
-          e.preventDefault();
-          e.dataTransfer.dropEffect = 'move';
-          const rect = item.getBoundingClientRect();
-          const offset = e.clientY - rect.top;
-          const placeBefore = offset < rect.height / 2;
-          // Ensure placeholder visually matches item spacing
-          placeholder.style.height = `${rect.height}px`;
-          // Avoid flicker if already correctly placed
-          if (placeBefore) {
-            if (item.previousSibling !== placeholder) {
-              item.parentNode.insertBefore(placeholder, item);
-            }
-            dropIndex = parseInt(item.dataset.index, 10);
-          } else {
-            if (item.nextSibling !== placeholder) {
-              item.parentNode.insertBefore(placeholder, item.nextSibling);
-            }
-            dropIndex = parseInt(item.dataset.index, 10) + 1;
-          }
-        });
-        // COMMENT: Drop is handled at container level to centralize index computation
         const dragHandle = createEl('div', {
           className: 'opm-drag-handle',
           innerHTML: `
@@ -947,30 +1150,9 @@ const PromptUI = (() => {
             cursor: 'grab', userSelect: 'none', opacity: '0.9'
           }
         });
-        // COMMENT: Make only the handle draggable; use the full item as the drag image so it follows the cursor
-        dragHandle.setAttribute('draggable', 'true');
-        dragHandle.addEventListener('dragstart', e => {
-          e.stopPropagation();
-          e.dataTransfer.effectAllowed = 'move';
-          e.dataTransfer.setData('text/plain', idx);
-          dragFromIndex = idx;
-          dropIndex = idx;
-          item.classList.add('opm-dragging');
-          const rect = item.getBoundingClientRect();
-          const offsetX = e.clientX - rect.left;
-          const offsetY = e.clientY - rect.top;
-          if (typeof e.dataTransfer.setDragImage === 'function') {
-            e.dataTransfer.setDragImage(item, offsetX, offsetY);
-          }
-        });
-        dragHandle.addEventListener('dragend', e => {
-          e.stopPropagation();
-          item.classList.remove('opm-dragging');
-          // Remove placeholder if it remains in DOM after drag end
-          if (placeholder.parentNode) placeholder.parentNode.removeChild(placeholder);
-          dragFromIndex = null;
-          dropIndex = null;
-        });
+        reorder.wireItem(item, idx, dragHandle);
+        // Keep item index up-to-date if we re-render soon after reorder
+        item.dataset.index = idx;
         const text = createEl('div', { styles: { flex: '1' } });
         text.textContent = p.title;
         const actions = createEl('div', { styles: { display: 'flex', gap: '4px' } });
@@ -1034,11 +1216,8 @@ const PromptUI = (() => {
         e.stopPropagation();
         Behaviors.cancelCloseTimer();
         const currentPrompts = await PromptStorageManager.getPrompts();
-        if (currentPrompts.length === 0) {
-          PromptUIManager.showPromptCreationForm();
-        } else {
-          PromptUIManager.showPromptList(listEl);
-        }
+        // COMMENT: Route to appropriate view based on prompts availability
+        if (currentPrompts.length === 0) PanelRouter.mount(PanelView.CREATE); else PanelRouter.mount(PanelView.LIST);
         isOpen = true;
       });
 
@@ -1046,18 +1225,7 @@ const PromptUI = (() => {
       listEl.addEventListener('mouseenter', Behaviors.cancelCloseTimer);
       listEl.addEventListener('mouseleave', startClose);
 
-      document.addEventListener('click', e => {
-        const isMenu = e.target.closest(`#${SELECTORS.PROMPT_LIST}`) ||
-          e.target.closest(`.${SELECTORS.PROMPT_ITEMS_CONTAINER}`) ||
-          e.target.closest('.opm-icon-button') ||
-          e.target.closest('.opm-form-container') ||
-          e.target.closest('.opm-button') ||
-          button.contains(e.target);
-        if (isOpen && !isMenu) {
-          PromptUIManager.hidePromptList(listEl);
-          isOpen = false;
-        }
-      });
+      // Outside click handling is centralized by OutsideClickCloser
     }
   };
 
@@ -1098,6 +1266,7 @@ class PromptUIManager {
       PromptUIManager.attachButtonEvents(button, listEl, container, prompts);
       PromptUIManager.makeDraggable(container);
       PromptUIManager.checkAndShowOnboarding(container);
+      OutsideClickCloser.ensure();
     });
   }
 
@@ -1228,20 +1397,20 @@ class PromptUIManager {
 
   static buildPromptListContainer(prompts = []) {
     // COMMENT: Rebuild the list content using internal view composition
-    const listEl = document.getElementById(SELECTORS.PROMPT_LIST);
+    const listEl = qs(`#${SELECTORS.PROMPT_LIST}`);
     if (!listEl) return;
-    applyTheme(listEl);
+    Theme.applyNode(listEl);
     listEl.innerHTML = '';
     const content = PromptUI.Views.renderPromptList(prompts);
     listEl.appendChild(content);
   }
 
   static resetPromptListContainer() {
-    const listEl = document.getElementById(SELECTORS.PROMPT_LIST);
+    const listEl = qs(`#${SELECTORS.PROMPT_LIST}`);
     const wasVisible = listEl && listEl.classList.contains('opm-visible');
     PromptUIManager.buildPromptListContainer();
     if (wasVisible) {
-      const updated = document.getElementById(SELECTORS.PROMPT_LIST);
+      const updated = qs(`#${SELECTORS.PROMPT_LIST}`);
       if (updated) { updated.style.display = 'block'; void updated.offsetHeight; updated.classList.add('opm-visible'); }
     }
   }
@@ -1270,6 +1439,7 @@ class PromptUIManager {
     // COMMENT: Focus only if list view is active
     const panel = document.getElementById(SELECTORS.PANEL_CONTENT);
     const hasListItems = panel && panel.querySelector(`.${SELECTORS.PROMPT_ITEMS_CONTAINER}.opm-view-list`);
+    // COMMENT: Keep fallback behavior here; router will also set explicitly
     PromptUIManager.setSearchVisibility(!!hasListItems);
     if (hasListItems) {
       const first = listEl.querySelector('.opm-prompt-list-item');
@@ -1293,7 +1463,7 @@ class PromptUIManager {
   }
 
   static handleKeyboardNavigation(e, context = 'list') {
-    const list = document.getElementById(SELECTORS.PROMPT_LIST);
+    const list = qs(`#${SELECTORS.PROMPT_LIST}`);
     if (!list || !list.classList.contains('opm-visible')) return;
     PromptUIManager.cancelCloseTimer();
     let items = [];
@@ -1339,7 +1509,7 @@ class PromptUIManager {
 
   static handleGlobalEscape(e) {
     if (e.key === 'Escape') {
-      const listEl = document.getElementById(SELECTORS.PROMPT_LIST);
+      const listEl = qs(`#${SELECTORS.PROMPT_LIST}`);
       if (listEl && listEl.classList.contains('opm-visible')) {
         e.preventDefault();
         PromptUIManager.selectedSearchIndex = -1;
@@ -1355,27 +1525,7 @@ class PromptUIManager {
   }
 
   static updateThemeForUI() {
-    const root = document.getElementById(SELECTORS.ROOT);
-    if (root) {
-      root.classList.toggle('opm-dark', isDarkMode());
-      root.classList.toggle('opm-light', !isDarkMode());
-    }
-    const themeElements = document.querySelectorAll([
-      `#${SELECTORS.ROOT} .opm-prompt-list`,
-      `#${SELECTORS.ROOT} .opm-prompt-list-items`,
-      `#${SELECTORS.ROOT} .opm-prompt-list-item`,
-      `#${SELECTORS.ROOT} .opm-search-input`,
-      `#${SELECTORS.ROOT} .opm-input-field`,
-      `#${SELECTORS.ROOT} .opm-textarea-field`,
-      `#${SELECTORS.ROOT} .opm-button`,
-      `#${SELECTORS.ROOT} .opm-toggle-switch`,
-      `#${SELECTORS.ROOT} .opm-form-container`,
-      `#${SELECTORS.ROOT} .opm-bottom-menu`
-    ].join(','));
-    themeElements.forEach(el => {
-      el.classList.remove('opm-light', 'opm-dark');
-      el.classList.add(`opm-${getMode()}`);
-    });
+    Theme.applyAll();
     const container = document.getElementById(SELECTORS.PROMPT_BUTTON_CONTAINER);
     if (container) {
       const btn = container.querySelector(`#${SELECTORS.PROMPT_BUTTON}`) || container.querySelector('.opm-prompt-button');
@@ -1391,35 +1541,10 @@ class PromptUIManager {
     });
   }
 
-  static refreshAndShowPromptList() {
-    (async () => {
-      const prompts = await PromptStorageManager.getPrompts();
-      // COMMENT: Explicitly rebuild the prompt list when user requests it
-      PromptUIManager.refreshPromptList(prompts);
-      const list = document.getElementById(SELECTORS.PROMPT_LIST);
-      if (list) PromptUIManager.showPromptList(list);
-    })();
-  }
-
   static focusSearchInput() {
     const input = document.getElementById(SELECTORS.PROMPT_SEARCH_INPUT);
-    if (input) { applyTheme(input); requestAnimationFrame(() => { input.focus(); input.select(); }); }
-  }
-
-  static showPromptCreationForm() {
-    const list = document.getElementById(SELECTORS.PROMPT_LIST);
-    if (!list) return;
-    PromptUIManager.showPromptList(list);
-    PromptUIManager.resetPromptListContainer();
-    // COMMENT: Hide search when not in the list view
-    PromptUIManager.setSearchVisibility(false);
-    PromptStorageManager.getPrompts().then(prompts => {
-      const form = PromptUIManager.createPromptCreationForm('', prompts.length === 0);
-      PromptUIManager.replacePanelMainContent(form);
-      const t = form.querySelector('input');
-      if (t) t.focus();
-    });
-  }
+    if (input) { Theme.applyNode(input); requestAnimationFrame(() => { input.focus(); input.select(); }); }
+  }  
 
   static showVariableInputForm(inputBox, content, variables, listEl, onSubmit) {
     // Set the flag to indicate we're in variable input mode
@@ -1455,7 +1580,7 @@ class PromptUIManager {
     const backBtn = createEl('button', { innerHTML: 'Back', className: `opm-button opm-${getMode()}` });
     backBtn.addEventListener('click', () => {
       PromptUIManager.inVariableInputMode = false;
-      PromptUIManager.refreshAndShowPromptList();
+      PanelRouter.mount(PanelView.LIST);
     });
     btnContainer.append(submitBtn, backBtn);
     form.appendChild(btnContainer);
@@ -1476,7 +1601,7 @@ class PromptUIManager {
   }
 
   static async showEditForm(prompt /*, index */) {
-    const list = document.getElementById(SELECTORS.PROMPT_LIST);
+    const list = qs(`#${SELECTORS.PROMPT_LIST}`);
     if (!list) return;
     PromptUIManager.resetPromptListContainer();
     // COMMENT: Hide search when not in the list view
@@ -1494,7 +1619,7 @@ class PromptUIManager {
         title: titleIn.value.trim(),
         content: contentArea.value.trim()
       });
-      PromptUIManager.showEditView();
+      PanelRouter.mount(PanelView.EDIT);
     });
     form.append(titleIn, contentArea, saveBtn);
     form.addEventListener('click', e => e.stopPropagation());
@@ -1504,61 +1629,10 @@ class PromptUIManager {
   static async deletePrompt(uuid) {
     const ps = await PromptStorageManager._ps();
     await ps.deletePrompt(uuid);
-    const list = document.getElementById(SELECTORS.PROMPT_LIST);
-    if (list) { PromptUIManager.resetPromptListContainer(); PromptUIManager.showEditView(); }
+    const list = qs(`#${SELECTORS.PROMPT_LIST}`);
+    if (list) { PromptUIManager.resetPromptListContainer(); PanelRouter.mount(PanelView.EDIT); }
   }
-
-  static showEditView() {
-    const list = document.getElementById(SELECTORS.PROMPT_LIST);
-    if (!list) return;
-    PromptUIManager.showPromptList(list);
-    PromptUIManager.resetPromptListContainer();
-    // COMMENT: Hide search when not in the list view
-    PromptUIManager.setSearchVisibility(false);
-    (async () => { const view = await PromptUIManager.createEditView(); PromptUIManager.replacePanelMainContent(view); })();
-  }
-
-  static showHelp() {
-    const list = document.getElementById(SELECTORS.PROMPT_LIST);
-    if (!list) return;
-    PromptUIManager.showPromptList(list);
-    PromptUIManager.resetPromptListContainer();
-    // COMMENT: Hide search when not in the list view
-    PromptUIManager.setSearchVisibility(false);
-    const dark = isDarkMode();
-    const container = createEl('div', { className: `opm-form-container opm-${getMode()}`, styles: { padding: '0', display: 'flex', flexDirection: 'column', gap: '4px' } });
-    const title = createEl('div', { styles: { fontWeight: 'bold', fontSize: '16px', marginBottom: '6px' }, innerHTML: 'Navigation & Features' });
-    const info = createEl('div', { id: SELECTORS.INFO_CONTENT, styles: { maxHeight: '300px', overflowY: 'auto', padding: '4px', borderRadius: '6px', color: dark ? THEME_COLORS.inputDarkText : THEME_COLORS.inputLightText } });
-    fetch(chrome.runtime.getURL('info.html')).then(r => r.text()).then(html => { info.innerHTML = html; });
-    container.append(title, info);
-    PromptUIManager.replacePanelMainContent(container);
-  }
-
-  static showChangelog() {
-    const list = document.getElementById(SELECTORS.PROMPT_LIST);
-    if (!list) return;
-    PromptUIManager.showPromptList(list);
-    PromptUIManager.resetPromptListContainer();
-    // COMMENT: Hide search when not in the list view
-    PromptUIManager.setSearchVisibility(false);
-    const dark = isDarkMode();
-    const container = createEl('div', { className: `opm-form-container opm-${getMode()}`, styles: { padding: '0', display: 'flex', flexDirection: 'column', gap: '6px' } });
-    const title = createEl('div', { styles: { fontWeight: 'bold', fontSize: '16px', marginBottom: '6px' }, innerHTML: 'Changelog' });
-    const info = createEl('div', { id: SELECTORS.CHANGELOG_CONTENT, styles: { maxHeight: '250px', overflowY: 'auto', padding: '4px', borderRadius: '6px', color: dark ? THEME_COLORS.inputDarkText : THEME_COLORS.inputLightText } });
-    fetch(chrome.runtime.getURL('changelog.html')).then(r => r.text()).then(html => { info.innerHTML = html; });
-    container.append(title, info);
-    PromptUIManager.replacePanelMainContent(container);
-  }
-  static showSettingsForm() {
-    const list = document.getElementById(SELECTORS.PROMPT_LIST);
-    if (!list) return;
-    PromptUIManager.showPromptList(list);
-    PromptUIManager.resetPromptListContainer();
-    // COMMENT: Hide search when not in the list view
-    PromptUIManager.setSearchVisibility(false);
-    const form = PromptUIManager.createSettingsForm();
-    PromptUIManager.replacePanelMainContent(form);
-  }
+  
   static createSettingsForm() {
     // COMMENT: Delegate to PromptUI.Views to build the settings form
     return PromptUI.Views.createSettingsForm();
@@ -1622,6 +1696,7 @@ class PromptUIManager {
 
     // Setup event handlers
     this.setupHotCornerEvents(container, indicator, listEl);
+    OutsideClickCloser.ensure();
   }
 
   // Extracted event handling for hot corner
@@ -1635,12 +1710,7 @@ class PromptUIManager {
         indicator.style.borderWidth = '0 0 30px 30px';
         indicator.style.borderColor = `transparent transparent ${THEME_COLORS.primary} transparent`;
         const currentPrompts = await PromptStorageManager.getPrompts();
-        PromptUIManager.refreshPromptList(currentPrompts);
-        if (currentPrompts.length === 0) {
-          PromptUIManager.showPromptCreationForm();
-        } else {
-          PromptUIManager.showPromptList(listEl);
-        }
+        if (currentPrompts.length === 0) PanelRouter.mount(PanelView.CREATE); else PanelRouter.mount(PanelView.LIST);
       }
     });
 
@@ -1668,26 +1738,6 @@ class PromptUIManager {
         PromptUIManager.inVariableInputMode = false;
       });
     });
-
-    //  document click handler for closing the prompt list when clicking outside
-    const documentClickHandler = e => {
-      const isMenu = e.target.closest(`#${SELECTORS.PROMPT_LIST}`) ||
-        e.target.closest(`.${SELECTORS.PROMPT_ITEMS_CONTAINER}`) ||
-        e.target.closest('.opm-icon-button') ||
-        e.target.closest('.opm-form-container') ||
-        e.target.closest('.opm-button') ||
-        container.contains(e.target);
-
-      if (listEl.classList.contains('opm-visible') && !isMenu) {
-        PromptUIManager.hidePromptList(listEl);
-      }
-    };
-
-    // Store reference to the handler for cleanup
-    container.documentClickHandler = documentClickHandler;
-
-    // Add the event listener to the document
-    document.addEventListener('click', documentClickHandler);
 
     // COMMENT: When the tab is hidden and later shown again, make sure the UI resets properly
     // COMMENT: This prevents a stale state where hovers no longer trigger due to lingering flags
@@ -1752,13 +1802,11 @@ class PromptUIManager {
     // Make sure the prompt list is refreshed only if list view is active
     PromptUIManager.refreshItemsIfListActive(prompts);
     // If switching modes from settings, we should close any open menu
-    const listEl = document.getElementById(SELECTORS.PROMPT_LIST);
+    const listEl = qs(`#${SELECTORS.PROMPT_LIST}`);
     if (listEl && listEl.classList.contains('opm-visible')) {
       PromptUIManager.hidePromptList(listEl);
     }
-  }
-
-  
+  }  
 }
 
 /* Prompt Processor */
@@ -1794,7 +1842,7 @@ class PromptMediator {
         }
       }
       const vars = this.processor.extractVariables(prompt.content);
-      const listEl = document.getElementById(SELECTORS.PROMPT_LIST);
+      const listEl = qs(`#${SELECTORS.PROMPT_LIST}`);
       if (vars.length === 0) {
         await InputBoxHandler.insertPrompt(inputBox, prompt.content, listEl);
         PromptUIManager.hidePromptList(listEl);
@@ -1902,7 +1950,7 @@ class KeyboardManager {
   }
 
   static async _togglePromptList() {
-    const listEl = document.getElementById(SELECTORS.PROMPT_LIST);
+    const listEl = qs(`#${SELECTORS.PROMPT_LIST}`);
     if (!listEl) return;
     if (listEl.classList.contains('opm-visible')) {
       PromptUIManager.hidePromptList(listEl);
@@ -1910,12 +1958,7 @@ class KeyboardManager {
       // Mark as manually opened
       PromptUIManager.manuallyOpened = true;
       const currentPrompts = await PromptStorageManager.getPrompts();
-      PromptUIManager.refreshPromptList(currentPrompts);
-      if (currentPrompts.length === 0) {
-        PromptUIManager.showPromptCreationForm();
-      } else {
-        PromptUIManager.showPromptList(listEl);
-      }
+      if (currentPrompts.length === 0) PanelRouter.mount(PanelView.CREATE); else PanelRouter.mount(PanelView.LIST);
     }
   }
 }

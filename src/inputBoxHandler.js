@@ -299,6 +299,68 @@ class InputBoxHandler {
       });
 
       if (inputBox.contentEditable === 'true') {
+        // COMMENT: Handle rich editors (e.g., Perplexity uses Lexical under #ask-input)
+        // COMMENT: Lexical ignores direct DOM mutations but responds to execCommand/InputEvents
+        const isLexicalEditor = inputBox.getAttribute('data-lexical-editor') === 'true'
+          || !!inputBox.closest('[data-lexical-editor="true"]')
+          || inputBox.id === 'ask-input';
+
+        if (isLexicalEditor) {
+          // COMMENT: Normalize caret based on append/overwrite preference
+          const selection = window.getSelection();
+          const range = document.createRange();
+          if (disableOverwrite) {
+            // COMMENT: Append — place caret at the end
+            range.selectNodeContents(inputBox);
+            range.collapse(false);
+          } else {
+            // COMMENT: Overwrite — select all content so insertion replaces it
+            range.selectNodeContents(inputBox);
+          }
+          selection.removeAllRanges();
+          selection.addRange(range);
+
+          // COMMENT: Overwrite requires clearing selection before insertion
+          if (!disableOverwrite) {
+            document.execCommand('delete', false, null);
+          }
+
+          // COMMENT: Primary path — let the editor handle text via execCommand
+          const textToInsert = content + '  ';
+          const inserted = document.execCommand('insertText', false, textToInsert);
+
+          // COMMENT: Fallback — synthesize input pipeline events
+          if (!inserted) {
+            try {
+              inputBox.dispatchEvent(new InputEvent('beforeinput', {
+                inputType: 'insertText',
+                data: textToInsert,
+                bubbles: true,
+                cancelable: true,
+              }));
+              inputBox.dispatchEvent(new Event('input', { bubbles: true }));
+            } catch (_) {
+              // COMMENT: Last resort — set textContent; editor may still override this
+              inputBox.textContent = textToInsert;
+              inputBox.dispatchEvent(new Event('input', { bubbles: true }));
+            }
+          }
+
+          // COMMENT: Ensure caret ends up at the end after insertion
+          const endRange = document.createRange();
+          endRange.selectNodeContents(inputBox);
+          endRange.collapse(false);
+          const sel = window.getSelection();
+          sel.removeAllRanges();
+          sel.addRange(endRange);
+
+          // COMMENT: Notify any listeners the content changed
+          inputBox.dispatchEvent(new Event('change', { bubbles: true }));
+          PromptUIManager.hidePromptList(promptList);
+          return;
+        }
+
+        // COMMENT: Default contentEditable handling (non-Lexical editors)
         if (disableOverwrite) {
           // COMMENT: Append mode — add content at the end without clearing existing text
           // Ensure caret is at the end before appending
