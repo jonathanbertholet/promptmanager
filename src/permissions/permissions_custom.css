@@ -341,7 +341,7 @@ body {
   :root {
     --primary-blue: #3674B5;
     --primary-blue-dark: #0b498a; /* darker shade for hover */
-    --primary-blue-darker: #434C5E; /* active shade */
+    --primary-blue-darker: #0b498a; /* active shade */
     --light-bg: #2D3748; /* corresponds to theme dark background */
     --dark-text: #E2E8F0; /* light gray text */
     --muted-text: #A0AEC0; /* muted text color */

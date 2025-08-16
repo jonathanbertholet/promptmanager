@@ -1,7 +1,7 @@
 {
     "manifest_version": 3,
     "name": "Open Prompt Manager",
-    "version": "2.3.1",
+    "version": "2.3.2",
     "description": "Fully Open Source Prompt Manager for ChatGPT, Claude, Gemini, Grok, and more.",
     "permissions": [
         "sidePanel",
@@ -42,7 +42,7 @@
         "*://x.com/i/grok*",
         "*://grok.com/*",
         "*://copilot.microsoft.com/*",
-        "*://github.com/*",
+        "*://github.com/copilot",
         "*://www.kimi.com/*",
         "*://kimi.com/*",
         "*://chat.mistral.ai/*",

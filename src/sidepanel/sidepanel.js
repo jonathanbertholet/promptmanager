@@ -4,13 +4,57 @@
 import * as PromptStorage from '../promptStorage.js';
 import { exportPrompts, importPrompts } from '../importExport.js';
 
+// COMMENT: Helper to check if any provider permissions are granted
+async function hasAnyGrantedProviderPermission() {
+  return new Promise(resolve => {
+    try {
+      chrome.storage.local.get(['aiProvidersMap'], result => {
+        if (!result || !result.aiProvidersMap) {
+          resolve(false);
+          return;
+        }
+        const providersMap = result.aiProvidersMap;
+        const anyGranted = Object.values(providersMap).some(p => p && p.hasPermission === 'Yes');
+        resolve(anyGranted);
+      });
+    } catch (err) {
+      resolve(false);
+    }
+  });
+}
+
+// COMMENT: Toggle visibility between permissions shortcut and prompt list based on granted permissions
+async function renderPermissionsGate() {
+  const shortcut = document.getElementById('permissions-shortcut');
+  const promptList = document.getElementById('prompt-list');
+  const emptyState = document.getElementById('empty-state');
+  if (!shortcut || !promptList) return;
+  const allowed = await hasAnyGrantedProviderPermission();
+  if (allowed) {
+    // Hide shortcut, show list normally
+    shortcut.style.display = 'none';
+    promptList.style.display = 'block';
+    if (emptyState && promptList.children.length === 0) {
+      emptyState.style.display = 'block';
+    }
+  } else {
+    // Show shortcut, hide list and empty state
+    shortcut.style.display = 'block';
+    promptList.style.display = 'none';
+    if (emptyState) emptyState.style.display = 'none';
+  }
+}
+
 // COMMENT: Render the list of prompts in the sidepanel UI
 function displayPrompts(prompts) {
   const promptList = document.getElementById('prompt-list');
   const emptyState = document.getElementById('empty-state');
+  const shortcut = document.getElementById('permissions-shortcut');
   promptList.innerHTML = '';
   if (!Array.isArray(prompts) || prompts.length === 0) {
-    if (emptyState) emptyState.style.display = 'block';
+    // If permissions shortcut is visible, prefer it over empty-state
+    const shortcutVisible = shortcut && shortcut.style.display !== 'none';
+    if (emptyState) emptyState.style.display = shortcutVisible ? 'none' : 'block';
     return;
   }
   if (emptyState) emptyState.style.display = 'none';
@@ -121,9 +165,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Load prompts and display
   loadPrompts();
+  // COMMENT: Evaluate permissions gate on load
+  renderPermissionsGate();
 
   // COMMENT: Refresh UI whenever prompts change in storage
   PromptStorage.onPromptsChanged(loadPrompts);
+
+  // COMMENT: React to permissions updates live (permissions page writes aiProvidersMap)
+  try {
+    chrome.storage.onChanged.addListener((changes, area) => {
+      if (area === 'local' && changes.aiProvidersMap) {
+        renderPermissionsGate();
+      }
+    });
+  } catch (err) {
+    // Ignore if not available
+  }
 
   // COMMENT: Restore banner visibility from localStorage (persist dismissal)
   try {

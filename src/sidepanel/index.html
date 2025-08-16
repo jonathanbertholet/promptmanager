@@ -58,12 +58,24 @@
   </div>
   <div class="prompts-container">
     <div class="prompts-section">
+      <!-- COMMENT: Shown when no site permissions have been granted yet -->
+      <div id="permissions-shortcut" class="shortcut-container" style="display: none">
+        <h3>Enable AI site permissions</h3>
+        <p style="margin: 8px 0">To use prompts directly on AI sites, first grant permissions.</p>
+        <a href="../permissions/permissions.html" target="_blank" style="text-decoration: none">
+          <button class="main" type="button" title="Open Permissions">
+            <img src="../icons/permissions-icon.svg" alt="Permissions" style="margin-right: 6px" />
+            Open Permissions
+          </button>
+        </a>
+      </div>
       <ul id="prompt-list">
 
       </ul>
       <!-- Add title and message about storage changes -->
       <div id="empty-state" class="shortcut-container" style="display: none">
         <h3>Keyboard Navigation &amp; Shortcuts</h3>
+        <p>These can be used on any page supported by the extension.</p>
         <p style="display: flex; align-items: center; margin: 8px 0"> <span style="
                 background-color: var(--primary);
                 color: white;

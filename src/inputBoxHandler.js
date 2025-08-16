@@ -80,7 +80,9 @@ class InputBoxHandler {
     // COMMENT: We prefer a direct, stable selector over brittle full DOM paths.
     if (url.includes('kimi.com')) {
       const inputBox = document.querySelector('div.chat-input-editor[contenteditable="true"]')
-        || document.querySelector('div.chat-input-editor');
+        || document.querySelector('div.chat-input-editor')
+        || document.querySelector('div[contenteditable="true"][data-slate-editor="true"]')
+        || document.querySelector('div[contenteditable="true"]');
       if (inputBox) {
         console.log('Input box found: Kimi');
         return inputBox;
@@ -198,7 +200,10 @@ class InputBoxHandler {
 
     // Perplexity (perplexity.ai)
     if (url.includes('perplexity.ai')) {
-      const inputBox = document.querySelector('#ask-input');
+      const inputBox = document.querySelector('#ask-input')
+        || document.querySelector('textarea[placeholder*="Ask" i]')
+        || document.querySelector('form textarea')
+        || document.querySelector('textarea');
       if (inputBox) {
         console.log('Input box found: Perplexity');
         return inputBox;

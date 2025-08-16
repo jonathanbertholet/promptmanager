@@ -5,7 +5,7 @@ chrome.runtime.onInstalled.addListener(function (details) {
   chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true });
   console.log('onInstalled', details);
   // note to self : for updates, add 'update' in array
-  if (!['install','update'].includes(details.reason)) {
+  if (!['install'].includes(details.reason)) {
     return;
   }
   chrome.tabs.create({ url: 'permissions/permissions.html' });
