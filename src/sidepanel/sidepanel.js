@@ -182,22 +182,39 @@ document.addEventListener('DOMContentLoaded', () => {
     // Ignore if not available
   }
 
-  // COMMENT: Restore banner visibility from localStorage (persist dismissal)
+  // Decide whether to show the info banner based on a storage-backed toggle.
+  // Default is hidden unless `spm_show_info_banner` is true and the user has not dismissed it.
+  if (infoBanner) {
+    infoBanner.style.display = 'none'; // default: hidden
+  }
   try {
-    const dismissed = localStorage.getItem('spm_info_banner_dismissed');
-    if (dismissed === 'true' && infoBanner) {
-      infoBanner.style.display = 'none';
-    }
+    chrome.storage?.local?.get(['spm_show_info_banner'], (res) => {
+      const shouldShow = res && res.spm_show_info_banner === true;
+      // Respect prior dismissal stored in localStorage
+      const dismissed = (() => {
+        try { return localStorage.getItem('spm_info_banner_dismissed') === 'true'; } catch (e) { return false; }
+      })();
+      if (shouldShow && !dismissed && infoBanner) {
+        infoBanner.style.display = '';
+      }
+    });
   } catch (err) {
-    // Swallow storage access issues, banner will show by default
+    // If storage read fails, keep banner hidden unless already visible by markup
+    try {
+      const dismissed = localStorage.getItem('spm_info_banner_dismissed') === 'true';
+      if (dismissed && infoBanner) infoBanner.style.display = 'none';
+    } catch (e) {}
   }
 
-  // COMMENT: Close banner and persist choice
+  // Close banner and persist choice
   if (infoBannerClose) {
     infoBannerClose.addEventListener('click', () => {
       if (infoBanner) infoBanner.style.display = 'none';
       try {
         localStorage.setItem('spm_info_banner_dismissed', 'true');
+        // Turning off the storage toggle ensures it will not show again
+        // until explicitly re-enabled by setting `spm_show_info_banner` to true.
+        chrome.storage?.local?.set({ spm_show_info_banner: false });
       } catch (err) {
         // Ignore storage errors
       }

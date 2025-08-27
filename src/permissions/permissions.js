@@ -67,7 +67,7 @@ document.addEventListener('DOMContentLoaded', function () {
     } else if (getStartedBtnContainer) {
       // When no providers are allowed yet, show guidance title instead of the button
       // This matches the requested behavior: display a title until at least one LLM is selected
-      getStartedBtnContainer.innerHTML = '<h3 class="custom-onboarding-title">Select AI services to use.</h3>';
+      getStartedBtnContainer.innerHTML = '<h3 class="custom-onboarding-title">First, select the AI tools you want to use.</h3>';
     }
   }
 
