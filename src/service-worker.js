@@ -37,7 +37,11 @@ chrome.permissions.onAdded.addListener(async (permissions) => {
           console.log(`Injecting scripts into tab ${tab.id} (${tab.url})`);
           await chrome.scripting.executeScript({
             target: { tabId: tab.id },
-            files: ["inputBoxHandler.js", "content.js"]
+            files: [
+              "inputBoxHandler.js",
+              "content.styles.js",
+              "content.js"
+            ]
           });
           console.log(`Successfully injected scripts into tab ${tab.id}`);
         }
@@ -82,7 +86,11 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
             // Proceed with actual injection.
             await chrome.scripting.executeScript({
               target: { tabId: tabId },
-              files: ["inputBoxHandler.js", "content.js"]
+              files: [
+                "inputBoxHandler.js",
+                "content.styles.js",
+                "content.js"
+              ]
             });
             console.log(`Successfully injected scripts into tab ${tabId}`);
           } catch (injectionError) {
