@@ -11,13 +11,16 @@ A lightweight Chrome extension for managing prompts across multiple AI chatbots 
 - 🌓 Supports both light and dark modes
 - 🔄 Variable support with `#variable#` syntax
 - 🎯 Works with multiple AI platforms:
-
+  <!--
+    The previous list of supported platforms was not formatted as a valid Markdown table.
+    Below is a properly formatted Markdown table for better rendering.
+  -->
   | ChatGPT    | Claude     | Google Gemini |
+  |------------|------------|---------------|
   | NotebookLM | Deepseek   | Copilot       |
   | Grok       | Poe        | Qwen          |
-  | Perplexity | Kimi        | Mistral       |
-  | Abacus     | OpenRouter  |               |
-  |            |             |               |
+  | Perplexity | Kimi       | Mistral       |
+  | Abacus     | OpenRouter |               |
 
 
 ## Installation
