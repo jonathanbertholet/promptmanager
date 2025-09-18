@@ -291,8 +291,8 @@ class InputBoxHandler {
       // COMMENT: Read setting that controls append vs overwrite behavior
       const disableOverwrite = await new Promise(resolve => {
         try {
-          chrome.storage.local.get('disableOverwrite', data => {
-            if (chrome.runtime?.lastError) { resolve(false); return; }
+          browser.storage.local.get('disableOverwrite', data => {
+            if (browser.runtime?.lastError) { resolve(false); return; }
             resolve(Boolean(data?.disableOverwrite));
           });
         } catch (_) { resolve(false); }

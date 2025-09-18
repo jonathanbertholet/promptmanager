@@ -8,7 +8,7 @@ import { exportPrompts, importPrompts } from '../importExport.js';
 async function hasAnyGrantedProviderPermission() {
   return new Promise(resolve => {
     try {
-      chrome.storage.local.get(['aiProvidersMap'], result => {
+      browser.storage.local.get(['aiProvidersMap'], result => {
         if (!result || !result.aiProvidersMap) {
           resolve(false);
           return;
@@ -173,7 +173,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // COMMENT: React to permissions updates live (permissions page writes aiProvidersMap)
   try {
-    chrome.storage.onChanged.addListener((changes, area) => {
+    browser.storage.onChanged.addListener((changes, area) => {
       if (area === 'local' && changes.aiProvidersMap) {
         renderPermissionsGate();
       }
@@ -188,7 +188,7 @@ document.addEventListener('DOMContentLoaded', () => {
     infoBanner.style.display = 'none'; // default: hidden
   }
   try {
-    chrome.storage?.local?.get(['spm_show_info_banner'], (res) => {
+    browser.storage?.local?.get(['spm_show_info_banner'], (res) => {
       const shouldShow = res && res.spm_show_info_banner === true;
       // Respect prior dismissal stored in localStorage
       const dismissed = (() => {
@@ -214,7 +214,7 @@ document.addEventListener('DOMContentLoaded', () => {
         localStorage.setItem('spm_info_banner_dismissed', 'true');
         // Turning off the storage toggle ensures it will not show again
         // until explicitly re-enabled by setting `spm_show_info_banner` to true.
-        chrome.storage?.local?.set({ spm_show_info_banner: false });
+        browser.storage?.local?.set({ spm_show_info_banner: false });
       } catch (err) {
         // Ignore storage errors
       }

@@ -25,8 +25,7 @@
             "16": "/icons/icon16.png",
             "48": "/icons/icon48.png",
             "128": "/icons/icon128.png"
-        },
-        "default_popup": "popup.html"
+        }
     },
     "background": {
         "service_worker": "service-worker.js",
@@ -62,8 +61,7 @@
                 "changelog.html",
                 "info.html",
                 "promptStorage.js",
-                "utils.js",
-                "popup.html"
+                "utils.js"
             ],
             "matches": [
                 "<all_urls>"

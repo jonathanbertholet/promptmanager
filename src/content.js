@@ -218,7 +218,7 @@ const PanelRouter = (() => {
       const title = createEl('div', { styles: { fontWeight: 'bold', fontSize: '16px', marginBottom: '6px' }, innerHTML: 'Navigation & Features' });
       const info = createEl('div', { id: SELECTORS.INFO_CONTENT, styles: { maxHeight: '410px', overflowY: 'auto', padding: '4px', borderRadius: '6px', color: dark ? THEME_COLORS.inputDarkText : THEME_COLORS.inputLightText } });
       container.append(title, info);
-      fetch(chrome.runtime.getURL('info.html')).then(r => r.text()).then(html => { info.innerHTML = html; });
+      fetch(browser.runtime.getURL('info.html')).then(r => r.text()).then(html => { info.innerHTML = html; });
       return container;
     }
     if (view === PanelView.CHANGELOG) {
@@ -228,7 +228,7 @@ const PanelRouter = (() => {
       const title = createEl('div', { styles: { fontWeight: 'bold', fontSize: '16px', marginBottom: '6px' }, innerHTML: 'Changelog' });
       const info = createEl('div', { id: SELECTORS.CHANGELOG_CONTENT, styles: { maxHeight: '410px', overflowY: 'auto', padding: '4px', borderRadius: '6px', color: dark ? THEME_COLORS.inputDarkText : THEME_COLORS.inputLightText } });
       container.append(title, info);
-      fetch(chrome.runtime.getURL('changelog.html')).then(r => r.text()).then(html => { info.innerHTML = html; });
+      fetch(browser.runtime.getURL('changelog.html')).then(r => r.text()).then(html => { info.innerHTML = html; });
       return container;
     }
     return null;
@@ -359,8 +359,8 @@ class KeyboardManager {
 
   // COMMENT: Watch storage for keyboard shortcut changes and update cache
   static _attachShortcutWatcher() {
-    if (!chrome || !chrome.storage || !chrome.storage.onChanged) return;
-    chrome.storage.onChanged.addListener((changes, area) => {
+    if (!browser || !browser.storage || !browser.storage.onChanged) return;
+    browser.storage.onChanged.addListener((changes, area) => {
       if (area !== 'local') return;
       if (changes && changes.keyboardShortcut && changes.keyboardShortcut.newValue) {
         KeyboardManager.shortcutCache = changes.keyboardShortcut.newValue;
@@ -406,8 +406,8 @@ class PromptStorageManager {
   static getData(key, def) {
     return new Promise(resolve => {
       try {
-        chrome.storage.local.get(key, data => {
-          if (chrome.runtime.lastError) { console.warn(chrome.runtime.lastError.message); resolve(def); return; }
+        browser.storage.local.get(key, data => {
+          if (browser.runtime.lastError) { console.warn(browser.runtime.lastError.message); resolve(def); return; }
           resolve(data[key] !== undefined && data[key] !== null ? data[key] : def);
         });
       } catch (err) { console.error(err); resolve(def); }
@@ -417,9 +417,9 @@ class PromptStorageManager {
   static setData(key, value) {
     return new Promise(resolve => {
       try {
-        if (!chrome.runtime || !chrome.storage) { console.warn('Invalid extension context'); resolve(false); return; }
-        chrome.storage.local.set({ [key]: value }, () => {
-          if (chrome.runtime.lastError) { console.warn(chrome.runtime.lastError.message); resolve(false); return; }
+        if (!browser.runtime || !browser.storage) { console.warn('Invalid extension context'); resolve(false); return; }
+        browser.storage.local.set({ [key]: value }, () => {
+          if (browser.runtime.lastError) { console.warn(browser.runtime.lastError.message); resolve(false); return; }
           resolve(true);
         });
       } catch (err) { console.error(err); resolve(false); }
@@ -431,7 +431,7 @@ class PromptStorageManager {
     if (this.__ps) return this.__ps;
 
     // COMMENT: Dynamically import the web-accessible module so content-scripts can use it
-    const mod = await import(chrome.runtime.getURL('promptStorage.js'));
+    const mod = await import(browser.runtime.getURL('promptStorage.js'));
 
     // COMMENT: Build a thin adapter to keep current call-sites unchanged
     this.__ps = {
@@ -520,13 +520,13 @@ class PromptStorageManager {
 /* [03b] Icon SVGs (depends on theme helpers for getIconFilter) */
 const ICON_SVGS = {
   // COMMENT: Use centralized filter generator for consistency and easier maintenance
-  list: `<img src="${chrome.runtime.getURL('icons/list.svg')}" width="16" height="16" alt="List Prompts" title="List Prompts" style="filter: ${getIconFilter()}">`,
-  add: `<img src="${chrome.runtime.getURL('icons/new.svg')}" width="16" height="16" alt="Add Prompt" title="Add Prompt" style="filter: ${getIconFilter()}">`,
-  delete: `<img src="${chrome.runtime.getURL('icons/delete.svg')}" width="16" height="16" alt="Delete" title="Delete" style="filter: ${getIconFilter()}">`,
-  edit: `<img src="${chrome.runtime.getURL('icons/edit.svg')}" width="16" height="16" alt="Edit" title="Edit" style="filter: ${getIconFilter()}">`,
-  settings: `<img src="${chrome.runtime.getURL('icons/settings.svg')}" width="16" height="16" alt="Settings" title="Settings" style="filter: ${getIconFilter()}">`,
-  help: `<img src="${chrome.runtime.getURL('icons/help.svg')}" width="16" height="16" alt="Help" title="Help" style="filter: ${getIconFilter()}">`,
-  changelog: `<img src="${chrome.runtime.getURL('icons/notes.svg')}" width="16" height="16" alt="Changelog" title="Changelog" style="filter: ${getIconFilter()}">`,
+  list: `<img src="${browser.runtime.getURL('icons/list.svg')}" width="16" height="16" alt="List Prompts" title="List Prompts" style="filter: ${getIconFilter()}">`,
+  add: `<img src="${browser.runtime.getURL('icons/new.svg')}" width="16" height="16" alt="Add Prompt" title="Add Prompt" style="filter: ${getIconFilter()}">`,
+  delete: `<img src="${browser.runtime.getURL('icons/delete.svg')}" width="16" height="16" alt="Delete" title="Delete" style="filter: ${getIconFilter()}">`,
+  edit: `<img src="${browser.runtime.getURL('icons/edit.svg')}" width="16" height="16" alt="Edit" title="Edit" style="filter: ${getIconFilter()}">`,
+  settings: `<img src="${browser.runtime.getURL('icons/settings.svg')}" width="16" height="16" alt="Settings" title="Settings" style="filter: ${getIconFilter()}">`,
+  help: `<img src="${browser.runtime.getURL('icons/help.svg')}" width="16" height="16" alt="Help" title="Help" style="filter: ${getIconFilter()}">`,
+  changelog: `<img src="${browser.runtime.getURL('icons/notes.svg')}" width="16" height="16" alt="Changelog" title="Changelog" style="filter: ${getIconFilter()}">`,
 };
 
 /* ---------------------------------------------------------------------------
@@ -1221,7 +1221,7 @@ const PromptUI = (() => {
           className: 'opm-drag-handle',
           innerHTML: `
             <img 
-              src="${chrome.runtime.getURL('icons/drag_indicator.svg')}" 
+              src="${browser.runtime.getURL('icons/drag_indicator.svg')}"
               width="16" 
               height="16" 
               alt="Drag handle" 
@@ -2097,7 +2097,7 @@ class PromptMediator {
   setupStorageChangeMonitor() {   // COMMENT: Use unified storage change listener to keep UI in sync across contexts
     (async () => {
       try {
-        const { onPromptsChanged } = await import(chrome.runtime.getURL('promptStorage.js'));
+        const { onPromptsChanged } = await import(browser.runtime.getURL('promptStorage.js'));
         onPromptsChanged((prompts) => {      // COMMENT: Only refresh items when the list view is active to avoid polluting non-list views
           PromptUIManager.refreshItemsIfListActive(prompts);
         });

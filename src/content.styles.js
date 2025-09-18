@@ -188,7 +188,7 @@ var injectGlobalStyles = window.injectGlobalStyles || function injectGlobalStyle
       left: 0;
       right: 0;
       bottom: 0;
-      background-image: url('${chrome.runtime.getURL('icons/icon-button.png')}');
+      background-image: url('${browser.runtime.getURL('icons/icon-button.png')}');
       background-size: 50%;
       background-position: center;
       background-repeat: no-repeat;

@@ -1,6 +1,6 @@
 export async function getProviders() {
   try {
-    const response = await fetch(chrome.runtime.getURL('llm_providers.json'));
+    const response = await fetch(browser.runtime.getURL('llm_providers.json'));
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }

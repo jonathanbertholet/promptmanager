@@ -36,7 +36,7 @@ document.addEventListener('DOMContentLoaded', function () {
       // up. This keeps backwards-compatibility with existing logic.
       const ensureUrlPromise = firstAllowedUrl
         ? Promise.resolve(firstAllowedUrl)
-        : fetch(chrome.runtime.getURL('/llm_providers.json'))
+        : fetch(browser.runtime.getURL('/llm_providers.json'))
             .then(response => response.json())
             .then(data => {
               const llmList = data.llm_providers || [];
@@ -122,12 +122,12 @@ document.addEventListener('DOMContentLoaded', function () {
             const providerKey = this.dataset.provider;
             const originPattern = this.dataset.urlPattern;
 
-            chrome.permissions.request({ origins: [originPattern] }, (granted) => {
+            browser.permissions.request({ origins: [originPattern] }, (granted) => {
               if (granted) {
                 // Update local providersMap and persist
                 providersMap[providerKey].hasPermission = "Yes";
                 // Persist change; UI will refresh via storage.onChanged listener
-                chrome.storage.local.set({ aiProvidersMap: providersMap });
+                browser.storage.local.set({ aiProvidersMap: providersMap });
               } else {
                 alert(`Permission denied for ${providerKey}`);
               }
@@ -142,14 +142,14 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   // Listen for changes to aiProvidersMap in storage and update UI
-  chrome.storage.onChanged.addListener((changes, areaName) => {
+  browser.storage.onChanged.addListener((changes, areaName) => {
     if (areaName === 'local' && changes.aiProvidersMap && changes.aiProvidersMap.newValue) {
       populateProviders(changes.aiProvidersMap.newValue);
     }
   });
 
   // Get the providers map from storage when the page loads
-  chrome.storage.local.get(['aiProvidersMap'], function (result) {
+  browser.storage.local.get(['aiProvidersMap'], function (result) {
     if (result.aiProvidersMap) {
       const providersMap = result.aiProvidersMap;
       console.log('Retrieved providersMap from storage:', providersMap);

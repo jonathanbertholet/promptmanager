@@ -16,12 +16,12 @@ export const PROMPT_STORAGE_VERSION = 2;            // bump when schema changes 
 const STORAGE_KEY = 'prompts_storage';             // canonical
 const LEGACY_KEY  = 'prompts';                     // kept in sync for old code
 
-// Wrap chrome.storage callbacks in Promises for readability
+// Wrap browser.storage callbacks in Promises for readability
 function storageGet(keys) {
-  return new Promise(resolve => chrome.storage.local.get(keys, resolve));
+  return new Promise(resolve => browser.storage.local.get(keys, resolve));
 }
 function storageSet(obj) {
-  return new Promise(resolve => chrome.storage.local.set(obj, resolve));
+  return new Promise(resolve => browser.storage.local.set(obj, resolve));
 }
 
 // Normalise a single prompt so we *always* work with the same shape
@@ -309,7 +309,7 @@ export async function importPrompts(source) {
 
 // Change listener convenience wrapper
 export function onPromptsChanged(callback) {
-  chrome.storage.onChanged.addListener((changes, area) => {
+  browser.storage.onChanged.addListener((changes, area) => {
     if (area !== 'local') return;
     if (changes[STORAGE_KEY] || changes[LEGACY_KEY]) {
       getPrompts().then(callback);
