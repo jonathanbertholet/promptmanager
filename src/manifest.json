@@ -4,12 +4,12 @@
     "version": "2.4.0",
     "description": "Fully Open Source Prompt Manager for ChatGPT, Claude, Gemini, Grok, and more.",
     "permissions": [
-        "sidePanel",
         "storage",
         "tabs",
         "scripting",
         "activeTab",
-        "contextMenus"
+        "contextMenus",
+        "sidePanel"
     ],
     "side_panel": {
         "default_path": "sidepanel/index.html"
@@ -25,12 +25,15 @@
             "16": "/icons/icon16.png",
             "48": "/icons/icon48.png",
             "128": "/icons/icon128.png"
-        },
-        "default_popup": "popup.html"
+        }
     },
     "background": {
-        "service_worker": "service-worker.js",
-        "type": "module"
+        "scripts": ["background.js"]
+    },
+    "browser_specific_settings": {
+        "gecko": {
+            "id": "open-prompt-manager@example.com"
+        }
     },
     "host_permissions": [],
     "optional_host_permissions": [
@@ -62,8 +65,7 @@
                 "changelog.html",
                 "info.html",
                 "promptStorage.js",
-                "utils.js",
-                "popup.html"
+                "utils.js"
             ],
             "matches": [
                 "<all_urls>"
