@@ -11,10 +11,13 @@
   .pm-title { font-weight: 500; color: #575757; }
   .pm-muted, .pm-sep { color: #666; }
 
-  /*dark mode text color*/
+  /* Dark mode overrides scoped to our root to avoid affecting host page */
   @media (prefers-color-scheme: dark) { 
-    .pm-muted { color: #e1e1e1; }
-    .pm-title { color: #e1e1e1; }
+    #opm-root .pm-info { color: #E2E8F0; }
+    #opm-root .pm-title { color: #E2E8F0; }
+    #opm-root .pm-muted, #opm-root .pm-sep { color: #A0AEC0; }
+    #opm-root .pm-link { color: #E2E8F0; }
+    #opm-root .pm-link:hover, #opm-root .pm-link:focus { text-decoration: underline; }
   }
 
   /* Reusable chips for actions and keys */
@@ -25,6 +28,8 @@
   /* Links */
   .pm-link { color: #3674B5; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; }
   .pm-icon { min-width: 16px; }
+  .pm-link svg { color: inherit; }
+  .pm-link svg path { fill: currentColor; }
 </style>
 
 <div class="pm-info">

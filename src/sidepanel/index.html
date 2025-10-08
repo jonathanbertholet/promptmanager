@@ -124,23 +124,31 @@
   <p></p>
   <!-- Sticky footer for icons/links -->
   <footer class="footer">
-    <div class="footer-icons">
+    <div class="footer-icons" style="display: flex; align-items: center; gap: 8px;">
       <a id="link" href="https://github.com/jonathanbertholet/promptmanager"
-        target="_blank" title="Github"><img class="footer-icons" src="../icons/github-icon.png" alt="Github"
-          style="margin-right: 5px" /></a>
+        target="_blank" title="Github"><img class="footer-icons" src="../icons/github-icon.png" alt="Github" /></a>
       <a id="link" href="https://chromewebstore.google.com/detail/open-prompt-manager/gmhaghdbihgenofhnmdbglbkbplolain"
-        target="_blank" title="Review me"><img class="footer-icons" src="../icons/review-icon.png" alt="Review me"
-          style="margin-right: 5px" /></a>
-      <a id="link" href="../settings.html" style="margin-right: 5px" title="Settings"><img id="settings-icon" class="footer-icons"
+        target="_blank" title="Review me"><img class="footer-icons" src="../icons/review-icon.png" alt="Review me" /></a>
+      <a id="link" href="../settings.html" title="Settings"><img id="settings-icon" class="footer-icons"
           src="../icons/settings-icon.png" alt="Settings" /></a>
-      <!-- 
-        <a id="link" href="../changelog.html" title="Changelog" style="margin-right: 5px">
-          <img class="footer-icons" src="../icons/notes.svg" alt="Changelog" />
-        </a>
-        Changelog link commented out for now. 
-      -->
-      <a id="link" href="../permissions/permissions.html" title="Open Permissions Manager" target="_blank"><img id="permissions-icon" class="footer-icons" src="../icons/permissions-icon.svg"
-          alt="Open Permissions Manager" /></a>
+      <a id="link" href="../permissions/permissions.html" title="Activate more LLMs" target="_blank" style="text-decoration: none;">
+        <span style="
+          display: inline-flex;
+          align-items: center;
+          background-color: var(--primary, #3674B5);
+          color: #fff;
+          padding: 4px 14px;
+          border-radius: 999px;
+          font-size: 13px;
+          font-weight: 500;
+          gap: 7px;
+          box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+          transition: background 0.15s;
+        ">
+          <img id="permissions-icon" class="footer-icons" src="../icons/permissions-icon.svg" alt="Activate more LLMs" style="width: 14px; height: 14px; margin: 0; filter: brightness(0) invert(1);" />
+          Activate more LLMs
+        </span>
+      </a>
     </div>
   </footer>
   <script type="module" src="sidepanel.js"></script>
