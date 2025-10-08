@@ -227,7 +227,7 @@ var injectGlobalStyles = window.injectGlobalStyles || function injectGlobalStyle
       padding-bottom: 10px; /* reserve space for bottom menu; ensure last item fully visible above it */
       display: flex; /* allow children (list items container or forms) to flex */
       flex-direction: column;
-      padding-bottom:55px;
+      padding-bottom: 64px; /* COMMENT: increase reserved space to avoid overlap with bottom menu */
     }
     #${SELECTORS.ROOT} .opm-prompt-list.opm-visible {
       opacity: 1;
@@ -243,13 +243,23 @@ var injectGlobalStyles = window.injectGlobalStyles || function injectGlobalStyle
       border: 1px solid var(--dark-border);
       box-shadow: var(--dark-shadow);
     }
+    /* Height modes: fixed (non-list views) vs variable (list view) */
+    #${SELECTORS.ROOT} .opm-prompt-list.opm-fixed-400 {
+      min-height: 400px;
+      max-height: 400px;
+    }
+    #${SELECTORS.ROOT} .opm-prompt-list.opm-variable {
+      height: auto;
+      min-height: 0;
+      max-height: 400px;
+    }
     /* List Items styled as modern cards */
     #${SELECTORS.ROOT} .opm-prompt-list-items {
       max-height: 350px;
       overflow-y: auto;
       margin-bottom: 8px;
       padding-top: 4px;
-      padding-bottom: 10px; /* extra scroll area so bottom item isn't obscured by sticky menu */
+      padding-bottom: 24px; /* COMMENT: extra space so the last item is not obscured by bottom menu */
       flex: 1 1 auto; /* ensure items take available space and scroll internally */
     }
     #${SELECTORS.ROOT} .opm-prompt-list-items.opm-light {

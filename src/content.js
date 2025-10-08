@@ -234,7 +234,7 @@ const PanelRouter = (() => {
     return null;
   };
 
-  const mount = async (view) => {
+    const mount = async (view) => {
     // Always rebuild EDIT to reflect latest prompt order; keep other views cached
     if (currentView === view && ![PanelView.LIST, PanelView.EDIT].includes(view)) {
       const listEl = qs(`#${SELECTORS.PROMPT_LIST}`);
@@ -247,12 +247,19 @@ const PanelRouter = (() => {
     if (!listEl) return;
 
     if (view === PanelView.LIST) {
+      // COMMENT: Variable height for list view (grow up to 400px)
+      PromptUIManager.setPanelHeightMode('variable');
       const prompts = await PromptStorageManager.getPrompts();
-      // COMMENT: Always default to "All" when loading the list view from any other view
-      PromptUIManager.activeTagFilter = 'all';
+      // COMMENT: Restore persisted tag (fall back to 'all') when entering LIST view
+      try {
+        const savedTag = await PromptStorageManager.getActiveTagFilter();
+        PromptUIManager.activeTagFilter = savedTag || 'all';
+      } catch (_) {
+        PromptUIManager.activeTagFilter = 'all';
+      }
       PromptUIManager.refreshPromptList(prompts);
-      // Apply the default tag filter immediately so tags bar and items align
-      PromptUIManager.filterByTag('all');
+      // COMMENT: Apply the persisted tag so tags bar and items align immediately
+      PromptUIManager.filterByTag(PromptUIManager.activeTagFilter);
       // Search visible only on list view
       PromptUIManager.setSearchVisibility(true);
       PromptUIManager.showPromptList(listEl);
@@ -266,6 +273,8 @@ const PanelRouter = (() => {
       PromptUIManager.resetPromptListContainer();
       PromptUIManager.replacePanelMainContent(node);
     }
+      // COMMENT: Fixed height for non-list views (400px)
+      PromptUIManager.setPanelHeightMode('fixed');
     // Ensure list is visible first, then set search visibility so it isn't overridden
     PromptUIManager.showPromptList(listEl);
     // Show search for EDIT view as well; hide for others
@@ -505,6 +514,15 @@ class PromptStorageManager {
   }
   static async saveEnableTags(value) {
     return await PromptStorageManager.setData('enableTags', !!value);
+  }
+
+  // COMMENT: Persist the active tag filter across sessions (LIST view)
+  static async getActiveTagFilter() {
+    return await PromptStorageManager.getData('activeTagFilter', 'all');
+  }
+  static async saveActiveTagFilter(tag) {
+    const clean = (tag || 'all');
+    return await PromptStorageManager.setData('activeTagFilter', clean);
   }
 
   // COMMENT: Persistent custom display order for tags in settings (array of tag names)
@@ -981,7 +999,10 @@ const PromptUI = (() => {
           if (counts.size === 0) { tagsHost.style.display = 'none'; return; }
           const ordered = await TagService.getOrderedTags(counts);
 
-          const prev = (PromptUIManager.activeTagFilter || 'all').toLowerCase();
+          // COMMENT: Use persisted tag if available and present in counts
+          let persisted = 'all';
+          try { persisted = (await PromptStorageManager.getActiveTagFilter() || 'all').toLowerCase(); } catch (_) { persisted = 'all'; }
+          const prev = (PromptUIManager.activeTagFilter || persisted || 'all').toLowerCase();
           const selected = prev !== 'all' && counts.has(prev) ? prev : 'all';
           PromptUIManager.activeTagFilter = selected;
 
@@ -1155,42 +1176,158 @@ const PromptUI = (() => {
         }
       });
       // COMMENT: Tag Management section (aggregated tags with counts)
-      const tagMgmtTitle = createEl('div', { styles: { fontWeight: 'bold', fontSize: '14px', marginTop: '12px' }, innerHTML: 'Tag management' });
-      const tagMgmtContainer = createEl('div', { styles: { display: 'flex', flexDirection: 'column', gap: '6px' } });
+      const tagMgmtTitle = createEl('div', { styles: { fontWeight: 'bold', fontSize: '14px', marginTop: '12px', display: 'none' }, innerHTML: 'Tag management' });
+      const tagMgmtContainer = createEl('div', { styles: { display: 'none', flexDirection: 'column', gap: '6px' } });
       (async () => {
         try {
           const enableTags = await PromptStorageManager.getEnableTags();
-          if (!enableTags) return; // hide if feature disabled
-          const counts = await TagService.getCounts();
-          const finalOrder = await TagService.getOrderedTags(counts);
-          const row = createEl('div', { className: 'opm-tags-mgmt-container' });
+          if (!enableTags) { tagMgmtTitle.style.display = 'none'; tagMgmtContainer.style.display = 'none'; return; }
 
-          // Enable drag to reorder pills
-          let dragIndex = null;
+          // Show section only when tags feature is enabled
+          tagMgmtTitle.style.display = '';
+          tagMgmtContainer.style.display = '';
+
+          let counts = await TagService.getCounts();
+          const row = createEl('div', { className: 'opm-tags-mgmt-container' });
+          let finalOrder = await TagService.getOrderedTags(counts);
+
+          // COMMENT: Placeholder for dynamic insertion while dragging
+          const placeholder = createEl('span', { className: `opm-tag-pill opm-${getMode()} opm-drop-placeholder`, innerHTML: '&nbsp;' });
+          let dragFromIndex = null;
+
+          const pillsOnly = () => Array.from(row.children).filter(n => n.classList && n.classList.contains('opm-tag-pill') && n !== placeholder);
+
+          const insertPlaceholderAt = (clientX, clientY) => {
+            const pills = pillsOnly();
+            if (pills.length === 0) { row.appendChild(placeholder); return; }
+            let inserted = false;
+            for (let i = 0; i < pills.length; i++) {
+              const rect = pills[i].getBoundingClientRect();
+              if (clientY >= rect.top && clientY <= rect.bottom) {
+                // Match placeholder width to nearest pill for stable layout
+                placeholder.style.width = `${rect.width}px`;
+                const before = clientX < rect.left + rect.width / 2;
+                if (before) {
+                  if (pills[i].previousSibling !== placeholder) row.insertBefore(placeholder, pills[i]);
+                } else {
+                  if (pills[i].nextSibling !== placeholder) row.insertBefore(placeholder, pills[i].nextSibling);
+                }
+                inserted = true;
+                break;
+              }
+            }
+            if (!inserted) {
+              const first = pills[0];
+              const last = pills[pills.length - 1];
+              const firstRect = first.getBoundingClientRect();
+              const lastRect = last.getBoundingClientRect();
+              placeholder.style.width = `${(firstRect || lastRect).width}px`;
+              if (clientY < firstRect.top) {
+                if (first.previousSibling !== placeholder) row.insertBefore(placeholder, first);
+              } else {
+                if (last.nextSibling !== placeholder) row.insertBefore(placeholder, last.nextSibling);
+              }
+            }
+          };
+
+          // Row-level DnD to create space dynamically
+          row.addEventListener('dragover', e => {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            insertPlaceholderAt(e.clientX, e.clientY);
+          });
+          row.addEventListener('drop', async e => {
+            e.preventDefault();
+            const nodes = Array.from(row.children);
+            let to = 0;
+            for (let i = 0; i < nodes.length; i++) {
+              const node = nodes[i];
+              if (node === placeholder) break;
+              if (node.classList && node.classList.contains('opm-tag-pill')) to++;
+            }
+            let from = dragFromIndex;
+            if (from === null) {
+              const txt = e.dataTransfer.getData('text/plain');
+              const parsed = parseInt(txt, 10);
+              from = Number.isNaN(parsed) ? null : parsed;
+            }
+            if (from === null || from === to) {
+              if (placeholder.parentNode) placeholder.parentNode.removeChild(placeholder);
+              dragFromIndex = null;
+              return;
+            }
+            if (from < to) to = to - 1;
+            const moved = finalOrder.splice(from, 1)[0];
+            finalOrder.splice(Math.max(0, Math.min(finalOrder.length, to)), 0, moved);
+            await PromptStorageManager.saveTagsOrder(finalOrder);
+            if (placeholder.parentNode) placeholder.parentNode.removeChild(placeholder);
+            dragFromIndex = null;
+            render();
+          });
+
+          // Enable drag to reorder via a dedicated handle (with custom drag image)
           const render = () => {
             row.innerHTML = '';
             finalOrder.forEach((tag, idx) => {
               const n = counts.get(tag) || 0;
-              const pill = createEl('span', { className: `opm-tag-pill opm-${getMode()}`, innerHTML: `${tag} (${n})` });
-              pill.setAttribute('draggable', 'true');
-              pill.dataset.index = String(idx);
-              pill.addEventListener('dragstart', e => {
+              const pill = createEl('span', { className: `opm-tag-pill opm-${getMode()}` });
+
+              // Drag handle on the left
+              const handle = createEl('span', {
+                styles: { display: 'inline-flex', alignItems: 'center', marginRight: '6px', cursor: 'grab' },
+                innerHTML: `
+                  <img 
+                    src="${chrome.runtime.getURL('icons/drag_indicator.svg')}" 
+                    width="14" 
+                    height="14" 
+                    alt="Drag" 
+                    title="Drag to reorder"
+                    style="opacity: 0.9; filter: ${getIconFilter()}"
+                  >
+                `
+              });
+              handle.setAttribute('draggable', 'true');
+              handle.addEventListener('dragstart', e => {
+                e.stopPropagation();
                 e.dataTransfer.effectAllowed = 'move';
                 e.dataTransfer.setData('text/plain', String(idx));
-                dragIndex = idx;
+                dragFromIndex = idx;
+                try {
+                  const rect = pill.getBoundingClientRect();
+                  const offsetX = Math.min(8, rect.width / 2);
+                  const offsetY = Math.min(8, rect.height / 2);
+                  e.dataTransfer.setDragImage(pill, offsetX, offsetY);
+                } catch (_) {}
               });
-              pill.addEventListener('dragover', e => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; });
-              pill.addEventListener('drop', async e => {
-                e.preventDefault();
-                const from = parseInt(e.dataTransfer.getData('text/plain'), 10);
-                const to = parseInt(pill.dataset.index, 10);
-                if (!Number.isNaN(from) && !Number.isNaN(to) && from !== to) {
-                  const moved = finalOrder.splice(from, 1)[0];
-                  finalOrder.splice(to, 0, moved);
-                  render();
+              handle.addEventListener('dragend', () => {
+                if (placeholder.parentNode) placeholder.parentNode.removeChild(placeholder);
+                dragFromIndex = null;
+              });
+
+              // Label in the middle
+              const label = createEl('span', { innerHTML: `${tag} (${n})` });
+
+              // Remove button on the right
+              const removeBtn = createEl('button', { innerHTML: '×', styles: { marginLeft: '6px', border: 'none', background: 'transparent', cursor: 'pointer', fontSize: '14px', lineHeight: '1' } });
+              removeBtn.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                if (!confirm(`Remove tag "${tag}" from all prompts?`)) return;
+                try {
+                  const prompts = await PromptStorageManager.getPrompts();
+                  const updated = prompts.map(p => {
+                    const nextTags = Array.isArray(p.tags) ? p.tags.filter(t => t !== tag) : [];
+                    return { ...p, tags: nextTags };
+                  });
+                  await PromptStorageManager.setPrompts(updated);
+                  // Update counts & order locally
+                  counts = await TagService.getCounts(updated);
+                  finalOrder = finalOrder.filter(t => t !== tag);
                   await PromptStorageManager.saveTagsOrder(finalOrder);
-                }
+                  render();
+                } catch (_) { /* ignore */ }
               });
+
+              pill.append(handle, label, removeBtn);
               row.appendChild(pill);
             });
           };
@@ -1342,6 +1479,13 @@ class PromptUIManager {
     }
     return root;
   }
+  // COMMENT: Toggle panel height mode: 'variable' (LIST) or 'fixed' (other views)
+  static setPanelHeightMode(mode) {
+    const listEl = qs(`#${SELECTORS.PROMPT_LIST}`);
+    if (!listEl) return;
+    listEl.classList.remove('opm-fixed-400', 'opm-variable');
+    if (mode === 'variable') listEl.classList.add('opm-variable'); else listEl.classList.add('opm-fixed-400');
+  }
   // COMMENT: Map manager flags to PromptUI.State via accessors
   static get manuallyOpened() { return PromptUI.State.manuallyOpened; }
   static set manuallyOpened(v) { PromptUI.State.manuallyOpened = v; }
@@ -1358,7 +1502,7 @@ class PromptUIManager {
       const container = createEl('div', { id: SELECTORS.PROMPT_BUTTON_CONTAINER, styles: UI_STYLES.getPromptButtonContainerStyle(pos) });
       const button = createEl('button', { id: SELECTORS.PROMPT_BUTTON, className: 'opm-prompt-button' });
       container.appendChild(button);
-      const listEl = createEl('div', { id: SELECTORS.PROMPT_LIST, className: `opm-prompt-list opm-${getMode()}` });
+      const listEl = createEl('div', { id: SELECTORS.PROMPT_LIST, className: `opm-prompt-list opm-${getMode()} opm-fixed-400` });
       container.appendChild(listEl);
       PromptUIManager._ensureRoot().appendChild(container);
       PromptUIManager.refreshPromptList(prompts);
@@ -1533,6 +1677,8 @@ class PromptUIManager {
     const input = document.getElementById(SELECTORS.PROMPT_SEARCH_INPUT);
     const term = input ? input.value : '';
     PromptUIManager.filterPromptItems(term);
+    // COMMENT: Persist selected tag for future sessions
+    try { PromptStorageManager.saveActiveTagFilter(PromptUIManager.activeTagFilter); } catch (_) { /* ignore */ }
   }
 
   // COMMENT: Centralized clearing of search input and results state
@@ -1581,19 +1727,28 @@ class PromptUIManager {
     if (!listEl) return;
     // COMMENT: Detect whether we are opening the panel (vs already open)
     const wasVisible = listEl.classList.contains('opm-visible');
+    // COMMENT: When showing, if current view is LIST, allow variable height; else keep fixed
+    const panelNode = document.getElementById(SELECTORS.PANEL_CONTENT);
+    const isListView = panelNode && panelNode.querySelector(`.${SELECTORS.PROMPT_ITEMS_CONTAINER}.opm-view-list`);
+    PromptUIManager.setPanelHeightMode(isListView ? 'variable' : 'fixed');
     PromptUI.Behaviors.showList(listEl);
     // COMMENT: Determine if the current main content is the LIST view
     const panel = document.getElementById(SELECTORS.PANEL_CONTENT);
     const hasListItems = panel && panel.querySelector(`.${SELECTORS.PROMPT_ITEMS_CONTAINER}.opm-view-list`);
-    // COMMENT: On open, default to "All" and refresh prompts only when the list view is active
+    // COMMENT: On open, restore persisted tag or default to "All" and refresh prompts only when the list view is active
     if (!wasVisible && hasListItems) {
-      PromptUIManager.activeTagFilter = 'all';
+      // restore persisted tag
+      PromptStorageManager.getActiveTagFilter().then(savedTag => { PromptUIManager.activeTagFilter = savedTag || 'all'; }).catch(() => { PromptUIManager.activeTagFilter = 'all'; });
       // Rebuild the list from storage, then apply default tag filter
       PromptStorageManager.getPrompts().then(prompts => {
         PromptUIManager.refreshPromptList(prompts);
         // COMMENT: Ensure search input focuses after the refresh so typing/keyboard works
         setTimeout(() => {
-          PromptUIManager.filterByTag('all');
+          PromptStorageManager.getActiveTagFilter().then(savedTag => {
+            PromptUIManager.filterByTag(savedTag || 'all');
+          }).catch(() => {
+            PromptUIManager.filterByTag('all');
+          });
           PromptUIManager.focusSearchInput();
         }, SEARCH_FOCUS_DELAY_MS);
       }).catch(() => {
@@ -1736,7 +1891,10 @@ class PromptUIManager {
       varValues[v] = '';
     });
     form.appendChild(varContainer);
-    const btnContainer = createEl('div', { styles: { display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '8px' } });
+    // COMMENT: Ensure non-list view uses fixed height
+    PromptUIManager.setPanelHeightMode('fixed');
+    // COMMENT: Button container sticks to bottom of the panel
+    const btnContainer = createEl('div', { styles: { display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '8px', marginTop: 'auto', position: 'sticky', bottom: '0', background: 'transparent' } });
     const submitBtn = createEl('button', { innerHTML: 'Submit', className: `opm-button opm-${getMode()}` });
     submitBtn.addEventListener('click', () => {
       PromptUIManager.inVariableInputMode = false;
@@ -1880,7 +2038,7 @@ class PromptUIManager {
     // Create the prompt list container with some positioning rules
     const listEl = createEl('div', {
       id: SELECTORS.PROMPT_LIST,
-      className: `opm-prompt-list opm-${getMode()}`,
+      className: `opm-prompt-list opm-${getMode()} opm-fixed-400`,
       styles: {
         position: 'absolute',
         right: '30px',
