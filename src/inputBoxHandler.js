@@ -23,7 +23,7 @@ class InputBoxHandler {
 
     // Deepseek (chat.deepseek.com)
     if (url.includes('deepseek.com')) {
-      const inputBox = document.getElementById('chat-input');
+      const inputBox = document.querySelector('textarea[placeholder="Message DeepSeek"]');
       if (inputBox) {
         console.log('Input box found: Deepseek');
         return inputBox;
