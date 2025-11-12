@@ -4,122 +4,134 @@
       "name": "ChatGPT",
       "pattern": "*://chatgpt.com/*",
       "url": "https://chatgpt.com",
-      "icon_url": "https://cdn.oaistatic.com/assets/favicon-miwirzcw.ico"
-      
+      "icon_url": "https://cdn.oaistatic.com/assets/favicon-miwirzcw.ico",
+      "element_selector": "#prompt-textarea"
     },
     {
       "name": "NotebookLM",
       "pattern": "*://notebooklm.google.com/*",
       "url": "https://notebooklm.google.com",
-      "icon_url": "https://notebooklm.google.com/_/static/branding/v5/light_mode/favicon/favicon.svg"
+      "icon_url": "https://notebooklm.google.com/_/static/branding/v5/light_mode/favicon/favicon.svg",
+      "element_selector": "textarea"
     },
     {
       "name": "Claude",
       "pattern": "*://claude.ai/*",
       "url": "https://claude.ai",
-      "icon_url": "https://claude.ai/images/claude_app_icon.png"
+      "icon_url": "https://claude.ai/images/claude_app_icon.png",
+      "element_selector": "div[contenteditable='true']"
     },
     {
       "name": "Poe",
       "pattern": "*://poe.com/*",
       "url": "https://poe.com",
-      "icon_url": "https://psc2.cf2.poecdn.net/assets/favicon.svg"
+      "icon_url": "https://psc2.cf2.poecdn.net/assets/favicon.svg",
+      "element_selector": "textarea[class^='GrowingTextArea_textArea__']"
     },
     {
       "name": "Gemini",
       "pattern": "*://gemini.google.com/*",
       "url": "https://gemini.google.com",
-      "icon_url": "https://www.gstatic.com/lamda/images/gemini_sparkle_v002_d4735304ff6292a690345.svg"
+      "icon_url": "https://www.gstatic.com/lamda/images/gemini_sparkle_v002_d4735304ff6292a690345.svg",
+      "element_selector": "div.ql-editor[contenteditable='true']"
     },
     {
       "name": "DeepSeek",
       "pattern": "*://chat.deepseek.com/*",
       "url": "https://chat.deepseek.com",
-      "icon_url": "../icons/deepseek-icon.png"
+      "icon_url": "../icons/deepseek-icon.png",
+      "element_selector": "textarea[placeholder='Message DeepSeek']"
     },
     {
-      "name": "Grok",
+      "name": "Grok @ x.com",
       "pattern": "*://x.com/i/grok*",
       "url": "https://x.com/i/grok",
-      "icon_url": "https://grok.com/images/favicon-light.png"
+      "icon_url": "https://grok.com/images/favicon-light.png",
+      "element_selector": "textarea[placeholder='Ask anything']"
     },
     {
       "name": "Grok",
       "pattern": "*://grok.com/*",
       "url": "https://grok.com",
-      "icon_url": "https://grok.com/images/favicon-light.png"
+      "icon_url": "https://grok.com/images/favicon-light.png",
+      "element_selector": "textarea[dir=\"auto\"]"
     },
     {
       "name": "Microsoft Copilot",
       "pattern": "*://copilot.microsoft.com/*",
       "url": "https://copilot.microsoft.com",
-      "icon_url": "https://copilot.microsoft.com/sa/simg/favicon-cplt.ico"
+      "icon_url": "https://copilot.microsoft.com/sa/simg/favicon-cplt.ico",
+      "element_selector": "#userInput"
     },
     {
       "name": "GitHub Copilot",
       "pattern": "*://github.com/copilot",
       "url": "https://github.com/copilot",
-      "icon_url": "https://github.githubassets.com/favicons/favicon.svg"
+      "icon_url": "https://github.githubassets.com/favicons/favicon.svg",
+      "element_selector": "[placeholder=\"Ask Copilot\"]"
     },
     {
       "name": "Kimi",
       "pattern": "*://www.kimi.com/*",
       "url": "https://www.kimi.com",
-      "icon_url": "https://www.kimi.com/favicon.ico"
+      "icon_url": "https://www.kimi.com/favicon.ico",
+      "element_selector": "div.chat-input-editor[contenteditable='true']"
     },
     {
       "name": "Mistral Le Chat",
       "pattern": "*://chat.mistral.ai/*",
       "url": "https://chat.mistral.ai",
-      "icon_url": "https://chat.mistral.ai/favicon.ico"
+      "icon_url": "https://chat.mistral.ai/favicon.ico",
+      "element_selector": "[data-placeholder=\"Ask Le Chat anything\"]"
     },
     {
       "name": "OpenAI Playground",
       "pattern": "*://platform.openai.com/*",
       "url": "https://platform.openai.com/chat",
-      "icon_url": "../icons/openai-pg-icon.png"
+      "icon_url": "../icons/openai-pg-icon.png",
+      "element_selector": "#root textarea"
     },
     {
       "name": "OpenRouter",
       "pattern": "*://openrouter.ai/*",
       "url": "https://openrouter.ai",
-      "icon_url": "https://openrouter.ai/favicon.ico"
+      "icon_url": "https://openrouter.ai/favicon.ico",
+      "element_selector": "input[type=\"text\"][placeholder=\"Start a message...\"]"
     },
     {
       "name": "ChatLLM",
       "pattern": "*://apps.abacus.ai/chatllm/*",
       "url": "https://apps.abacus.ai",
-      "icon_url": "https://apps.abacus.ai/chatllm/icon.png"
+      "icon_url": "https://abacus.ai/static/icon2/favicon.ico",
+      "element_selector": "textarea[placeholder=\"Write something...\"]"
     },
     {
       "name": "Google AI Studio",
       "pattern": "*://aistudio.google.com/*",
       "url": "https://aistudio.google.com",
-      "icon_url": "https://www.gstatic.com/aistudio/ai_studio_favicon_32x32.png"
+      "icon_url": "https://www.gstatic.com/aistudio/ai_studio_favicon_32x32.png",
+      "element_selector": "textarea[aria-label=\"Type something or tab to choose an example prompt\"]"
     },
     {
       "name": "Perplexity AI",
       "pattern": "*://www.perplexity.ai/*",
       "url": "https://www.perplexity.ai",
-      "icon_url": "../icons/perplexity-icon.png"
+      "icon_url": "../icons/perplexity-icon.png",
+      "element_selector": "#ask-input"
     },
     {
       "name": "LMArena",
       "pattern": "*://lmarena.ai/*",
       "url": "https://lmarena.ai",
-      "icon_url": "../icons/lmarena-icon.png"
-    },
-    {
-      "name": "Google AI Studio",
-      "pattern": "*://aistudio.google.com/*",
-      "url": "https://aistudio.google.com",
-      "icon_url": "https://www.gstatic.com/aistudio/ai_studio_favicon_32x32.png"
+      "icon_url": "../icons/lmarena-icon.png",
+      "element_selector": "textarea[name=\"message\"]"
     },
     {
       "name": "Qwen",
       "pattern": "*://chat.qwen.ai/*",
       "url": "https://chat.qwen.ai",
-      "icon_url": "../icons/qwen-icon.png"
+      "icon_url": "../icons/qwen-icon.png",
+      "element_selector": "#chat-input"
     }
   ]
 }

@@ -2200,7 +2200,7 @@ class PromptMediator {
   bindEvents() {
     PromptUIManager.onPromptSelect(async prompt => {
       // COMMENT: Be resilient — if input box isn't ready yet, wait briefly before giving up
-      let inputBox = InputBoxHandler.getInputBox();
+      let inputBox = await InputBoxHandler.getInputBox();
       if (!inputBox) {
         try {
           inputBox = await InputBoxHandler.waitForInputBox();

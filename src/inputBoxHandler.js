@@ -9,245 +9,43 @@ class InputBoxHandler {
    * Detects and retrieves the input box from supported websites.
    * @returns {HTMLElement|null} The input box element or null if not found.
    */
-  static getInputBox() {
-    const url = window.location.hostname;
+  static async getInputBox() {
 
-    // ChatGPT (chatgpt.com)
-    if (url.includes('chatgpt.com')) {
-      const inputBox = document.getElementById('prompt-textarea');
-      if (inputBox) {
-        console.log('Input box found: ChatGPT');
-        return inputBox;
+    // Try to get providers from the JSON file
+    let providers = [];
+    try {
+      const response = await fetch(chrome.runtime.getURL('llm_providers.json'));
+      if (response.ok) {
+        const data = await response.json();
+        providers = data.llm_providers || [];
       }
+    } catch (error) {
+      console.error('Failed to load llm_providers.json:', error);
     }
 
-    // Deepseek (chat.deepseek.com)
-    if (url.includes('deepseek.com')) {
-      const inputBox = document.querySelector('textarea[placeholder="Message DeepSeek"]');
-      if (inputBox) {
-        console.log('Input box found: Deepseek');
-        return inputBox;
-      }
-    }
-
-    // Gemini (gemini.google.com)
-    if (url.includes('gemini.google.com')) {
-      const inputBox = document.querySelector('div.ql-editor[contenteditable="true"]');
-      if (inputBox) {
-        console.log('Input box found: Gemini Old');
-        return inputBox;
-      }
-    }
-
-    // Gemini (gemini.google.com)
-    if (url.includes('gemini.google.com')) {
-      const inputBox = document.querySelector('div.textarea.placeholder.new-input-ui');
-      if (inputBox) {
-        console.log('Input box found: Gemini New');
-        return inputBox;
-      }
-    }
-
-    // NotebookLM (notebooklm.google.com)
-    if (url.includes('notebooklm.google.com')) {
-      const inputBox = document.querySelector('textarea');
-      if (inputBox) {
-        console.log('Input box found: NotebookLM');
-        return inputBox;
-      }
-    }
-
-    // Claude (claude.ai)
-    if (url.includes('claude.ai')) {
-      const inputBox = document.querySelector('div[contenteditable="true"]');
-      if (inputBox) {
-        console.log('Input box found: Claude');
-        return inputBox;
-      }
-    }
-
-    // Microsoft Copilot (copilot.microsoft.com)
-    if (url.includes('copilot.microsoft.com')) {
-      const inputBox = document.querySelector('#userInput');
-      if (inputBox) {
-        console.log('Input box found: Microsoft Copilot');
-        return inputBox;
-      }
-    }
-
-    // Kimi (kimi.com)
-    // COMMENT: Kimi's chat box is a contenteditable div with class `chat-input-editor`.
-    // COMMENT: We prefer a direct, stable selector over brittle full DOM paths.
-    if (url.includes('kimi.com')) {
-      const inputBox = document.querySelector('div.chat-input-editor[contenteditable="true"]')
-        || document.querySelector('div.chat-input-editor')
-        || document.querySelector('div[contenteditable="true"][data-slate-editor="true"]')
-        || document.querySelector('div[contenteditable="true"]');
-      if (inputBox) {
-        console.log('Input box found: Kimi');
-        return inputBox;
-      }
-    }
-
-    // GitHub Copilot Chat (github.com)
-    // COMMENT: The Copilot chat textarea in GitHub UI uses a stable id `copilot-chat-textarea`.
-    // COMMENT: We target it directly so prompts can be inserted while browsing repositories, PRs, etc.
-    if (url.includes('github.com')) {
-      const inputBox = document.querySelector('#copilot-chat-textarea');
-      if (inputBox) {
-        console.log('Input box found: GitHub Copilot');
-        return inputBox;
-      }
-    }
-
-    // OpenAI Platform Chat (platform.openai.com)
-    // COMMENT: The Platform chat uses a <textarea> with a stable placeholder "Chat with your prompt...".
-    // COMMENT: Target by placeholder first to avoid brittle deep selectors; fall back to a textarea under #root.
-    if (url.includes('platform.openai.com')) {
-      const inputBox = document.querySelector('textarea[placeholder="Chat with your prompt..."]')
-        || document.querySelector('#root textarea');
-      if (inputBox) {
-        console.log('Input box found: OpenAI Platform Chat');
-        return inputBox;
-      }
-    }
-
-    // Mistral Le Chat (chat.mistral.ai)
-    // COMMENT: Le Chat uses a plain <textarea> with name `message.text` and a clear placeholder.
-    // COMMENT: We target by name first, then placeholder, then a safe form textarea fallback.
-    if (url.includes('chat.mistral.ai')) {
-      const inputBox = document.querySelector('textarea[name="message.text"]')
-        || document.querySelector('textarea[placeholder="Ask Le Chat anything"]')
-        || document.querySelector('form textarea');
-      if (inputBox) {
-        console.log('Input box found: Mistral Le Chat');
-        return inputBox;
-      }
-    }
-
-    // OpenRouter (openrouter.ai)
-    // COMMENT: OpenRouter uses a plain <textarea> with placeholder "Start a new message...".
-    // COMMENT: Prefer placeholder targeting; fall back to a generic form textarea to remain resilient.
-    if (url.includes('openrouter.ai')) {
-      const inputBox = document.querySelector('textarea[placeholder="Start a new message..."]')
-        || document.querySelector('form textarea')
-        || document.querySelector('textarea');
-      if (inputBox) {
-        console.log('Input box found: OpenRouter');
-        return inputBox;
-      }
-    }
-
-    // Grok (grok.com)
-    if (url.includes('grok.com')) {
-
-
-      // First approach: Using a specific selector that targets the textarea with dir="auto"
-      const inputBox = document.querySelector('form textarea[dir="auto"]');
-      if (inputBox) {
-        console.log('Input box found: Grok (dir=auto)');
-        return inputBox;
-      }
-
-      // Second approach: Find the placeholder span and get its sibling textarea
-      const placeholderSpan = document.querySelector('span.pointer-events-none:contains("What do you want to know?")');
-      if (placeholderSpan && placeholderSpan.parentNode) {
-        const textareaInSameParent = placeholderSpan.parentNode.querySelector('textarea');
-        if (textareaInSameParent) {
-          console.log('Input box found: Grok (via placeholder span)');
-          return textareaInSameParent;
-        }
-      }
-
-      // Third approach: Try finding placeholder by text content with any query method
-      const allSpans = document.querySelectorAll('span');
-      for (const span of allSpans) {
-        if (span.textContent === 'What do you want to know?' && span.parentNode) {
-          const textareaInSameParent = span.parentNode.querySelector('textarea');
-          if (textareaInSameParent) {
-            console.log('Input box found: Grok (via placeholder text)');
-            return textareaInSameParent;
+    // Dynamic matching using llm_providers.json
+    for (const provider of providers) {
+      if (provider.pattern) {
+        // Convert pattern to a URL matching format
+        const pattern = provider.pattern.replace(/\*/g, '.*');
+        const regex = new RegExp(pattern, 'i');
+        if (regex.test(window.location.href)) {
+          if (provider.element_selector) {
+            const inputBox = document.querySelector(provider.element_selector);
+            if (inputBox) {
+              console.log(`Input box found: ${provider.name}`);
+              return inputBox;
+            }
+          } else {
+            // If no element_selector is provided, we'll fall back to the old logic
+            // This maintains backward compatibility for providers without selectors
           }
         }
-      }
-
-      // Final fallback: general form textarea
-      const fallbackInputBox = document.querySelector('form textarea');
-      if (fallbackInputBox) {
-        console.log('Input box found: Grok (fallback)');
-        return fallbackInputBox;
-      }
-    }
-
-    // Grok on X.com (x.com/i/grok)
-    if (url.includes('x.com') && window.location.pathname.includes('/i/grok')) {
-      // Target the textarea used for Grok on X.com
-      const inputBox = document.querySelector('textarea[placeholder="Ask anything"]');
-      if (inputBox) {
-        console.log('Input box found: Grok on X.com');
-        return inputBox;
-      }
-    }
-
-    // Poe (poe.com)
-    if (url.includes('poe.com')) {
-      const inputBox = document.querySelector('textarea[class^="GrowingTextArea_textArea__"]');
-      if (inputBox) {
-        console.log('Input box found: Poe');
-        return inputBox;
-      }
-    }
-
-    // Perplexity (perplexity.ai)
-    if (url.includes('perplexity.ai')) {
-      const inputBox = document.querySelector('#ask-input')
-        || document.querySelector('textarea[placeholder*="Ask" i]')
-        || document.querySelector('form textarea')
-        || document.querySelector('textarea');
-      if (inputBox) {
-        console.log('Input box found: Perplexity');
-        return inputBox;
-      }
-    }
-
-    // LMArena (lmarena.ai)
-    if (url.includes('lmarena.ai')) {
-      const inputBox = document.querySelector('textarea[name="message"]');
-      if (inputBox) {
-        console.log('Input box found: LMArena');
-        return inputBox;
-      }
-    }
-
-    // Google AI Studio (aistudio.google.com)
-    if (url.includes('aistudio.google.com')) {
-      const inputBox = document.querySelector('textarea[aria-label="Type something or tab to choose an example prompt"]');
-      if (inputBox) {
-        console.log('Input box found: Google AI Studio');
-        return inputBox;
-      }
-    }
-
-    // ChatLLM (apps.abacus.ai/chatllm)
-    if (url.includes('apps.abacus.ai')) {
-      const inputBox = document.querySelector('textarea[placeholder="Write something..."]');
-      if (inputBox) {
-        console.log('Input box found: ChatLLM');
-        return inputBox;
-      }
-    }
-
-    // Qwen (chat.qwen.ai)
-    if (url.includes('qwen.ai')) {
-      const inputBox = document.getElementById('chat-input');
-      if (inputBox) {
-        console.log('Input box found: Qwen');
-        return inputBox;
       }
     }
 
     // If no input box is found, log an error
-    // console.error('Input box not found on this page.');
+    console.error('Input box not found on this page.');
     return null;
   }
 
@@ -257,8 +55,8 @@ class InputBoxHandler {
    */
   static waitForInputBox() {
     return new Promise((resolve, reject) => {
-      const checkExist = setInterval(() => {
-        const inputBox = InputBoxHandler.getInputBox();
+      const checkExist = setInterval(async () => {
+        const inputBox = await InputBoxHandler.getInputBox();
         if (inputBox) {
           clearInterval(checkExist);
           resolve(inputBox);
@@ -284,7 +82,6 @@ class InputBoxHandler {
       console.error('Missing required parameters for insertPrompt', { inputBox, content, promptList });
       return;
     }
-
     inputBox.focus();
     try {
       console.log('Inserting prompt:', { content, inputBox, promptList });

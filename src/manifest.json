@@ -1,7 +1,7 @@
 {
     "manifest_version": 3,
     "name": "Open Prompt Manager",
-    "version": "2.5.0",
+    "version": "2.5.1",
     "description": "Open Source Prompt Manager for ChatGPT, Claude, Gemini, Grok and more. Variables, Tags, and more.",
     "permissions": [
         "sidePanel",
@@ -33,26 +33,7 @@
     },
     "host_permissions": [],
     "optional_host_permissions": [
-        "*://chatgpt.com/*",
-        "*://notebooklm.google.com/*",
-        "*://claude.ai/*",
-        "*://poe.com/*",
-        "*://gemini.google.com/*",
-        "*://chat.deepseek.com/*",
-        "*://x.com/i/grok*",
-        "*://grok.com/*",
-        "*://copilot.microsoft.com/*",
-        "*://github.com/copilot",
-        "*://www.kimi.com/*",
-        "*://kimi.com/*",
-        "*://chat.mistral.ai/*",
-        "*://platform.openai.com/*",
-        "*://openrouter.ai/*",
-        "*://apps.abacus.ai/chatllm/*",
-        "*://aistudio.google.com/*",
-        "*://www.perplexity.ai/*",
-        "*://lmarena.ai/*",
-        "*://chat.qwen.ai/*"
+        "*://*/*"
     ],
     "web_accessible_resources": [
         {
@@ -61,7 +42,8 @@
                 "changelog.html",
                 "info.html",
                 "promptStorage.js",
-                "utils.js"
+                "utils.js",
+                "llm_providers.json"
             ],
             "matches": [
                 "<all_urls>"

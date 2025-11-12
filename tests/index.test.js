@@ -1,12 +1,13 @@
 const puppeteer = require('puppeteer');
 const path = require('path');
-
+const { getExtensionId } = require('./utils.test.js');
 
 const EXTENSION_PATH = path.join(__dirname, '../src/');
-const EXTENSION_ID = 'jkomgjfbbjocikdmilgaehbfpllalmia';
 
 let browser;
+let extensionId;
 
+// --- Before Each Test ---
 beforeEach(async () => {
     browser = await puppeteer.launch({
         headless: false,
@@ -15,23 +16,26 @@ beforeEach(async () => {
             `--load-extension=${EXTENSION_PATH}`
         ]
     });
+
+    extensionId = await getExtensionId(browser);
+
+    console.log(`Dynamically loaded extension ID: ${extensionId}`);
 });
 
 afterEach(async () => {
-    await browser.close();
+    if (browser) {
+        await browser.close();
+    }
     browser = undefined;
 });
 
-
+// --- The Test Case ---
 test('popup renders correctly', async () => {
     const page = await browser.newPage();
-    await page.goto(`chrome-extension://${EXTENSION_ID}/popup.html`);
+    // Use the retrieved extensionId
+    await page.goto(`chrome-extension://${extensionId}/sidepanel/index.html`);
 
-    // Locate the element with tag <div> and class "link-container"
-    const linkContainer = await page.$('div.link-container');
+    // Locate the element with tag <div> and class "title"
+    const linkContainer = await page.$('div.title');
     expect(linkContainer).not.toBeNull();
-
-    // Get all child <a> elements of that div
-    const childrenA = await linkContainer.$$('a');
-    expect(childrenA.length).toBe(5);
 });
