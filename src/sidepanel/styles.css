@@ -560,6 +560,29 @@ footer.footer {
     color: #FFFFFF;
     text-decoration: underline;
   }
+  /* LLMs section dark overrides */
+  .llms-subheading {
+    color: #A0AEC0;
+  }
+  .llm-pill.active {
+    background-color: #0b498a;
+    border-color: #0b498a;
+    color: #E2E8F0;
+  }
+  .llm-pill.active:hover {
+    background-color: #0b498a;
+    border-color: #0b498a;
+    box-shadow: 0 0 0 3px rgba(11,73,138,0.32);
+  }
+  .llm-pill.inactive {
+    color: #E2E8F0;
+    border-color: #3674B5;
+    background-color: transparent;
+  }
+  .llm-pill.inactive:hover {
+    background-color: rgba(54,116,181,0.16);
+    box-shadow: 0 0 0 3px rgba(54,116,181,0.28);
+  }
 
   /* Footer background stays transparent but icons/text lighten */
   footer.footer {
@@ -621,6 +644,85 @@ button.main:hover {
     list-style: disc;
     font-size: 13px;
   }
+
+  /* ------------------------------------------------------------
+     LLMs section (pills for activated/available providers)
+     ------------------------------------------------------------ */
+  .llms-section {
+    margin: 10px 0 12px 0;
+  }
+  .llms-heading {
+    margin: 0 0 6px 0;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--primary);
+  }
+  .llms-group {
+    margin-bottom: 8px;
+  }
+  .llms-subheading {
+    margin: 6px 0 6px 0;
+    font-size: 11px;
+    color: #4a5568;
+    user-select: none;
+  }
+  .llms-subheading[role="button"] { cursor: pointer; }
+  /* COMMENT: Caret indicator for the Available toggle; reflects aria-expanded state */
+  #llms-available-toggle::before {
+    content: ">";
+    display: inline-block;
+    margin-right: 6px;
+  }
+  #llms-available-toggle[aria-expanded="true"]::before {
+    content: "v";
+  }
+  .llms-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .llm-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 9999px;
+    border: 1px solid var(--primary);
+    text-decoration: none;
+    font-size: 12px;
+    line-height: 1;
+    user-select: none;
+    transition: background-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  }
+  .llm-pill-icon {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background-color: #ffffff;
+  }
+  .llm-pill-label {
+    white-space: nowrap;
+  }
+  .llm-pill.active {
+    background-color: var(--primary);
+    color: #ffffff;
+    border-color: var(--primary);
+  }
+  .llm-pill.active:hover {
+    background-color: var(--hover-primary);
+    border-color: var(--hover-primary);
+    box-shadow: 0 0 0 3px rgba(54,116,181,0.18);
+  }
+  .llm-pill.inactive {
+    background-color: transparent;
+    color: var(--primary);
+    border-color: var(--primary);
+  }
+  .llm-pill.inactive:hover {
+    background-color: rgba(54,116,181,0.08);
+    box-shadow: 0 0 0 3px rgba(54,116,181,0.18);
+  }
+  /* ---------------------------------------------------------- */
 
 @media (prefers-color-scheme: light) {
   #prompt-list li:hover {

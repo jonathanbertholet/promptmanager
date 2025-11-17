@@ -115,6 +115,23 @@
       </div>
     </div>
   </div>
+  <!-- COMMENT: LLMs section shows activated and available providers, mirroring the permissions page behavior -->
+  <div id="llms-section" class="llms-section">
+    <h3 class="llms-heading">Assistants</h3>
+    <div class="llms-group">
+      <div class="llms-subheading">Shortcuts</div>
+      <div id="llms-activated" class="llms-pills" aria-live="polite">
+        <!-- COMMENT: Active provider pills rendered here -->
+      </div>
+    </div>
+    <div class="llms-group">
+      <!-- COMMENT: Available section is foldable; collapsed by default -->
+      <div class="llms-subheading" id="llms-available-toggle" role="button" tabindex="0" aria-controls="llms-available" aria-expanded="false">Available</div>
+      <div id="llms-available" class="llms-pills" aria-live="polite">
+        <!-- COMMENT: Available provider pills rendered here (click to request permission) -->
+      </div>
+    </div>
+  </div>
   <div class="dataimpexp">
     <button class="main" id="export-btn">Export prompts</button>
     <span></span>
@@ -131,7 +148,7 @@
         target="_blank" title="Review me"><img class="footer-icons" src="../icons/review-icon.png" alt="Review me" /></a>
       <a id="link" href="../settings.html" title="Settings"><img id="settings-icon" class="footer-icons"
           src="../icons/settings-icon.png" alt="Settings" /></a>
-      <a id="link" href="../permissions/permissions.html" title="Activate more LLMs" target="_blank" style="text-decoration: none;">
+      <a id="link" href="../permissions/permissions.html" title="Get Started" target="_blank" style="text-decoration: none;">
         <span style="
           display: inline-flex;
           align-items: center;
@@ -145,8 +162,8 @@
           box-shadow: 0 1px 2px rgba(0,0,0,0.04);
           transition: background 0.15s;
         ">
-          <img id="permissions-icon" class="footer-icons" src="../icons/permissions-icon.svg" alt="Activate more LLMs" style="width: 14px; height: 14px; margin: 0; filter: brightness(0) invert(1);" />
-          Activate more LLMs
+          <img id="permissions-icon" class="footer-icons" src="../icons/settings-icon.png" alt="Get Started" style="width: 14px; height: 14px; margin: 0; filter: brightness(0) invert(1);" />
+          Get Started
         </span>
       </a>
     </div>

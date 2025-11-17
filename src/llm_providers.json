@@ -47,14 +47,14 @@
       "pattern": "*://x.com/i/grok*",
       "url": "https://x.com/i/grok",
       "icon_url": "https://grok.com/images/favicon-light.png",
-      "element_selector": "textarea[placeholder='Ask anything']"
+      "element_selector": "div.ProseMirror[contenteditable='true']"
     },
     {
       "name": "Grok",
       "pattern": "*://grok.com/*",
       "url": "https://grok.com",
       "icon_url": "https://grok.com/images/favicon-light.png",
-      "element_selector": "textarea[dir=\"auto\"]"
+      "element_selector": "div.ProseMirror[contenteditable='true']"
     },
     {
       "name": "Microsoft Copilot",
@@ -65,10 +65,10 @@
     },
     {
       "name": "GitHub Copilot",
-      "pattern": "*://github.com/copilot",
-      "url": "https://github.com/copilot",
+      "pattern": "*://github.com/copilot/*",
+      "url": "*://github.com/copilot/*",
       "icon_url": "https://github.githubassets.com/favicons/favicon.svg",
-      "element_selector": "[placeholder=\"Ask Copilot\"]"
+      "element_selector": "#copilot-chat-textarea, textarea#copilot-chat-textarea, textarea[aria-label=\"Ask anything\"], textarea[placeholder=\"Ask anything\"], [placeholder=\"Ask Copilot\"]"
     },
     {
       "name": "Kimi",

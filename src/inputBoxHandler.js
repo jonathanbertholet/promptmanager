@@ -157,6 +157,73 @@ class InputBoxHandler {
           return;
         }
 
+        // COMMENT: Handle ProseMirror/Tiptap editors (e.g., Grok) which respond well to execCommand/beforeinput
+        const isProseMirrorEditor =
+          (inputBox.classList && inputBox.classList.contains('ProseMirror')) ||
+          (typeof inputBox.closest === 'function' && !!inputBox.closest('.ProseMirror'));
+        if (isProseMirrorEditor) {
+          // COMMENT: Normalize caret based on append/overwrite preference
+          const selection = window.getSelection();
+          const range = document.createRange();
+          range.selectNodeContents(inputBox);
+          if (disableOverwrite) {
+            // COMMENT: Append — place caret at the end
+            range.collapse(false);
+          }
+          selection.removeAllRanges();
+          selection.addRange(range);
+          // COMMENT: Overwrite requires clearing selection before insertion
+          if (!disableOverwrite) {
+            document.execCommand('delete', false, null);
+          }
+          const textToInsert = content + '  ';
+          let inserted = false;
+          try {
+            inserted = document.execCommand('insertText', false, textToInsert);
+          } catch (_) {}
+          // COMMENT: Fallback to synthetic beforeinput/input or paste if needed
+          if (!inserted) {
+            try {
+              inputBox.dispatchEvent(new InputEvent('beforeinput', {
+                inputType: 'insertText',
+                data: textToInsert,
+                bubbles: true,
+                cancelable: true,
+              }));
+              inputBox.dispatchEvent(new Event('input', { bubbles: true }));
+            } catch (_) {
+              try {
+                const dt = new DataTransfer();
+                dt.setData('text/plain', textToInsert);
+                const pasteEvent = new ClipboardEvent('paste', {
+                  clipboardData: dt,
+                  bubbles: true,
+                  cancelable: true,
+                });
+                inputBox.dispatchEvent(pasteEvent);
+              } catch (_) {
+                if (disableOverwrite) {
+                  inputBox.appendChild(document.createTextNode(textToInsert));
+                } else {
+                  inputBox.textContent = textToInsert;
+                }
+                inputBox.dispatchEvent(new Event('input', { bubbles: true }));
+              }
+            }
+          }
+          // COMMENT: Ensure caret ends up at the end after insertion
+          const endRange = document.createRange();
+          endRange.selectNodeContents(inputBox);
+          endRange.collapse(false);
+          const sel = window.getSelection();
+          sel.removeAllRanges();
+          sel.addRange(endRange);
+          // COMMENT: Notify any listeners the content changed and close the UI
+          inputBox.dispatchEvent(new Event('change', { bubbles: true }));
+          PromptUIManager.hidePromptList(promptList);
+          return;
+        }
+
         // COMMENT: Default contentEditable handling (non-Lexical editors)
         if (disableOverwrite) {
           // COMMENT: Append mode — add content at the end without clearing existing text

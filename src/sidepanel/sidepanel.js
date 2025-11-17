@@ -23,6 +23,171 @@ async function hasAnyGrantedProviderPermission() {
   });
 }
 
+// COMMENT: Track folded state of the "Available" group (collapsed by default)
+let llmsAvailableCollapsed = true;
+
+// COMMENT: Build a providers map from storage or compute a fallback by reading llm_providers.json and checking current permissions
+async function getProvidersMapOrFallback() {
+  return new Promise(async (resolve) => {
+    try {
+      // First, try the canonical storage source (populated by service worker on install/changes)
+      chrome.storage.local.get(['aiProvidersMap'], async (result) => {
+        if (result && result.aiProvidersMap && Object.keys(result.aiProvidersMap).length > 0) {
+          resolve(result.aiProvidersMap);
+          return;
+        }
+        // Fallback: compute from llm_providers.json + current chrome.permissions
+        try {
+          const response = await fetch(chrome.runtime.getURL('llm_providers.json'));
+          const data = await response.json();
+          const list = Array.isArray(data?.llm_providers) ? data.llm_providers : [];
+          const computedEntries = await Promise.all(list.map(async (p) => {
+            const pattern = p.pattern;
+            let permitted = false;
+            try {
+              permitted = await chrome.permissions.contains({ origins: [pattern] });
+            } catch (e) {
+              permitted = false;
+            }
+            return [p.name, {
+              hasPermission: permitted ? 'Yes' : 'No',
+              urlPattern: p.pattern,
+              url: p.url,
+              iconUrl: p.icon_url
+            }];
+          }));
+          const computedMap = Object.fromEntries(computedEntries);
+          resolve(computedMap);
+        } catch (e) {
+          resolve({});
+        }
+      });
+    } catch (e) {
+      resolve({});
+    }
+  });
+}
+
+// COMMENT: Render the LLMs section with "Activated" and "Available" pills, reflecting storage status and permissions behavior
+async function renderLLMsSection() {
+  const section = document.getElementById('llms-section');
+  const activeWrap = document.getElementById('llms-activated');
+  const availableWrap = document.getElementById('llms-available');
+  const availableToggle = document.getElementById('llms-available-toggle');
+  if (!section || !activeWrap || !availableWrap) return;
+
+  // Clear previous contents
+  activeWrap.innerHTML = '';
+  availableWrap.innerHTML = '';
+
+  const providersMap = await getProvidersMapOrFallback();
+  if (!providersMap || Object.keys(providersMap).length === 0) {
+    // Nothing to show; leave containers empty
+    return;
+  }
+
+  // Split into active vs available
+  const entries = Object.entries(providersMap);
+  const active = entries.filter(([, v]) => v && v.hasPermission === 'Yes');
+  const inactive = entries.filter(([, v]) => !v || v.hasPermission !== 'Yes');
+
+  // Helper to create a pill element (anchor) with icon + label
+  const createPill = ({ name, iconUrl, url, urlPattern, active }) => {
+    const a = document.createElement('a');
+    a.className = `llm-pill ${active ? 'active' : 'inactive'}`;
+    a.setAttribute('data-provider', name);
+    a.setAttribute('data-url-pattern', urlPattern || '');
+    a.setAttribute('title', active ? `Open ${name}` : `Activate ${name}`);
+    // Active pills open their provider page
+    if (active && url) {
+      a.href = url;
+      a.target = '_blank';
+      a.rel = 'noopener';
+    } else {
+      a.href = '#';
+    }
+
+    // Icon
+    const img = document.createElement('img');
+    img.src = iconUrl || '';
+    img.alt = `${name} icon`;
+    img.width = 20;
+    img.height = 20;
+    img.className = 'llm-pill-icon';
+    a.appendChild(img);
+
+    // Label
+    const span = document.createElement('span');
+    span.textContent = name;
+    span.className = 'llm-pill-label';
+    a.appendChild(span);
+
+    if (!active) {
+      // Request permission on click for inactive pills
+      a.addEventListener('click', (ev) => {
+        ev.preventDefault();
+        const pattern = a.getAttribute('data-url-pattern');
+        if (!pattern) return;
+        chrome.permissions.request({ origins: [pattern] }, (granted) => {
+          if (granted) {
+            // Update storage map so both this UI and the permissions page stay in sync
+            // Read, mutate, and write the aiProvidersMap
+            chrome.storage.local.get(['aiProvidersMap'], (res) => {
+              const map = res && res.aiProvidersMap ? res.aiProvidersMap : providersMap;
+              if (!map[name]) {
+                map[name] = { hasPermission: 'Yes', urlPattern: pattern, url, iconUrl };
+              } else {
+                map[name].hasPermission = 'Yes';
+                map[name].urlPattern = pattern || map[name].urlPattern;
+                map[name].url = url || map[name].url;
+                map[name].iconUrl = iconUrl || map[name].iconUrl;
+              }
+              chrome.storage.local.set({ aiProvidersMap: map });
+            });
+          }
+        });
+      });
+    }
+
+    return a;
+  };
+
+  // Render active
+  active
+    .sort((a, b) => a[0].localeCompare(b[0]))
+    .forEach(([name, info]) => {
+      activeWrap.appendChild(createPill({
+        name,
+        iconUrl: info.iconUrl,
+        url: info.url,
+        urlPattern: info.urlPattern,
+        active: true
+      }));
+    });
+
+  // Render inactive
+  inactive
+    .sort((a, b) => a[0].localeCompare(b[0]))
+    .forEach(([name, info]) => {
+      availableWrap.appendChild(createPill({
+        name,
+        iconUrl: info?.iconUrl,
+        url: info?.url,
+        urlPattern: info?.urlPattern,
+        active: false
+      }));
+    });
+
+  // COMMENT: Apply folded state to Available group; collapsed by default
+  if (llmsAvailableCollapsed) {
+    availableWrap.style.display = 'none';
+    if (availableToggle) availableToggle.setAttribute('aria-expanded', 'false');
+  } else {
+    availableWrap.style.display = 'flex';
+    if (availableToggle) availableToggle.setAttribute('aria-expanded', 'true');
+  }
+}
+
 // COMMENT: Toggle visibility between permissions shortcut and prompt list based on granted permissions
 async function renderPermissionsGate() {
   const shortcut = document.getElementById('permissions-shortcut');
@@ -167,6 +332,33 @@ document.addEventListener('DOMContentLoaded', () => {
   loadPrompts();
   // COMMENT: Evaluate permissions gate on load
   renderPermissionsGate();
+  // COMMENT: Render LLMs section on load
+  renderLLMsSection();
+
+  // COMMENT: Wire Available subheading toggle (fold/unfold)
+  const availableToggle = document.getElementById('llms-available-toggle');
+  const availableWrap = document.getElementById('llms-available');
+  if (availableToggle && availableWrap) {
+    const toggle = (ev) => {
+      if (ev && ev.type === 'keydown') {
+        if (ev.key !== 'Enter' && ev.key !== ' ') return;
+        ev.preventDefault();
+      }
+      llmsAvailableCollapsed = !llmsAvailableCollapsed;
+      if (llmsAvailableCollapsed) {
+        availableWrap.style.display = 'none';
+        availableToggle.setAttribute('aria-expanded', 'false');
+      } else {
+        availableWrap.style.display = 'flex';
+        availableToggle.setAttribute('aria-expanded', 'true');
+      }
+    };
+    availableToggle.addEventListener('click', toggle);
+    availableToggle.addEventListener('keydown', toggle);
+    // Ensure default collapsed state reflected in DOM
+    availableWrap.style.display = 'none';
+    availableToggle.setAttribute('aria-expanded', 'false');
+  }
 
   // COMMENT: Refresh UI whenever prompts change in storage
   PromptStorage.onPromptsChanged(loadPrompts);
@@ -176,6 +368,8 @@ document.addEventListener('DOMContentLoaded', () => {
     chrome.storage.onChanged.addListener((changes, area) => {
       if (area === 'local' && changes.aiProvidersMap) {
         renderPermissionsGate();
+        // COMMENT: Also refresh the LLMs section so pills reflect new activation status
+        renderLLMsSection();
       }
     });
   } catch (err) {
