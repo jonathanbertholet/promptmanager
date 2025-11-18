@@ -2272,3 +2272,13 @@ class PromptMediator {
 
 /* Initialize the extension */
 setTimeout(() => { new PromptMediator(PromptUIManager, PromptProcessor); }, 50);
+
+/* Listen for messages from the service worker to toggle UI */
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.action === 'togglePromptManagerUI') {
+    // Use the same toggle method that keyboard shortcuts use
+    KeyboardManager._togglePromptList();
+    sendResponse({ success: true });
+  }
+  return true; // Keep the message channel open for async response
+});

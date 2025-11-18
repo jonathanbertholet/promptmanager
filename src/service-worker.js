@@ -2,7 +2,7 @@ import { getProviders } from './llm_providers.js'; // Import the correct functio
 import { getPrompts, onPromptsChanged } from './promptStorage.js'; // COMMENT: Unified prompt storage API
 
 chrome.runtime.onInstalled.addListener(function (details) {
-  chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true });
+  // Removed sidePanel behavior - now using custom action click handler
   console.log('onInstalled', details);
   // note to self : for updates, add 'update' in array
   if (!['install'].includes(details.reason)) {
@@ -21,6 +21,31 @@ chrome.runtime.onInstalled.addListener(function (details) {
   })();
 });
 
+// Handle extension icon clicks to toggle the prompt manager UI
+chrome.action.onClicked.addListener(async (tab) => {
+  // Only try to toggle UI if we're on a supported page
+  if (tab.url && !tab.url.startsWith('chrome://') && !tab.url.startsWith('chrome-extension://')) {
+    try {
+      // Send message to content script to toggle the UI
+      await chrome.tabs.sendMessage(tab.id, { action: 'togglePromptManagerUI' });
+    } catch (error) {
+      console.log('Could not toggle UI on this page:', error.message);
+      // If content script is not injected, try to open side panel as fallback
+      try {
+        await chrome.sidePanel.open({ tabId: tab.id });
+      } catch (sidePanelError) {
+        console.log('Could not open side panel:', sidePanelError.message);
+      }
+    }
+  } else {
+    // For chrome:// pages or extension pages, open the side panel
+    try {
+      await chrome.sidePanel.open({ tabId: tab.id });
+    } catch (error) {
+      console.log('Could not open side panel:', error.message);
+    }
+  }
+});
 
 chrome.permissions.onAdded.addListener(async (permissions) => {
   console.log('Permissions added:', permissions.origins);
