@@ -1864,24 +1864,93 @@ class PromptUIManager {
     const dark = isDarkMode();
     const form = createEl('div', {
       className: `opm-form-container opm-${getMode()}`,
-      styles: { padding: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }
+      // COMMENT: Make the form a non-scrolling flex column and let the inner variables container own scrolling.
+      // COMMENT: This ensures the "input area of the prompt" uses the available height of the container.
+      styles: { padding: '12px', display: 'flex', flexDirection: 'column', gap: '8px', overflow: 'hidden', minHeight: '0' }
     });
+    // COMMENT: Layout behavior depends on the number of variables
+    const count = Array.isArray(variables) ? variables.length : 0;
+    const singleMode = count <= 1;
+    const splitMode = count === 2 || count === 3;   // COMMENT: equal split within available height
+    const listMode = count >= 4;                    // COMMENT: compact list of single-line inputs
+    const itemGap = listMode ? '8px' : '12px';
+    // COMMENT: In single-variable mode, do not expand to fill all available height
+    const varContainerFlex = singleMode ? '0 1 auto' : '1 1 auto';
     const varContainer = createEl('div', {
-      styles: { display: 'flex', flexDirection: 'column', gap: '12px', maxHeight: '300px', overflowY: 'auto' }
+      // COMMENT: Grow to fill remaining height and become the only scrollable area when content exceeds space.
+      // COMMENT: Use both gap and rowGap for broader compatibility across flex-gap implementations.
+      styles: {
+        display: 'flex',
+        flexDirection: 'column',
+        gap: itemGap,
+        rowGap: itemGap,
+        flex: varContainerFlex,
+        minHeight: '0',
+        overflowY: 'auto',
+        // COMMENT: Add subtle top/bottom padding for list presentation when many variables
+        paddingTop: listMode ? '8px' : '0',
+        paddingBottom: listMode ? '8px' : '0'
+      }
     });
     const varValues = {};
     variables.forEach(v => {
       // COMMENT: Normalize label text — replace underscores with spaces and capitalize first letter
       const displayLabel = String(v).replace(/_/g, ' ').replace(/^./, c => c.toUpperCase());
-      const row = createEl('div', { styles: { display: 'flex', flexDirection: 'column', gap: '4px' } });
+      // COMMENT: Each variable row flexes so space is shared logically between variables.
+      // - For 1 variable: grow to consume available height (textarea fills the space)
+      // - For 2 or 3 variables: share space evenly (50-50 or thirds) within available height
+      // - For 4+ variables: compact rows that do not grow, list scrolls when needed
+      const row = createEl('div', {
+        styles: {
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '4px',
+          // COMMENT: Equal splits for 2 or 3 variables; single mode stays compact; list is compact.
+          flex: singleMode ? '0 0 auto' : (splitMode ? '1 1 0%' : '0 0 auto'),
+          // COMMENT: Let flex children shrink properly in split mode
+          minHeight: splitMode ? '0' : 'auto',
+          // COMMENT: Add explicit margin fallback so rows never visually collide if gap is not honored.
+          marginBottom: itemGap,
+          // COMMENT: Apply list-like vertical padding when many variables
+          padding: listMode ? '6px 0' : '0'
+        }
+      });
       // COMMENT: Use standard font inheritance by avoiding custom font styles and rely on theme class
-      const label = createEl('label', { innerHTML: displayLabel, className: `opm-${getMode()}`, styles: { fontSize: '12px', fontWeight: 'bold' } });
+      // COMMENT: Subtle, consistent label styling to match the rest of the UI
+      const label = createEl('label', {
+        innerHTML: displayLabel,
+        className: `opm-${getMode()}`,
+        styles: {
+          fontSize: '12px',
+          fontWeight: '600',
+          letterSpacing: '0.2px',
+          opacity: '0.85',
+          padding: '0 2px'
+        }
+      });
       // COMMENT: Use a textarea with approx three lines height for easier multi-line input
+      // COMMENT: Rows: single = compact editor; 2-3 = shared vertical space; 4+ = compact single-line list
+      const rowsAttr = listMode ? '1' : (splitMode ? '3' : '6');
       const inputField = createEl('textarea', {
-        attributes: { rows: '3', placeholder: `${displayLabel} value` },
+        // COMMENT: Rows tuned per mode and clear placeholder
+        attributes: { rows: rowsAttr, placeholder: `${displayLabel} value` },
         className: `opm-textarea-field opm-${getMode()}`,
-        // COMMENT: Inline height rules override generic textarea min-heights in stylesheet for this specific view
-        styles: { minHeight: '54px', height: '54px', resize: 'vertical' }
+        // COMMENT: Let the textarea expand within its row. In split mode, disable manual resize to preserve equal distribution.
+        // COMMENT: Minimum height ~ one line; when there are many variables and space runs out, the container scrolls.
+        styles: {
+          // COMMENT: Increase vertical padding for a more comfortable input.
+          padding: '12px 10px',
+          // COMMENT: Taller minima so fields feel more usable without manual resizing.
+          minHeight: listMode ? '18px' : (splitMode ? '60px' : '1px'),
+          // COMMENT: For list mode enforce single-line visual height
+          height: listMode ? '18px' : 'auto',
+          // COMMENT: Ensure sizing accounts for padding and borders to prevent layout overflow/overlap.
+          boxSizing: 'border-box',
+          width: '100%',
+          // COMMENT: Flex behavior depends on mode: split fills evenly; single & list are compact
+          flex: listMode ? '0 0 auto' : (splitMode ? '1 1 auto' : '0 0 auto'),
+          resize: (splitMode || listMode) ? 'none' : 'vertical'
+        }
       });
       inputField.addEventListener('input', () => { varValues[v] = inputField.value; });
       // COMMENT: Preserve Enter-to-submit behavior for consistency with previous single-line inputs

@@ -3,7 +3,7 @@
   body {
     font-family: Helvetica, Verdana, Geneva, Tahoma, sans-serif;
     width: auto;
-    height: 100vh; /* Use full viewport height */
+    height: auto; /* Allow page to grow and scroll */
     overflow-y: auto;
     padding: 10px;
     padding-bottom: 0px;
@@ -15,8 +15,7 @@
     min-width: 286px;
     /* Use flex to allow main content to grow */
     min-height: 100vh;
-    height: 100vh;
-    /* Ensure body takes full height and uses flex column */
+    /* Ensure body can exceed viewport height and uses flex column */
   }
 
   h2,
@@ -256,19 +255,19 @@
   .prompts-container {
     position: relative;
     min-height: 200px;
-    flex: 1 1 auto; /* Take up available space, allow to shrink/grow */
+    flex: 0 0 auto; /* Do not shrink when sections below expand */
     display: flex;
     flex-direction: column;
     margin-bottom: 10px;
-    overflow: hidden; /* Hide overflow, let child scroll */
+    overflow: visible; /* Let content push page height */
   }
 
   /* Prompts section fills container and scrolls if needed */
   .prompts-section {
-    flex: 1 1 auto; /* Take up remaining space in container */
+    flex: 0 0 auto;
     min-height: 50px;
-    max-height: 100%;
-    overflow-y: auto; /* Make prompt list scrollable */
+    max-height: 50vh; /* Limit prompt area to 60% of viewport */
+    overflow-y: auto; /* Scroll inside the prompt list area when exceeding 60vh */
     scrollbar-width: thin;
     scrollbar-color: var(--primary) #f0f0f000;
     position: static; /* Remove absolute, let flex handle layout */
@@ -340,7 +339,7 @@
       'g-prompt-list g-prompt-form'
       'footer footer';
     gap: 10px;
-    height: 100vh;
+    height: auto; /* Allow grid to grow and scroll instead of shrinking content */
     min-height: 100vh;
   }
 
@@ -359,15 +358,15 @@
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    flex: 1 1 auto;
+    flex: 0 0 auto; /* prevent shrink when sections expand */
   }
 
   .prompts-section {
-    flex: 1 1 auto;
+    flex: 0 0 auto; /* prevent shrink */
     min-height: 50px;
-    max-height: 100%;
-    overflow-y: auto;
-    position: static;
+    max-height: 60vh; /* Limit prompt area to 60% of viewport */
+    overflow-y: auto; /* Scroll inside the prompt list area when exceeding 60vh */
+    position: static; /* Allow page to expand below */
   }
 
   form#prompt-form {
@@ -454,8 +453,8 @@ footer.footer {
   flex-shrink: 0;
   position: sticky;
   bottom: 0;
-  background: transparent; /* Transparent background for footer */
-  padding: 10px 0;
+  background: transparent !important; /* Force transparency if overridden elsewhere */
+  padding: 14px 0 12px; /* add a bit more top padding for breathability */
   width: 100%;
   z-index: 10;
   display: flex;
@@ -474,6 +473,17 @@ footer.footer {
   }
 }
 
+/* Dark mode ring for icon-only pills */
+@media (prefers-color-scheme: dark) {
+  .llm-pill.icon-only .llm-pill-icon {
+    box-shadow: 0 0 0 1px rgba(54,116,181,0.6);
+    background-color: #1A202C;
+  }
+  .llm-pill.icon-only:hover .llm-pill-icon {
+    box-shadow: 0 0 0 2px rgba(54,116,181,0.7);
+  }
+}
+
 /* Responsive adjustments */
 @media (max-width: 768px) {
     .custom-col {
@@ -488,6 +498,10 @@ footer.footer {
   body {
     background-color: #0A2647;
     color: #E2E8F0;
+  }
+  /* COMMENT: Subtle divider color in dark mode for Prompt Management section */
+  #pm-section {
+    border-top-color: rgba(255,255,255,0.10);
   }
 
   /* Headings adopt primary colour for contrast */
@@ -649,13 +663,19 @@ button.main:hover {
      LLMs section (pills for activated/available providers)
      ------------------------------------------------------------ */
   .llms-section {
-    margin: 10px 0 12px 0;
+    margin: 6px 0 6px 0; /* tighter section spacing */
   }
   .llms-heading {
-    margin: 0 0 6px 0;
+    margin: 0 0 5px 0; /* slightly tighter heading spacing */
     font-size: 15px;
     font-weight: 600;
     color: var(--primary);
+  }
+  /* COMMENT: Subtle divider and compact spacing before Prompt Management */
+  #pm-section {
+    margin-top: 6px;
+    padding-top: 6px;
+    border-top: 1px solid rgba(0,0,0,0.06);
   }
   .llms-group {
     margin-bottom: 8px;
@@ -667,14 +687,55 @@ button.main:hover {
     user-select: none;
   }
   .llms-subheading[role="button"] { cursor: pointer; }
-  /* COMMENT: Caret indicator for the Available toggle; reflects aria-expanded state */
-  #llms-available-toggle::before {
+  /* COMMENT: Caret indicators placed to the right of labels */
+  #llms-available-toggle::after {
     content: ">";
     display: inline-block;
-    margin-right: 6px;
+    margin-left: 6px;
   }
-  #llms-available-toggle[aria-expanded="true"]::before {
+  #llms-available-toggle[aria-expanded="true"]::after {
     content: "v";
+  }
+  #pm-toggle::after {
+    content: ">";
+    display: inline-block;
+    margin-left: 6px;
+  }
+  #pm-toggle[aria-expanded="true"]::after {
+    content: "v";
+  }
+
+  /* COMMENT: Prompt Management controls layout */
+  .pm-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .pm-subtitle {
+    margin-top: 6px;
+    font-size: 12px;
+    color: #4a5568;
+  }
+  .pm-row {
+    display: flex;
+    gap: 8px;
+    margin-top: 6px;
+  }
+  .pm-row .main {
+    width: auto; /* override global 100% */
+    flex: 1 1 0;
+  }
+
+  /* COMMENT: Smooth collapsible transition utility */
+  .collapsible {
+    overflow: hidden;
+    max-height: 0;
+    opacity: 0;
+    transition: max-height 0.25s ease, opacity 0.2s ease;
+    will-change: max-height, opacity;
+  }
+  .collapsible.open {
+    opacity: 1;
   }
   .llms-pills {
     display: flex;
@@ -693,6 +754,22 @@ button.main:hover {
     line-height: 1;
     user-select: none;
     transition: background-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  }
+  /* Icon-only variant: remove pill styling; show just the favicon in a circle */
+  .llm-pill.icon-only {
+    padding: 0;
+    border: none;
+    background: transparent;
+  }
+  .llm-pill.icon-only .llm-pill-icon {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background-color: #ffffff;
+    box-shadow: 0 0 0 1px rgba(54,116,181,0.35);
+  }
+  .llm-pill.icon-only:hover .llm-pill-icon {
+    box-shadow: 0 0 0 2px rgba(54,116,181,0.35);
   }
   .llm-pill-icon {
     width: 16px;

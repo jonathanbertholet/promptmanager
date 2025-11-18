@@ -25,6 +25,52 @@ async function hasAnyGrantedProviderPermission() {
 
 // COMMENT: Track folded state of the "Available" group (collapsed by default)
 let llmsAvailableCollapsed = true;
+// COMMENT: Track folded state of Prompt Management (collapsed by default)
+let pmCollapsed = true;
+
+// COMMENT: Smoothly open/close a collapsible element without auto-scrolling the view
+function setCollapsibleOpen(collapsibleEl, open) {
+  if (!collapsibleEl) return;
+  const scrollEl = document.scrollingElement || document.documentElement || document.body;
+  const prevScrollTop = scrollEl.scrollTop;
+  const targetHeight = collapsibleEl.scrollHeight;
+  if (open) {
+    // Ensure transition starts from 0 -> height
+    collapsibleEl.classList.add('open');
+    collapsibleEl.style.maxHeight = '0px';
+    // Force reflow then expand to content height
+    // eslint-disable-next-line no-unused-expressions
+    collapsibleEl.offsetHeight;
+    collapsibleEl.style.maxHeight = `${targetHeight}px`;
+  } else {
+    // Collapse from current height -> 0
+    const currentMax = getComputedStyle(collapsibleEl).maxHeight;
+    if (currentMax === 'none') {
+      collapsibleEl.style.maxHeight = `${targetHeight}px`;
+      // eslint-disable-next-line no-unused-expressions
+      collapsibleEl.offsetHeight;
+    }
+    collapsibleEl.style.maxHeight = '0px';
+    collapsibleEl.classList.remove('open');
+  }
+  // Restore scroll so view does not auto-shift
+  queueMicrotask(() => {
+    try {
+      scrollEl.scrollTop = prevScrollTop;
+    } catch (e) {
+      window.scrollTo({ top: prevScrollTop, behavior: 'auto' });
+    }
+  });
+  // After transition ends and panel is open, set to 'none' so dynamic content is accommodated
+  const onEnd = (e) => {
+    if (e.propertyName !== 'max-height') return;
+    collapsibleEl.removeEventListener('transitionend', onEnd);
+    if (collapsibleEl.classList.contains('open')) {
+      collapsibleEl.style.maxHeight = 'none';
+    }
+  };
+  collapsibleEl.addEventListener('transitionend', onEnd);
+}
 
 // COMMENT: Build a providers map from storage or compute a fallback by reading llm_providers.json and checking current permissions
 async function getProvidersMapOrFallback() {
@@ -74,6 +120,9 @@ async function renderLLMsSection() {
   const activeWrap = document.getElementById('llms-activated');
   const availableWrap = document.getElementById('llms-available');
   const availableToggle = document.getElementById('llms-available-toggle');
+  // COMMENT: Group wrappers for conditional display logic
+  const shortcutsGroup = activeWrap ? activeWrap.closest('.llms-group') : null;
+  const availableGroup = availableWrap ? availableWrap.closest('.llms-group') : null;
   if (!section || !activeWrap || !availableWrap) return;
 
   // Clear previous contents
@@ -91,10 +140,10 @@ async function renderLLMsSection() {
   const active = entries.filter(([, v]) => v && v.hasPermission === 'Yes');
   const inactive = entries.filter(([, v]) => !v || v.hasPermission !== 'Yes');
 
-  // Helper to create a pill element (anchor) with icon + label
+  // Helper to create an icon-only element (anchor) with favicon only
   const createPill = ({ name, iconUrl, url, urlPattern, active }) => {
     const a = document.createElement('a');
-    a.className = `llm-pill ${active ? 'active' : 'inactive'}`;
+    a.className = `llm-pill icon-only ${active ? 'active' : 'inactive'}`;
     a.setAttribute('data-provider', name);
     a.setAttribute('data-url-pattern', urlPattern || '');
     a.setAttribute('title', active ? `Open ${name}` : `Activate ${name}`);
@@ -115,12 +164,6 @@ async function renderLLMsSection() {
     img.height = 20;
     img.className = 'llm-pill-icon';
     a.appendChild(img);
-
-    // Label
-    const span = document.createElement('span');
-    span.textContent = name;
-    span.className = 'llm-pill-label';
-    a.appendChild(span);
 
     if (!active) {
       // Request permission on click for inactive pills
@@ -179,12 +222,20 @@ async function renderLLMsSection() {
     });
 
   // COMMENT: Apply folded state to Available group; collapsed by default
-  if (llmsAvailableCollapsed) {
-    availableWrap.style.display = 'none';
-    if (availableToggle) availableToggle.setAttribute('aria-expanded', 'false');
-  } else {
-    availableWrap.style.display = 'flex';
+  // Special rule: if Shortcuts is empty, hide it and force Available open
+  const hasActive = active.length > 0;
+  if (!hasActive) {
+    if (shortcutsGroup) shortcutsGroup.style.display = 'none';
+    if (availableGroup) availableGroup.style.display = '';
+    llmsAvailableCollapsed = false;
+    setCollapsibleOpen(availableWrap, true);
     if (availableToggle) availableToggle.setAttribute('aria-expanded', 'true');
+  } else {
+    if (shortcutsGroup) shortcutsGroup.style.display = '';
+    setCollapsibleOpen(availableWrap, !llmsAvailableCollapsed);
+    if (availableToggle) {
+      availableToggle.setAttribute('aria-expanded', llmsAvailableCollapsed ? 'false' : 'true');
+    }
   }
 }
 
@@ -345,19 +396,34 @@ document.addEventListener('DOMContentLoaded', () => {
         ev.preventDefault();
       }
       llmsAvailableCollapsed = !llmsAvailableCollapsed;
-      if (llmsAvailableCollapsed) {
-        availableWrap.style.display = 'none';
-        availableToggle.setAttribute('aria-expanded', 'false');
-      } else {
-        availableWrap.style.display = 'flex';
-        availableToggle.setAttribute('aria-expanded', 'true');
-      }
+      setCollapsibleOpen(availableWrap, !llmsAvailableCollapsed);
+      availableToggle.setAttribute('aria-expanded', llmsAvailableCollapsed ? 'false' : 'true');
     };
     availableToggle.addEventListener('click', toggle);
     availableToggle.addEventListener('keydown', toggle);
     // Ensure default collapsed state reflected in DOM
-    availableWrap.style.display = 'none';
+    setCollapsibleOpen(availableWrap, false);
     availableToggle.setAttribute('aria-expanded', 'false');
+  }
+
+  // COMMENT: Wire Prompt Management toggle (fold/unfold), collapsed by default
+  const pmToggle = document.getElementById('pm-toggle');
+  const pmControls = document.getElementById('pm-controls');
+  if (pmToggle && pmControls) {
+    const togglePM = (ev) => {
+      if (ev && ev.type === 'keydown') {
+        if (ev.key !== 'Enter' && ev.key !== ' ') return;
+        ev.preventDefault();
+      }
+      pmCollapsed = !pmCollapsed;
+      setCollapsibleOpen(pmControls, !pmCollapsed);
+      pmToggle.setAttribute('aria-expanded', pmCollapsed ? 'false' : 'true');
+    };
+    pmToggle.addEventListener('click', togglePM);
+    pmToggle.addEventListener('keydown', togglePM);
+    // Ensure default collapsed state reflected in DOM
+    setCollapsibleOpen(pmControls, false);
+    pmToggle.setAttribute('aria-expanded', 'false');
   }
 
   // COMMENT: Refresh UI whenever prompts change in storage
