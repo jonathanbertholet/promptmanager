@@ -43,13 +43,6 @@
       "element_selector": "textarea[placeholder='Message DeepSeek']"
     },
     {
-      "name": "Grok @ x.com",
-      "pattern": "*://x.com/i/grok*",
-      "url": "https://x.com/i/grok",
-      "icon_url": "https://grok.com/images/favicon-light.png",
-      "element_selector": "div.ProseMirror[contenteditable='true']"
-    },
-    {
       "name": "Grok",
       "pattern": "*://grok.com/*",
       "url": "https://grok.com",
@@ -60,7 +53,7 @@
       "name": "Microsoft Copilot",
       "pattern": "*://copilot.microsoft.com/*",
       "url": "https://copilot.microsoft.com",
-      "icon_url": "https://copilot.microsoft.com/sa/simg/favicon-cplt.ico",
+      "icon_url": "../icons/copilot.png",
       "element_selector": "#userInput"
     },
     {
