@@ -69,7 +69,7 @@ document.addEventListener('DOMContentLoaded', function () {
     } else if (getStartedBtnContainer) {
       // When no providers are allowed yet, show guidance title instead of the button
       // This matches the requested behavior: display a title until at least one LLM is selected
-      getStartedBtnContainer.innerHTML = '<h3 class="custom-onboarding-title">First, select the AI tools you want to use.</h3>';
+      getStartedBtnContainer.innerHTML = '<h3 class="custom-onboarding-title">First, select the AI Assistants you want to use.</h3>';
     }
   }
 
@@ -138,6 +138,13 @@ document.addEventListener('DOMContentLoaded', function () {
           element.addEventListener('click', handleProviderClick);
         }
       }
+    }
+
+    // COMMENT: Hide the "Allowed" section container when there are no allowed providers yet.
+    // This keeps the UI clean until the user approves at least one LLM origin.
+    const allowedSectionContainer = permissionGrantedContainer.closest('.custom-container-mt5');
+    if (allowedSectionContainer) {
+      allowedSectionContainer.style.display = allowedProviders.length > 0 ? '' : 'none';
     }
 
     updateGetStartedButton(allowedProviders);

@@ -81,7 +81,7 @@
       "name": "Mistral Le Chat",
       "pattern": "*://chat.mistral.ai/*",
       "url": "https://chat.mistral.ai",
-      "icon_url": "https://chat.mistral.ai/favicon.ico",
+      "icon_url": "../icons/mistral.png",
       "element_selector": "[data-placeholder=\"Ask Le Chat anything\"]"
     },
     {
@@ -102,7 +102,7 @@
       "name": "ChatLLM",
       "pattern": "*://apps.abacus.ai/chatllm/*",
       "url": "https://apps.abacus.ai",
-      "icon_url": "https://abacus.ai/static/icon2/favicon.ico",
+      "icon_url": "../icons/chatllm.png",
       "element_selector": "textarea[placeholder=\"Write something...\"]"
     },
     {

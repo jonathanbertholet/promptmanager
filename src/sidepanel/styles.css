@@ -348,6 +348,10 @@
     overflow: hidden;
     margin-bottom: unset;
   }
+  /* COMMENT: Ensure the footer participates in the grid's footer area on large screens */
+  footer.footer {
+    grid-area: footer;
+  }
 
   .prompts-container {
     grid-area: g-prompt-list;
@@ -453,8 +457,9 @@ footer.footer {
   flex-shrink: 0;
   position: sticky;
   bottom: 0;
-  background: transparent !important; /* Force transparency if overridden elsewhere */
+  background: var(--light-bg); /* Solid background same as sidepanel */
   padding: 14px 0 12px; /* add a bit more top padding for breathability */
+  margin-top: auto; /* COMMENT: Push footer to the bottom when content is short */
   width: 100%;
   z-index: 10;
   display: flex;
@@ -469,7 +474,7 @@ footer.footer {
 
 @media (prefers-color-scheme: dark) {
   footer.footer {
-    background: transparent; /* Transparent in dark mode too */
+    background: #0A2647; /* Solid dark background to avoid overlap look */
   }
 }
 
@@ -501,7 +506,7 @@ footer.footer {
   }
   /* COMMENT: Subtle divider color in dark mode for Prompt Management section */
   #pm-section {
-    border-top-color: rgba(255,255,255,0.10);
+    border-top-color: rgba(255,255,255,0.08);
   }
 
   /* Headings adopt primary colour for contrast */
@@ -663,19 +668,19 @@ button.main:hover {
      LLMs section (pills for activated/available providers)
      ------------------------------------------------------------ */
   .llms-section {
-    margin: 6px 0 6px 0; /* tighter section spacing */
+    margin: 5px 0 5px 0; /* tighter section spacing */
   }
   .llms-heading {
-    margin: 0 0 5px 0; /* slightly tighter heading spacing */
+    margin: 0 0 4px 0; /* slightly tighter heading spacing */
     font-size: 15px;
     font-weight: 600;
     color: var(--primary);
   }
   /* COMMENT: Subtle divider and compact spacing before Prompt Management */
   #pm-section {
-    margin-top: 6px;
-    padding-top: 6px;
-    border-top: 1px solid rgba(0,0,0,0.06);
+    margin-top: 4px;
+    padding-top: 4px;
+    border-top: 1px solid rgba(0,0,0,0.05);
   }
   .llms-group {
     margin-bottom: 8px;
