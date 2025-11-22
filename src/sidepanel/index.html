@@ -60,13 +60,7 @@
     <div class="prompts-section">
       <!-- COMMENT: Empty state when no LLM provider permissions are enabled -->
       <div id="permissions-shortcut" class="shortcut-container" style="display: none">
-        <p style="margin: 8px 0">Open the permissions manager to add the AI tools you use to get started.</p>
-        <a href="../permissions/permissions.html" target="_blank" style="text-decoration: none">
-          <button class="main" type="button" title="Open Permissions Manager">
-            <img src="../icons/permissions-icon.svg" alt="Permissions" style="margin-right: 6px" />
-            Open Permissions Manager
-          </button>
-        </a>
+        <p style="margin: 8px 0">Add your supported Assistants below to get started.</p>
       </div>
       <ul id="prompt-list">
 
@@ -115,11 +109,36 @@
       </div>
     </div>
   </div>
-  <div class="dataimpexp">
-    <button class="main" id="export-btn">Export prompts</button>
-    <span></span>
-    <button class="main" id="import-btn">Import prompts</button>
-    <input type="file" id="import-file" accept=".json" hidden />
+  <!-- COMMENT: LLMs section shows activated and available providers, mirroring the permissions page behavior -->
+  <div id="llms-section" class="llms-section">
+    <h3 class="llms-heading">Assistants</h3>
+    <p></p>
+    <div class="llms-group">
+      <div id="llms-activated" class="llms-pills" aria-live="polite">
+        <!-- COMMENT: Active provider pills rendered here -->
+      </div>
+    </div>
+    <div class="llms-group">
+      <!-- COMMENT: Available section is foldable; collapsed by default -->
+      <div class="llms-subheading" id="llms-available-toggle" role="button" tabindex="0" aria-controls="llms-available" aria-expanded="false">Add more</div>
+      <div id="llms-available" class="llms-pills collapsible" aria-live="polite">
+        <!-- COMMENT: Available provider pills rendered here (click to request permission) -->
+      </div>
+    </div>
+  </div>
+  <!-- COMMENT: Prompt Management section with fold/unfold, folded by default -->
+  <div id="pm-section" class="llms-section">
+    <h3 class="llms-heading" id="pm-toggle" role="button" tabindex="0" aria-controls="pm-controls" aria-expanded="false">Prompt Management</h3>
+    <div class="llms-group">
+      <div id="pm-controls" class="pm-controls collapsible" aria-live="polite">
+        <div class="pm-subtitle">Export or import your saved prompts.</div>
+        <div class="pm-row">
+          <button class="main" id="export-btn">Export prompts</button>
+          <button class="main" id="import-btn">Import prompts</button>
+        </div>
+        <input type="file" id="import-file" accept=".json" hidden />
+      </div>
+    </div>
   </div>
   <p></p>
   <!-- Sticky footer for icons/links -->
@@ -127,11 +146,26 @@
     <div class="footer-icons" style="display: flex; align-items: center; gap: 8px;">
       <a id="link" href="https://github.com/jonathanbertholet/promptmanager"
         target="_blank" title="Github"><img class="footer-icons" src="../icons/github-icon.png" alt="Github" /></a>
+      <!-- COMMENT: Buy Me a Coffee link inserted between GitHub and Chrome Web Store -->
+      <a id="link" href="https://buymeacoffee.com/jonathanbertholet"
+        target="_blank" title="Buy me a coffee">
+          <span style="
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #3674B5;
+          ">
+            <img class="footer-icons" src="../icons/coffee.svg" alt="Buy me a coffee" style="width: 12px; height: 12px; filter: brightness(0) invert(1);" />
+          </span>
+        </a>
       <a id="link" href="https://chromewebstore.google.com/detail/open-prompt-manager/gmhaghdbihgenofhnmdbglbkbplolain"
         target="_blank" title="Review me"><img class="footer-icons" src="../icons/review-icon.png" alt="Review me" /></a>
       <a id="link" href="../settings.html" title="Settings"><img id="settings-icon" class="footer-icons"
           src="../icons/settings-icon.png" alt="Settings" /></a>
-      <a id="link" href="../permissions/permissions.html" title="Activate more LLMs" target="_blank" style="text-decoration: none;">
+      <a id="link" href="../permissions/permissions.html" title="Get Started" target="_blank" style="text-decoration: none;">
         <span style="
           display: inline-flex;
           align-items: center;
@@ -145,8 +179,7 @@
           box-shadow: 0 1px 2px rgba(0,0,0,0.04);
           transition: background 0.15s;
         ">
-          <img id="permissions-icon" class="footer-icons" src="../icons/permissions-icon.svg" alt="Activate more LLMs" style="width: 14px; height: 14px; margin: 0; filter: brightness(0) invert(1);" />
-          Activate more LLMs
+          Get Started
         </span>
       </a>
     </div>

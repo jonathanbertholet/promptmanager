@@ -23,6 +23,222 @@ async function hasAnyGrantedProviderPermission() {
   });
 }
 
+// COMMENT: Track folded state of the "Available" group (collapsed by default)
+let llmsAvailableCollapsed = true;
+// COMMENT: Track folded state of Prompt Management (collapsed by default)
+let pmCollapsed = true;
+
+// COMMENT: Smoothly open/close a collapsible element without auto-scrolling the view
+function setCollapsibleOpen(collapsibleEl, open) {
+  if (!collapsibleEl) return;
+  const scrollEl = document.scrollingElement || document.documentElement || document.body;
+  const prevScrollTop = scrollEl.scrollTop;
+  const targetHeight = collapsibleEl.scrollHeight;
+  if (open) {
+    // Ensure transition starts from 0 -> height
+    collapsibleEl.classList.add('open');
+    collapsibleEl.style.maxHeight = '0px';
+    // Force reflow then expand to content height
+    // eslint-disable-next-line no-unused-expressions
+    collapsibleEl.offsetHeight;
+    collapsibleEl.style.maxHeight = `${targetHeight}px`;
+  } else {
+    // Collapse from current height -> 0
+    const currentMax = getComputedStyle(collapsibleEl).maxHeight;
+    if (currentMax === 'none') {
+      collapsibleEl.style.maxHeight = `${targetHeight}px`;
+      // eslint-disable-next-line no-unused-expressions
+      collapsibleEl.offsetHeight;
+    }
+    collapsibleEl.style.maxHeight = '0px';
+    collapsibleEl.classList.remove('open');
+  }
+  // Restore scroll so view does not auto-shift
+  queueMicrotask(() => {
+    try {
+      scrollEl.scrollTop = prevScrollTop;
+    } catch (e) {
+      window.scrollTo({ top: prevScrollTop, behavior: 'auto' });
+    }
+  });
+  // After transition ends and panel is open, set to 'none' so dynamic content is accommodated
+  const onEnd = (e) => {
+    if (e.propertyName !== 'max-height') return;
+    collapsibleEl.removeEventListener('transitionend', onEnd);
+    if (collapsibleEl.classList.contains('open')) {
+      collapsibleEl.style.maxHeight = 'none';
+    }
+  };
+  collapsibleEl.addEventListener('transitionend', onEnd);
+}
+
+// COMMENT: Build a providers map from storage or compute a fallback by reading llm_providers.json and checking current permissions
+async function getProvidersMapOrFallback() {
+  return new Promise(async (resolve) => {
+    try {
+      // First, try the canonical storage source (populated by service worker on install/changes)
+      chrome.storage.local.get(['aiProvidersMap'], async (result) => {
+        if (result && result.aiProvidersMap && Object.keys(result.aiProvidersMap).length > 0) {
+          resolve(result.aiProvidersMap);
+          return;
+        }
+        // Fallback: compute from llm_providers.json + current chrome.permissions
+        try {
+          const response = await fetch(chrome.runtime.getURL('llm_providers.json'));
+          const data = await response.json();
+          const list = Array.isArray(data?.llm_providers) ? data.llm_providers : [];
+          const computedEntries = await Promise.all(list.map(async (p) => {
+            const pattern = p.pattern;
+            let permitted = false;
+            try {
+              permitted = await chrome.permissions.contains({ origins: [pattern] });
+            } catch (e) {
+              permitted = false;
+            }
+            return [p.name, {
+              hasPermission: permitted ? 'Yes' : 'No',
+              urlPattern: p.pattern,
+              url: p.url,
+              iconUrl: p.icon_url
+            }];
+          }));
+          const computedMap = Object.fromEntries(computedEntries);
+          resolve(computedMap);
+        } catch (e) {
+          resolve({});
+        }
+      });
+    } catch (e) {
+      resolve({});
+    }
+  });
+}
+
+// COMMENT: Render the LLMs section with "Activated" and "Available" pills, reflecting storage status and permissions behavior
+async function renderLLMsSection() {
+  const section = document.getElementById('llms-section');
+  const activeWrap = document.getElementById('llms-activated');
+  const availableWrap = document.getElementById('llms-available');
+  const availableToggle = document.getElementById('llms-available-toggle');
+  // COMMENT: Group wrappers for conditional display logic
+  const shortcutsGroup = activeWrap ? activeWrap.closest('.llms-group') : null;
+  const availableGroup = availableWrap ? availableWrap.closest('.llms-group') : null;
+  if (!section || !activeWrap || !availableWrap) return;
+
+  // Clear previous contents
+  activeWrap.innerHTML = '';
+  availableWrap.innerHTML = '';
+
+  const providersMap = await getProvidersMapOrFallback();
+  if (!providersMap || Object.keys(providersMap).length === 0) {
+    // Nothing to show; leave containers empty
+    return;
+  }
+
+  // Split into active vs available
+  const entries = Object.entries(providersMap);
+  const active = entries.filter(([, v]) => v && v.hasPermission === 'Yes');
+  const inactive = entries.filter(([, v]) => !v || v.hasPermission !== 'Yes');
+
+  // Helper to create an icon-only element (anchor) with favicon only
+  const createPill = ({ name, iconUrl, url, urlPattern, active }) => {
+    const a = document.createElement('a');
+    a.className = `llm-pill icon-only ${active ? 'active' : 'inactive'}`;
+    a.setAttribute('data-provider', name);
+    a.setAttribute('data-url-pattern', urlPattern || '');
+    a.setAttribute('title', active ? `Open ${name}` : `Activate ${name}`);
+    // Active pills open their provider page
+    if (active && url) {
+      a.href = url;
+      a.target = '_blank';
+      a.rel = 'noopener';
+    } else {
+      a.href = '#';
+    }
+
+    // Icon
+    const img = document.createElement('img');
+    img.src = iconUrl || '';
+    img.alt = `${name} icon`;
+    img.width = 20;
+    img.height = 20;
+    img.className = 'llm-pill-icon';
+    a.appendChild(img);
+
+    if (!active) {
+      // Request permission on click for inactive pills
+      a.addEventListener('click', (ev) => {
+        ev.preventDefault();
+        const pattern = a.getAttribute('data-url-pattern');
+        if (!pattern) return;
+        chrome.permissions.request({ origins: [pattern] }, (granted) => {
+          if (granted) {
+            // Update storage map so both this UI and the permissions page stay in sync
+            // Read, mutate, and write the aiProvidersMap
+            chrome.storage.local.get(['aiProvidersMap'], (res) => {
+              const map = res && res.aiProvidersMap ? res.aiProvidersMap : providersMap;
+              if (!map[name]) {
+                map[name] = { hasPermission: 'Yes', urlPattern: pattern, url, iconUrl };
+              } else {
+                map[name].hasPermission = 'Yes';
+                map[name].urlPattern = pattern || map[name].urlPattern;
+                map[name].url = url || map[name].url;
+                map[name].iconUrl = iconUrl || map[name].iconUrl;
+              }
+              chrome.storage.local.set({ aiProvidersMap: map });
+            });
+          }
+        });
+      });
+    }
+
+    return a;
+  };
+
+  // Render active
+  active
+    .sort((a, b) => a[0].localeCompare(b[0]))
+    .forEach(([name, info]) => {
+      activeWrap.appendChild(createPill({
+        name,
+        iconUrl: info.iconUrl,
+        url: info.url,
+        urlPattern: info.urlPattern,
+        active: true
+      }));
+    });
+
+  // Render inactive
+  inactive
+    .sort((a, b) => a[0].localeCompare(b[0]))
+    .forEach(([name, info]) => {
+      availableWrap.appendChild(createPill({
+        name,
+        iconUrl: info?.iconUrl,
+        url: info?.url,
+        urlPattern: info?.urlPattern,
+        active: false
+      }));
+    });
+
+  // COMMENT: Apply folded state to Available group; collapsed by default
+  // Special rule: if Shortcuts is empty, hide it and force Available open
+  const hasActive = active.length > 0;
+  if (!hasActive) {
+    if (shortcutsGroup) shortcutsGroup.style.display = 'none';
+    if (availableGroup) availableGroup.style.display = '';
+    llmsAvailableCollapsed = false;
+    setCollapsibleOpen(availableWrap, true);
+    if (availableToggle) availableToggle.setAttribute('aria-expanded', 'true');
+  } else {
+    if (shortcutsGroup) shortcutsGroup.style.display = '';
+    setCollapsibleOpen(availableWrap, !llmsAvailableCollapsed);
+    if (availableToggle) {
+      availableToggle.setAttribute('aria-expanded', llmsAvailableCollapsed ? 'false' : 'true');
+    }
+  }
+}
+
 // COMMENT: Toggle visibility between permissions shortcut and prompt list based on granted permissions
 async function renderPermissionsGate() {
   const shortcut = document.getElementById('permissions-shortcut');
@@ -167,6 +383,48 @@ document.addEventListener('DOMContentLoaded', () => {
   loadPrompts();
   // COMMENT: Evaluate permissions gate on load
   renderPermissionsGate();
+  // COMMENT: Render LLMs section on load
+  renderLLMsSection();
+
+  // COMMENT: Wire Available subheading toggle (fold/unfold)
+  const availableToggle = document.getElementById('llms-available-toggle');
+  const availableWrap = document.getElementById('llms-available');
+  if (availableToggle && availableWrap) {
+    const toggle = (ev) => {
+      if (ev && ev.type === 'keydown') {
+        if (ev.key !== 'Enter' && ev.key !== ' ') return;
+        ev.preventDefault();
+      }
+      llmsAvailableCollapsed = !llmsAvailableCollapsed;
+      setCollapsibleOpen(availableWrap, !llmsAvailableCollapsed);
+      availableToggle.setAttribute('aria-expanded', llmsAvailableCollapsed ? 'false' : 'true');
+    };
+    availableToggle.addEventListener('click', toggle);
+    availableToggle.addEventListener('keydown', toggle);
+    // Ensure default collapsed state reflected in DOM
+    setCollapsibleOpen(availableWrap, false);
+    availableToggle.setAttribute('aria-expanded', 'false');
+  }
+
+  // COMMENT: Wire Prompt Management toggle (fold/unfold), collapsed by default
+  const pmToggle = document.getElementById('pm-toggle');
+  const pmControls = document.getElementById('pm-controls');
+  if (pmToggle && pmControls) {
+    const togglePM = (ev) => {
+      if (ev && ev.type === 'keydown') {
+        if (ev.key !== 'Enter' && ev.key !== ' ') return;
+        ev.preventDefault();
+      }
+      pmCollapsed = !pmCollapsed;
+      setCollapsibleOpen(pmControls, !pmCollapsed);
+      pmToggle.setAttribute('aria-expanded', pmCollapsed ? 'false' : 'true');
+    };
+    pmToggle.addEventListener('click', togglePM);
+    pmToggle.addEventListener('keydown', togglePM);
+    // Ensure default collapsed state reflected in DOM
+    setCollapsibleOpen(pmControls, false);
+    pmToggle.setAttribute('aria-expanded', 'false');
+  }
 
   // COMMENT: Refresh UI whenever prompts change in storage
   PromptStorage.onPromptsChanged(loadPrompts);
@@ -176,6 +434,8 @@ document.addEventListener('DOMContentLoaded', () => {
     chrome.storage.onChanged.addListener((changes, area) => {
       if (area === 'local' && changes.aiProvidersMap) {
         renderPermissionsGate();
+        // COMMENT: Also refresh the LLMs section so pills reflect new activation status
+        renderLLMsSection();
       }
     });
   } catch (err) {

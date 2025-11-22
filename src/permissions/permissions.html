@@ -38,6 +38,40 @@
             <p class="custom-onboarding-caption">Hot Corner Mode, Prompt Variables, Right Click Menu, Organize Prompts, Export and Import,...</p>
           </div>
         </div>
+        <!-- COMMENT: Features section (inserted between onboarding row and get-started button) -->
+        <section class="custom-features-section" aria-labelledby="features-title">
+          <h3 id="features-title" class="custom-features-title">Feature Highlight</h3>
+          <ul class="custom-features-list">
+            <!-- COMMENT: Add/remove items to customize the feature list -->
+            <li class="custom-feature-item">
+              <span class="custom-feature-text">Insert your prompts in a single click</span>
+            </li>
+            <li class="custom-feature-item">
+              <span class="custom-feature-text">Organize prompts with tags</span>
+            </li>
+            <li class="custom-feature-item">
+              <span class="custom-feature-text">Use Prompt Variables</span>
+            </li>
+            <li class="custom-feature-item">
+              <span class="custom-feature-text">Available everywhere</span>
+            </li>
+            <li class="custom-feature-item">
+              <span class="custom-feature-text">Export and Import your prompts</span>
+            </li>
+            <li class="custom-feature-item">
+              <span class="custom-feature-text">Hot Corner Mode</span>
+            </li>
+            <li class="custom-feature-item">
+              <span class="custom-feature-text">Dark & Light mode</span>
+            </li>
+            <li class="custom-feature-item">
+              <span class="custom-feature-text">Select text & Save as a new prompt</span>
+            </li>
+            <li class="custom-feature-item">
+              <span class="custom-feature-text">Right click menu to use everywhere</span>
+            </li>
+          </ul>
+        </section>
         <!-- Get Started Button Placeholder -->
         <div id="get-started-btn-container" style="margin-top: 2rem;"></div>
       </div>
@@ -66,6 +100,12 @@
           <!-- Buttons -->
           <div id="request-permission" class="custom-flex-wrap-group">
           </div>    
+          <!-- COMMENT: Action to revoke all granted optional host permissions and reset pills -->
+          <div style="margin-top: 1rem; text-align: center;">
+            <button id="remove-all-permissions" class="custom-button" style="padding: 0.5rem 0.9rem;">
+              Remove all permissions
+            </button>
+          </div>
         </div>
         <p style="font-size: 1rem; color: var(--muted-text); margin-top: 1rem; margin-bottom: 0rem;">
           I promise I won't spam you with this tab, unless I add interesting features.

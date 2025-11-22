@@ -7,6 +7,8 @@ document.addEventListener('DOMContentLoaded', function () {
   const requestPermissionContainer = document.getElementById('request-permission');
   // Get the Get Started button container
   const getStartedBtnContainer = document.getElementById('get-started-btn-container');
+  // COMMENT: Control to remove all granted permissions at once
+  const removeAllBtn = document.getElementById('remove-all-permissions');
 
   if (!permissionGrantedContainer || !requestPermissionContainer) {
     console.error('Required container elements (#permission-granted or #request-permission) not found.');
@@ -67,7 +69,7 @@ document.addEventListener('DOMContentLoaded', function () {
     } else if (getStartedBtnContainer) {
       // When no providers are allowed yet, show guidance title instead of the button
       // This matches the requested behavior: display a title until at least one LLM is selected
-      getStartedBtnContainer.innerHTML = '<h3 class="custom-onboarding-title">First, select the AI tools you want to use.</h3>';
+      getStartedBtnContainer.innerHTML = '<h3 class="custom-onboarding-title">First, select the AI Assistants you want to use.</h3>';
     }
   }
 
@@ -138,6 +140,13 @@ document.addEventListener('DOMContentLoaded', function () {
       }
     }
 
+    // COMMENT: Hide the "Allowed" section container when there are no allowed providers yet.
+    // This keeps the UI clean until the user approves at least one LLM origin.
+    const allowedSectionContainer = permissionGrantedContainer.closest('.custom-container-mt5');
+    if (allowedSectionContainer) {
+      allowedSectionContainer.style.display = allowedProviders.length > 0 ? '' : 'none';
+    }
+
     updateGetStartedButton(allowedProviders);
   }
 
@@ -163,6 +172,45 @@ document.addEventListener('DOMContentLoaded', function () {
       requestPermissionContainer.innerHTML = '<p>No provider data found in storage.</p>'; // Example message
     }
   });
+
+  // COMMENT: Remove all permissions handler — revokes all optional origins and resets providers map
+  if (removeAllBtn) {
+    removeAllBtn.addEventListener('click', () => {
+      chrome.storage.local.get(['aiProvidersMap'], (res) => {
+        const currentMap = res && res.aiProvidersMap ? res.aiProvidersMap : {};
+        // Collect all origin patterns (unique)
+        const allPatterns = Array.from(new Set(
+          Object.values(currentMap)
+            .map(v => v && v.urlPattern)
+            .filter(Boolean)
+        ));
+        // Attempt to remove all optional host permissions in one call
+        try {
+          chrome.permissions.remove({ origins: allPatterns }, (removed) => {
+            // Regardless of removed flag, update local storage map to reflect "No"
+            const updated = {};
+            for (const [key, val] of Object.entries(currentMap)) {
+              updated[key] = {
+                ...val,
+                hasPermission: 'No'
+              };
+            }
+            chrome.storage.local.set({ aiProvidersMap: updated });
+          });
+        } catch (e) {
+          // On error, still set map to "No" to reset UI; users can re-grant
+          const updated = {};
+          for (const [key, val] of Object.entries(currentMap)) {
+            updated[key] = {
+              ...val,
+              hasPermission: 'No'
+            };
+          }
+          chrome.storage.local.set({ aiProvidersMap: updated });
+        }
+      });
+    });
+  }
 
   const isDarkMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
   if (isDarkMode) {

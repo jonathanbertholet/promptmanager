@@ -6,7 +6,7 @@
         "puppeteer": "^24.4.0"
     },
     "scripts": {
-        "test": "copy src\\manifest.dev.json src\\manifest.json && echo 'Testing in DEVO' && jest ./tests/",
+        "test": "jest ./tests/",
         "debug": "node --inspect-brk node_modules/jest/bin/jest.js",
         "build:prod": "cp src/manifest.prod.json src/manifest.json && echo 'Build for PROD'",
         "lint": "eslint src",

@@ -1,24 +1,26 @@
 import { getProviders } from './llm_providers.js'; // Import the correct function
-import { getPrompts, onPromptsChanged } from './promptStorage.js'; // COMMENT: Unified prompt storage API
+import { getPrompts, onPromptsChanged, savePrompt } from './promptStorage.js'; // COMMENT: Unified prompt storage API
 
 chrome.runtime.onInstalled.addListener(function (details) {
   chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true });
   console.log('onInstalled', details);
-  // note to self : for updates, add 'update' in array
-  if (!['install'].includes(details.reason)) {
-    return;
+  // COMMENT: Rebuild providers map on install and update (but only open UI on first install)
+  const shouldRebuild = ['install', 'update'].includes(details.reason);
+  if (details.reason === 'install') {
+    chrome.tabs.create({ url: 'permissions/permissions.html' });
   }
-  chrome.tabs.create({ url: 'permissions/permissions.html' });
-  (async () => {
-    try {
-      const providersMap = await checkProviderPermissions();
-      console.log('Providers Map:', providersMap);
-      // Store the provider map in local storage
-      await chrome.storage.local.set({ 'aiProvidersMap': providersMap });
-    } catch (error) {
-      console.error('Error:', error);
-    }
-  })();
+  if (shouldRebuild) {
+    (async () => {
+      try {
+        const providersMap = await checkProviderPermissions();
+        console.log('Providers Map:', providersMap);
+        // Store the provider map in local storage
+        await chrome.storage.local.set({ 'aiProvidersMap': providersMap });
+      } catch (error) {
+        console.error('Error:', error);
+      }
+    })();
+  }
 });
 
 
@@ -40,6 +42,7 @@ chrome.permissions.onAdded.addListener(async (permissions) => {
             files: [
               "inputBoxHandler.js",
               "content.styles.js",
+              "content.shared.js",
               "content.js"
             ]
           });
@@ -89,6 +92,7 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
               files: [
                 "inputBoxHandler.js",
                 "content.styles.js",
+                "content.shared.js",
                 "content.js"
               ]
             });
@@ -120,12 +124,23 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
 
 async function checkProviderPermissions() {
   try {
-    // Fetch the providers map
-    const response = await fetch('llm_providers.json');
+    // Fetch the providers list (use absolute extension URL for reliability)
+    const response = await fetch(chrome.runtime.getURL('llm_providers.json'));
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
     const providersData = await response.json();
+
+    // COMMENT: Normalize icon URLs. For local paths (e.g. "../icons/foo.png" or "icons/foo.png"),
+    // convert to an absolute chrome-extension:// URL so all UIs resolve consistently.
+    const resolveIconUrl = (raw) => {
+      if (!raw) return '';
+      // Keep absolute/network/data/chrome-extension URLs as-is
+      if (/^(https?:|data:|chrome-extension:)/.test(raw)) return raw;
+      // Strip leading ./ or ../ segments to anchor at the extension root
+      const normalized = raw.replace(/^(\.\.\/)+/, '').replace(/^\.\//, '');
+      return chrome.runtime.getURL(normalized);
+    };
 
     // Object to store provider permission status and URL
     const providersMap = {};
@@ -147,7 +162,7 @@ async function checkProviderPermissions() {
         hasPermission: hasPermission ? 'Yes' : 'No',
         urlPattern: urlPattern,
         url: providerUrl,
-        iconUrl: providerInfo.icon_url
+        iconUrl: resolveIconUrl(providerInfo.icon_url)
       };
     }
 
@@ -175,6 +190,22 @@ async function createPromptContextMenu() {
       title: 'Open Prompt Manager',
       contexts: ['all']
     });
+    // First child: "Save as prompt" – only shown when there is a text selection
+    // COMMENT: This enables the flow "select text → right-click → Open Prompt Manager → Save as prompt"
+    chrome.contextMenus.create({
+      id: 'save-as-prompt',
+      parentId: 'open-prompt-manager',
+      title: 'Save new prompt',
+      contexts: ['selection']
+    });
+    // COMMENT: Visual separator between "Save as prompt" and the list of existing prompts.
+    // Only show when there is a selection, mirroring the visibility of the save item.
+    chrome.contextMenus.create({
+      id: 'save-separator',
+      parentId: 'open-prompt-manager',
+      type: 'separator',
+      contexts: ['selection']
+    });
     // Add a menu item for each prompt
     getAllPrompts().then(prompts => {
       prompts.forEach((prompt, idx) => {
@@ -197,6 +228,15 @@ chrome.runtime.onInstalled.addListener(() => {
 // On startup, also create the context menu (for reloads)
 chrome.runtime.onStartup.addListener(() => {
   createPromptContextMenu();
+  // COMMENT: Refresh providers map on startup so icon changes and new providers propagate without reinstall
+  (async () => {
+    try {
+      const providersMap = await checkProviderPermissions();
+      await chrome.storage.local.set({ 'aiProvidersMap': providersMap });
+    } catch (e) {
+      console.error('Failed to refresh aiProvidersMap on startup:', e);
+    }
+  })();
 });
 
 // Listen for prompts changes via the unified API and update the context menu
@@ -207,6 +247,43 @@ onPromptsChanged(() => {
 
 // When a context menu item is clicked
 chrome.contextMenus.onClicked.addListener(async (info, tab) => {
+  // Handle "Save as prompt": opens a small popup dialog prefilled with the selected text
+  if (info.menuItemId === 'save-as-prompt') {
+    // COMMENT: Use Chrome's built-in dialogs in the page context:
+    // - prompt() to capture the title
+    // - alert() to show validation error if title is empty
+    try {
+      const selected = info.selectionText || '';
+      // Ask for a title using the page's built-in blocking prompt
+      const [{ result: titleValue }] = await chrome.scripting.executeScript({
+        target: { tabId: tab.id },
+        func: () => {
+          return window.prompt('Enter a title for your prompt', '');
+        }
+      });
+      const title = (titleValue || '').trim();
+      if (!title) {
+        // Show the requested error message if no title provided
+        await chrome.scripting.executeScript({
+          target: { tabId: tab.id },
+          func: () => { window.alert('Please add a title to your prompt.'); }
+        });
+        return;
+      }
+      // Persist the prompt using the unified storage API
+      await savePrompt({ title, content: selected });
+      // Optional: fire a lightweight notification if available
+      chrome.notifications?.create({
+        type: 'basic',
+        iconUrl: 'icons/icon128.png',
+        title: 'Prompt Saved',
+        message: `Saved: ${title}`
+      });
+    } catch (err) {
+      console.error('Failed to save prompt from selection:', err);
+    }
+    return;
+  }
   if (info.menuItemId.startsWith('prompt-')) {
     // Extract the prompt index
     const idx = parseInt(info.menuItemId.replace('prompt-', ''), 10);

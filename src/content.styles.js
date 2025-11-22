@@ -79,45 +79,34 @@ var injectGlobalStyles = window.injectGlobalStyles || function injectGlobalStyle
       --font-family: 'Roboto', sans-serif;
     }
     
-    /* New scrollbar styling for our specific containers */
-    /* Legacy selectors kept temporarily for smoother transition; safe under #opm-root */
-    #${SELECTORS.ROOT} .opm-prompt-list-items,
-    #${SELECTORS.ROOT} .opm-prompt-list-items *,
-    #${SELECTORS.ROOT} #opm-info-content,
-    #${SELECTORS.ROOT} #opm-changelog-content,
-    /* COMMENT: Make the horizontal tags filter bar use the same scrollbar theme */
-    #${SELECTORS.ROOT} .opm-tags-filter-bar {
+    /* COMMENT: Scrollbars remain hidden until ScrollVisibilityManager marks activity */
+    #${SELECTORS.ROOT} .opm-scrollable {
+      scrollbar-width: none;
+      scrollbar-color: transparent transparent;
+    }
+    #${SELECTORS.ROOT} .opm-scrollable::-webkit-scrollbar {
+      width: 0;
+      height: 0;
+      background: transparent;
+    }
+    #${SELECTORS.ROOT} .opm-scrollable.opm-scroll-active {
       scrollbar-width: auto !important;
       scrollbar-color: ${THEME_COLORS.primary}90 transparent !important;
     }
-
-    /* WebKit scrollbar styling for consistency */
-    #${SELECTORS.ROOT} .opm-prompt-list-items::-webkit-scrollbar,
-    #${SELECTORS.ROOT} #opm-info-content::-webkit-scrollbar,
-    #${SELECTORS.ROOT} #opm-changelog-content::-webkit-scrollbar {
+    #${SELECTORS.ROOT} .opm-scrollable.opm-scroll-active::-webkit-scrollbar {
       width: 10px;
+      height: 10px;
     }
-    #${SELECTORS.ROOT} .opm-prompt-list-items::-webkit-scrollbar-thumb,
-    #${SELECTORS.ROOT} #opm-info-content::-webkit-scrollbar-thumb,
-    #${SELECTORS.ROOT} #opm-changelog-content::-webkit-scrollbar-thumb {
+    #${SELECTORS.ROOT} .opm-scrollable.opm-scroll-active::-webkit-scrollbar-thumb {
       background-color: ${THEME_COLORS.primary}90;
       border-radius: 8px;
     }
-    #${SELECTORS.ROOT} .opm-prompt-list-items::-webkit-scrollbar-track,
-    #${SELECTORS.ROOT} #opm-info-content::-webkit-scrollbar-track,
-    #${SELECTORS.ROOT} #opm-changelog-content::-webkit-scrollbar-track {
+    #${SELECTORS.ROOT} .opm-scrollable.opm-scroll-active::-webkit-scrollbar-track {
       background: transparent;
     }
-    /* COMMENT: Horizontal scrollbar for tags filter bar (match prompt list theme) */
-    #${SELECTORS.ROOT} .opm-tags-filter-bar::-webkit-scrollbar {
+    /* COMMENT: Horizontal tags bar uses a shorter scrollbar when active */
+    #${SELECTORS.ROOT} .opm-tags-filter-bar.opm-scroll-active::-webkit-scrollbar {
       height: 8px;
-    }
-    #${SELECTORS.ROOT} .opm-tags-filter-bar::-webkit-scrollbar-thumb {
-      background-color: ${THEME_COLORS.primary}90;
-      border-radius: 8px;
-    }
-    #${SELECTORS.ROOT} .opm-tags-filter-bar::-webkit-scrollbar-track {
-      background: transparent;
     }
     
     #${SELECTORS.ROOT}, #${SELECTORS.ROOT} * { font-family: var(--font-family); }
