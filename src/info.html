@@ -3,10 +3,41 @@
   /* COMMENT: Ultra-minimal info view. High-contrast text, no borders/shadows, just essentials. */
   #opm-root.opm-light .pm-info { color: var(--input-light-text); }
   #opm-root.opm-dark  .pm-info { color: var(--input-dark-text); }
-  .pm-info { display: flex; flex-direction: column; gap: 8px; font-size: 14px; line-height: 1.4; }
 
-  .pm-list { display: flex; flex-direction: column; gap: 6px; }
-  .pm-list-item { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .pm-info { 
+    display: flex; 
+    flex-direction: column; 
+    gap: 8px; 
+    font-size: 14px; 
+    line-height: 1.4; 
+    padding: 4px 0;
+  }
+
+  .pm-section {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .pm-section-title {
+    font-weight: 600;
+    font-size: 13px;
+    opacity: 0.8;
+    letter-spacing: 0.5px;
+  }
+
+  .pm-section-content {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  
+  .pm-section-note {
+    font-size: 12px;
+    opacity: 0.6;
+    margin-top: 2px;
+  }
 
   /* COMMENT: Chips and keyboard keys kept for clarity, not decoration */
   .pm-chip, .pm-kbd {
@@ -17,11 +48,11 @@
     display: inline-flex;
     align-items: center;
     height: 22px;
+    white-space: nowrap;
   }
   .pm-kbd { gap: 2px; font-family: monospace; font-size: 11px; }
   .pm-plus { margin: 0 2px; }
   .pm-sep { margin: 0 4px; opacity: .6; }
-  .pm-muted { opacity: .75; }
 
   /* COMMENT: Link uses theme primary and a subtle underline on hover */
   .pm-link { color: var(--primary); text-decoration: none; display: inline-flex; align-items: center; gap: 6px; }
@@ -34,41 +65,41 @@
 </style>
 
 <div class="pm-info">
-  <!-- COMMENT: Ultra-minimal essentials only -->
-  <div class="pm-list">
-    <div class="pm-list-item">
-      <span class="pm-muted">Open</span>
+  
+  <div class="pm-section">
+    <div class="pm-section-title">Open</div>
+    <div class="pm-section-content">
       <span class="pm-kbd"><span>⌘</span><span class="pm-plus">+</span><span>⇧</span><span class="pm-plus">+</span><span>P</span></span>
       <span class="pm-sep">/</span>
       <span class="pm-kbd"><span>Ctrl</span><span class="pm-plus">+</span><span>M</span></span>
-      <span class="pm-sep">or</span>
-      <span class="pm-chip">Hover</span>
     </div>
-    <div class="pm-list-item">
-      <span class="pm-muted">Navigate</span>
+    <div class="pm-section-note">Or hover</div>
+  </div>
+
+  <div class="pm-section">
+    <div class="pm-section-title">Navigate</div>
+    <div class="pm-section-content">
       <span class="pm-chip">↑ ↓ + Enter</span>
       <span class="pm-sep">/</span>
       <span class="pm-chip">Esc</span>
     </div>
-    <div class="pm-list-item">
-      <span class="pm-muted">Variables</span>
+  </div>
+
+  <div class="pm-section">
+    <div class="pm-section-title">Variables</div>
+    <div class="pm-section-content">
       <span class="pm-chip">#name#</span>
     </div>
-    <div class="pm-list-item">
-      <span class="pm-muted">Copy</span>
-      <span class="pm-chip">Sidebar</span>
-      <span class="pm-sep">/</span>
-      <span class="pm-chip">Right Click</span>
-    </div>
-    <div class="pm-list-item">
-      <span class="pm-muted">Reorder</span>
-      <span class="pm-chip">Drag &amp; Drop</span>
+    <div class="pm-section-note">Insert dynamic values into prompts using the # syntax</div>
+  </div>
+
+  <div class="pm-section">
+    <div class="pm-section-title">Features</div>
+    <div class="pm-section-content">
+      <span class="pm-chip">Right Click Menu</span>
+      <span class="pm-chip">Sidebar Editor</span>
+      <span class="pm-chip">Hot Corner Mode</span>
     </div>
   </div>
 
-  <div class="pm-list">
-    <div class="pm-list-item">
-      <a class="pm-link" href="https://github.com/jonathanbertholet/promptmanager" target="_blank" rel="noopener noreferrer">Visit my GitHub Repository</a>
-    </div>
-  </div>
 </div>

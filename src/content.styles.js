@@ -329,7 +329,7 @@ var injectGlobalStyles = window.injectGlobalStyles || function injectGlobalStyle
       transition: background-color var(--transition-speed) ease, transform var(--transition-speed) ease;
       display: flex;
       align-items: center;
-      padding: 10px 8px;
+      padding: 6px 12px;
     }
     #${SELECTORS.ROOT} .opm-prompt-list-item.opm-light:hover {
       background-color: #e2e8f0;
@@ -492,6 +492,15 @@ var injectGlobalStyles = window.injectGlobalStyles || function injectGlobalStyle
     #${SELECTORS.ROOT} .opm-prompt-list-item.opm-dark.opm-keyboard-selected {
       background-color: #2d3748;
       transform: translateY(-2px);
+    }
+    #${SELECTORS.ROOT}:not(.opm-edit-mode-active) .opm-edit-only {
+      display: none !important;
+    }
+    #${SELECTORS.ROOT}.opm-edit-mode-active .opm-edit-only {
+      display: flex;
+    }
+    #${SELECTORS.ROOT}:not(.opm-edit-mode-active) .opm-drag-handle {
+      cursor: default !important;
     }
     /* Ensure prompt list stays visible during keyboard navigation */
     #${SELECTORS.ROOT} .opm-prompt-list.opm-visible:focus-within {

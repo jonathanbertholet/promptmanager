@@ -368,6 +368,7 @@ const PanelRouter = (() => {
       description: 'Prompt list view needs live data + persisted tags every time.',
       async controller(listEl) {
         try {
+          PromptUIManager.setListMode('list');
           const prompts = await PromptStorageManager.getPrompts();
           let savedTag = 'all';
           try {
@@ -391,11 +392,29 @@ const PanelRouter = (() => {
       description: 'Create view uses fixed-height form; search stays hidden.'
     },
     [PanelView.EDIT]: {
-      builder: () => PromptUIManager.createEditView(),
-      panelHeight: 'fixed',
+      kind: 'list',
+      panelHeight: 'variable',
       searchVisible: true,
       alwaysRebuild: true,
-      description: 'Edit view must rebuild each time to honor prompt reordering.'
+      description: 'Edit view reuses the prompt list with edit + reorder controls.',
+      async controller(listEl) {
+        try {
+          PromptUIManager.setListMode('edit');
+          const prompts = await PromptStorageManager.getPrompts();
+          let savedTag = 'all';
+          try {
+            savedTag = (await PromptStorageManager.getActiveTagFilter()) || 'all';
+          } catch (_) {
+            savedTag = 'all';
+          }
+          PromptUIManager.activeTagFilter = savedTag;
+          PromptUIManager.refreshPromptList(prompts);
+          PromptUIManager.filterByTag(savedTag);
+          PromptUIManager.showPromptList(listEl);
+        } catch (err) {
+          console.error('[PromptManager] Failed to render EDIT view:', err);
+        }
+      }
     },
     [PanelView.SETTINGS]: {
       builder: () => PromptUIManager.createSettingsForm(),
@@ -469,6 +488,10 @@ const PanelRouter = (() => {
     const builder = definition.builder;
     if (!builder) return;
 
+    // COMMENT: Reset the shared panel scaffolding first so builders can rely on
+    // the latest tags/search host before injecting their custom content.
+    PromptUIManager.resetPromptListContainer();
+
     let node = null;
     try {
       node = await builder(context);
@@ -478,8 +501,7 @@ const PanelRouter = (() => {
     }
     if (!node) return;
 
-      PromptUIManager.resetPromptListContainer();
-      PromptUIManager.replacePanelMainContent(node);
+    PromptUIManager.replacePanelMainContent(node);
     applyViewChrome(definition);
     PromptUIManager.showPromptList(listEl);
   };
@@ -586,10 +608,11 @@ ensureStylesInjected();
  * Theme handling (dark / light) with subscription hook
  * -------------------------------------------------------------------------*/
 let isDarkModeActive = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-let isDarkModeForced = false; // when true, override to dark regardless of OS
+// Initialize global forced state (shared with content.shared.js)
+if (typeof window.isDarkModeForced === 'undefined') window.isDarkModeForced = false;
 
 /* Read current mode */
-const isDarkMode = () => (isDarkModeForced ? true : isDarkModeActive);
+const isDarkMode = () => (window.isDarkModeForced ? true : isDarkModeActive);
 
 /* Listen to OS-level preference changes */
 if (window.matchMedia) {
@@ -726,8 +749,12 @@ class PromptUIManager {
   // COMMENT: Configuration for the info banner. Toggle 'active' to show/hide.
   static BANNER_CONFIG = {
     active: true, 
-    id: 'info-banner-v1', // Change ID to re-show to users who dismissed it
-    html: '<span><strong>New:</strong> select text, right click & save as a new prompt!</span>'
+    id: 'info-banner-v2', // Change ID to re-show to users who dismissed it
+    html: `<span>
+      <strong>New:</strong> select text, right click & save as a new prompt! </br></br>
+      Enjoy the extension? 
+      <a href="https://chromewebstore.google.com/detail/open-prompt-manager/gmhaghdbihgenofhnmdbglbkbplolain" target="_blank" rel="noopener noreferrer" style="color:#3674B5;text-decoration:underline;">Leave a review</a>!
+    </span>`
   };
 
   static state = {
@@ -737,7 +764,9 @@ class PromptUIManager {
     hotCornerContainer: null,
     hotCornerVisibilityHandler: null,
     lastPromptsSignature: null,
-    tagsBar: null
+    listMode: 'list',
+    tagsBar: null,
+    suppressNextListRefresh: false
   };
 
   static _ensureRoot() {
@@ -758,6 +787,19 @@ class PromptUIManager {
     if (!listEl) return;
     listEl.classList.remove('opm-fixed-400', 'opm-variable');
     if (mode === 'variable') listEl.classList.add('opm-variable'); else listEl.classList.add('opm-fixed-400');
+  }
+  // COMMENT: Track whether the active list should expose editing controls or standard view.
+  static setListMode(mode = 'list') {
+    const normalized = mode === 'edit' ? 'edit' : 'list';
+    PromptUIManager.state.listMode = normalized;
+    PromptUIManager.applyListModeClass();
+  }
+  static applyListModeClass() {
+    const root = PromptUIManager._ensureRoot();
+    root.classList.toggle('opm-edit-mode-active', PromptUIManager.state.listMode === 'edit');
+  }
+  static requestListRefreshSuppression() {
+    PromptUIManager.state.suppressNextListRefresh = true;
   }
   // COMMENT: Map manager flags to PromptUI.State via accessors
   static get manuallyOpened() { return PromptUI.State.manuallyOpened; }
@@ -915,9 +957,14 @@ class PromptUIManager {
     if (!panel) return;
     const items = panel.querySelector(`.${SELECTORS.PROMPT_ITEMS_CONTAINER}.opm-view-list`);
     if (!items) return; // not on the list view – skip to avoid toggling search visibility
+    if (PromptUIManager.state.suppressNextListRefresh) {
+      PromptUIManager.state.suppressNextListRefresh = false;
+      PromptUIManager.setSearchVisibility(true);
+      return;
+    }
     const signature = PromptUIManager.computePromptsSignature(prompts);
     if (!signature || PromptUIManager.state.lastPromptsSignature !== signature) {
-    PromptUIManager.buildPromptListContainer(prompts);
+      PromptUIManager.buildPromptListContainer(prompts);
       PromptUIManager.state.lastPromptsSignature = signature;
     }
     PromptUIManager.setSearchVisibility(true);
@@ -999,8 +1046,12 @@ class PromptUIManager {
     const listEl = qs(`#${SELECTORS.PROMPT_LIST}`);
     if (!listEl) return;
     Theme.applyNode(listEl);
+    const existingPanel = listEl.querySelector(`#${SELECTORS.PANEL_CONTENT}`);
+    const existingItems = existingPanel?.querySelector(`.${SELECTORS.PROMPT_ITEMS_CONTAINER}`);
+    const previousScrollTop = existingItems ? existingItems.scrollTop : 0;
     listEl.innerHTML = '';
-    const content = PromptUI.Views.renderPromptList(prompts);
+    const mode = PromptUIManager.state.listMode || 'list';
+    const content = PromptUI.Views.renderPromptList(prompts, { mode });
     
     // COMMENT: Inject Info Banner if active and not dismissed
     if (PromptUIManager.BANNER_CONFIG.active) {
@@ -1061,7 +1112,12 @@ class PromptUIManager {
     }
 
     listEl.appendChild(content);
+    const newItems = content.querySelector(`.${SELECTORS.PROMPT_ITEMS_CONTAINER}`);
+    if (newItems) {
+      newItems.scrollTop = previousScrollTop;
+    }
     PromptUIManager.refreshScrollObservers(listEl);
+    PromptUIManager.applyListModeClass();
   }
 
   static resetPromptListContainer() {
@@ -1335,11 +1391,6 @@ class PromptUIManager {
   static createPromptCreationForm(prefill = '') {
     // COMMENT: Delegate to PromptUI.Views to build the creation form
     return PromptUI.Views.createPromptCreationForm(prefill);
-  }
-
-  static async createEditView() {
-    // COMMENT: Delegate to PromptUI.Views to build the edit view
-    return PromptUI.Views.createEditView();
   }
 
   static async showEditForm(prompt /*, index */) {
@@ -1738,6 +1789,12 @@ const PromptMediator = (() => {
   const bootstrap = async (ui, processor) => {
     if (state.initialized) return;
     state.initialized = true;
+    
+    // COMMENT: Load theme preference before UI injection
+    try {
+      window.isDarkModeForced = await PromptStorageManager.getForceDarkMode();
+    } catch (_) { /* ignore */ }
+
     state.processor = processor;
     ensurePromptSelectionListener();
     // COMMENT: Inject UI immediately on page load without waiting for input box detection

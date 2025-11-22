@@ -279,6 +279,18 @@ body {
   color: var(--dark-text);
   font-size: 0.95rem;
 }
+/* COMMENT: Subtitles live in a vertical stack so each feature reads like a mini card */
+.custom-feature-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+/* COMMENT: Secondary line explains the feature without overpowering the title */
+.custom-feature-subtitle {
+  color: var(--muted-text);
+  font-size: 0.85rem;
+  line-height: 1.35;
+}
 
 /* Responsive adjustments */
 @media (max-width: 768px) {

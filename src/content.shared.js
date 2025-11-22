@@ -218,8 +218,15 @@
 
         return bar;
       },
-      createItemsContainer() {
-        return createEl('div', { className: `${SELECTORS.PROMPT_ITEMS_CONTAINER} opm-prompt-list-items opm-view-list opm-${getMode()}` });
+      createItemsContainer({ mode = 'list' } = {}) {
+        const classes = [
+          SELECTORS.PROMPT_ITEMS_CONTAINER,
+          'opm-prompt-list-items',
+          'opm-view-list',
+          `opm-${getMode()}`
+        ];
+        if (mode === 'edit') classes.push('opm-edit-mode');
+        return createEl('div', { className: classes.join(' ') });
       },
       createPromptItem(prompt) {
         const item = createEl('div', {
@@ -239,6 +246,74 @@
         item.dataset.content = prompt.content.toLowerCase();
         item.dataset.tags = Array.isArray(prompt.tags) ? prompt.tags.map(t => String(t).toLowerCase()).join(' ') : '';
         item.dataset.tagsList = JSON.stringify(Array.isArray(prompt.tags) ? prompt.tags.map(t => String(t).toLowerCase()) : []);
+        return item;
+      },
+      createEditablePromptItem(prompt, idx, reorder) {
+        const item = createEl('div', {
+          className: `opm-prompt-list-item opm-${getMode()}`,
+          styles: {
+            justifyContent: 'space-between',
+            padding: '6px 12px',
+            margin: '6px 0',
+            borderRadius: '10px',
+            gap: '8px'
+          },
+          eventListeners: {
+            click: () => PromptUIManager.emitPromptSelect(prompt),
+            mouseenter: () => {
+              document.querySelectorAll(`#${SELECTORS.ROOT} .opm-prompt-list-item`).forEach(i => i.classList.remove('opm-keyboard-selected'));
+              PromptUIManager.cancelCloseTimer();
+            }
+          }
+        });
+        item.dataset.index = idx;
+        item.dataset.title = prompt.title.toLowerCase();
+        item.dataset.content = prompt.content.toLowerCase();
+        item.dataset.tags = Array.isArray(prompt.tags) ? prompt.tags.map(t => String(t).toLowerCase()).join(' ') : '';
+        item.dataset.tagsList = JSON.stringify(Array.isArray(prompt.tags) ? prompt.tags.map(t => String(t).toLowerCase()) : []);
+
+        const dragHandle = createEl('div', {
+          className: 'opm-drag-handle opm-edit-only',
+          innerHTML: `
+            <img 
+              src="${chrome.runtime.getURL('icons/drag_indicator.svg')}" 
+              width="16" 
+              height="16" 
+              alt="Drag handle" 
+              title="Drag to reorder"
+              style="display: block; opacity: 0.9; filter: ${iconFilter()}"
+            >
+          `,
+          styles: {
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: '16px',
+            height: '16px',
+            margin: '0',
+            flex: '0 0 auto',
+            cursor: 'grab',
+            userSelect: 'none',
+            opacity: '0.9'
+          }
+        });
+
+        reorder?.wireItem(item, idx, dragHandle);
+
+        const info = createEl('div', { styles: { display: 'flex', flexDirection: 'column', flex: '1', gap: '2px' } });
+        const text = createEl('div', { styles: { flex: '0 0 auto' } });
+        text.textContent = prompt.title;
+        info.appendChild(text);
+
+        const actions = createEl('div', { className: 'opm-edit-only', styles: { display: 'flex', gap: '4px', flex: '0 0 auto' } });
+        const editIcon = Elements.createIconButton('edit', (e) => { e.stopPropagation(); window.PromptUIManager.showEditForm(prompt); });
+        const deleteIcon = Elements.createIconButton('delete', (e) => {
+          e.stopPropagation();
+          if (confirm(`Delete \"${prompt.title}\"?`)) window.PromptUIManager.deletePrompt(prompt.uuid);
+        });
+        actions.append(editIcon, deleteIcon);
+
+        item.append(dragHandle, info, actions);
         return item;
       },
       createIconButton(type, onClick) {
@@ -302,103 +377,137 @@
 
     const Reorder = {
       attach(promptsContainer, prompts, onReorder) {
-        const placeholder = createEl('div', { className: 'opm-drop-placeholder' });
-        let dropIndex = null;
+        let isDragging = false;
+        let dragSrcEl = null;
+        let ghost = null;
+        let autoScrollTimer = null;
+        const SCROLL_ZONE_PX = 40;
+        const SCROLL_SPEED_PX = 8;
 
-        const itemNodes = () => Array.from(promptsContainer.children)
-          .filter(n => n.classList && n.classList.contains('opm-prompt-list-item'));
+        const getListItems = () => Array.from(promptsContainer.children).filter(c => c.classList.contains('opm-prompt-list-item'));
 
-        const computeContainerDropPosition = (clientY) => {
-          const nodes = itemNodes();
-          if (nodes.length === 0) { dropIndex = 0; return; }
-          for (let i = 0; i < nodes.length; i++) {
-            const node = nodes[i];
-            const rect = node.getBoundingClientRect();
-            const midY = rect.top + rect.height / 2;
-            if (clientY < midY) {
-              placeholder.style.height = `${rect.height}px`;
-              if (node.previousSibling !== placeholder) {
-                promptsContainer.insertBefore(placeholder, node);
-              }
-              dropIndex = parseInt(node.dataset.index, 10);
-              return;
-            }
+        const cleanup = () => {
+          isDragging = false;
+          if (ghost) { ghost.remove(); ghost = null; }
+          if (dragSrcEl) { 
+            dragSrcEl.style.opacity = ''; 
+            dragSrcEl = null; 
           }
-          const last = nodes[nodes.length - 1];
-          const lastRect = last.getBoundingClientRect();
-          placeholder.style.height = `${lastRect.height}px`;
-          if (last.nextSibling !== placeholder) {
-            promptsContainer.insertBefore(placeholder, last.nextSibling);
-          }
-          dropIndex = prompts.length;
+          if (autoScrollTimer) { clearInterval(autoScrollTimer); autoScrollTimer = null; }
+          document.body.style.cursor = '';
+          document.removeEventListener('mousemove', handleMouseMove);
+          document.removeEventListener('mouseup', handleMouseUp);
         };
 
-        const handleDrop = e => {
+        const handleMouseMove = (e) => {
+          if (!isDragging || !ghost) return;
           e.preventDefault();
-          e.stopPropagation();
-          const from = parseInt(e.dataTransfer.getData('text/plain'), 10);
-          if (Number.isNaN(from)) return;
-          let to = dropIndex !== null ? dropIndex : prompts.length;
-          if (from < to) to = to - 1;
-          if (from === to) {
-            if (placeholder.parentNode) placeholder.parentNode.removeChild(placeholder);
-            dropIndex = null;
-            return;
+
+          // Move ghost
+          const ghostHeight = ghost.offsetHeight;
+          ghost.style.top = `${e.clientY - (ghostHeight / 2)}px`;
+          ghost.style.left = `${e.clientX + 10}px`;
+
+          // Auto scroll
+          const rect = promptsContainer.getBoundingClientRect();
+          if (autoScrollTimer) clearInterval(autoScrollTimer);
+          autoScrollTimer = null;
+
+          if (e.clientY < rect.top + SCROLL_ZONE_PX) {
+            autoScrollTimer = setInterval(() => { promptsContainer.scrollTop -= SCROLL_SPEED_PX; }, 16);
+          } else if (e.clientY > rect.bottom - SCROLL_ZONE_PX) {
+            autoScrollTimer = setInterval(() => { promptsContainer.scrollTop += SCROLL_SPEED_PX; }, 16);
           }
-          const newPrompts = [...prompts];
-          const [moved] = newPrompts.splice(from, 1);
-          newPrompts.splice(Math.max(0, Math.min(newPrompts.length, to)), 0, moved);
-          if (placeholder.parentNode) placeholder.parentNode.removeChild(placeholder);
-          dropIndex = null;
-          onReorder(newPrompts);
+
+          // Swap logic
+          const mouseY = e.clientY;
+          const items = getListItems();
+          let target = null;
+          
+          for (const item of items) {
+             if (item === dragSrcEl) continue;
+             const r = item.getBoundingClientRect();
+             const mid = r.top + (r.height / 2);
+             if (mouseY < mid) {
+               target = item;
+               break;
+             }
+          }
+          
+          if (target) {
+             if (dragSrcEl.nextElementSibling !== target) {
+               promptsContainer.insertBefore(dragSrcEl, target);
+             }
+          } else {
+             if (dragSrcEl.nextElementSibling) {
+                promptsContainer.appendChild(dragSrcEl);
+             }
+          }
         };
 
-        promptsContainer.addEventListener('dragover', e => {
-          e.preventDefault();
-          e.dataTransfer.dropEffect = 'move';
-          computeContainerDropPosition(e.clientY);
-        });
-        promptsContainer.addEventListener('drop', handleDrop);
+        const handleMouseUp = (e) => {
+           if (!isDragging) return;
+           
+           const items = getListItems();
+           const newOrderIndices = items.map(item => parseInt(item.dataset.index, 10));
+           
+           cleanup();
+           
+           let changed = false;
+           for (let i = 0; i < newOrderIndices.length; i++) {
+             if (newOrderIndices[i] !== i) {
+               changed = true;
+               break;
+             }
+           }
+           
+           if (changed) {
+             const newPrompts = newOrderIndices.map(originalIdx => prompts[originalIdx]);
+             onReorder(newPrompts);
+           }
+        };
 
-        const wireItem = (item, idx, dragHandle) => {
-          item.addEventListener('dragover', e => {
-            e.preventDefault();
-            e.dataTransfer.dropEffect = 'move';
-            const rect = item.getBoundingClientRect();
-            const offset = e.clientY - rect.top;
-            const placeBefore = offset < rect.height / 2;
-            placeholder.style.height = `${rect.height}px`;
-            if (placeBefore) {
-              if (item.previousSibling !== placeholder) {
-                item.parentNode.insertBefore(placeholder, item);
-              }
-              dropIndex = parseInt(item.dataset.index, 10);
-            } else {
-              if (item.nextSibling !== placeholder) {
-                item.parentNode.insertBefore(placeholder, item.nextSibling);
-              }
-              dropIndex = parseInt(item.dataset.index, 10) + 1;
-            }
-          });
-          dragHandle.setAttribute('draggable', 'true');
-          dragHandle.addEventListener('dragstart', e => {
+        const wireItem = (item, index, handle) => {
+          handle.style.cursor = 'grab';
+          handle.addEventListener('dragstart', (e) => e.preventDefault());
+          handle.addEventListener('mousedown', (e) => {
+            if (e.button !== 0) return;
+            const mode = window.PromptUIManager?.state?.listMode;
+            if (mode !== 'edit') return;
+            e.preventDefault(); 
             e.stopPropagation();
-            e.dataTransfer.effectAllowed = 'move';
-            e.dataTransfer.setData('text/plain', idx);
-            dropIndex = idx;
-            item.classList.add('opm-dragging');
+
+            isDragging = true;
+            dragSrcEl = item;
+            
             const rect = item.getBoundingClientRect();
-            const offsetX = e.clientX - rect.left;
-            const offsetY = e.clientY - rect.top;
-            if (typeof e.dataTransfer.setDragImage === 'function') {
-              e.dataTransfer.setDragImage(item, offsetX, offsetY);
-            }
-          });
-          dragHandle.addEventListener('dragend', e => {
-            e.stopPropagation();
-            item.classList.remove('opm-dragging');
-            if (placeholder.parentNode) placeholder.parentNode.removeChild(placeholder);
-            dropIndex = null;
+            ghost = item.cloneNode(true);
+            Object.assign(ghost.style, {
+              position: 'fixed',
+              top: `${rect.top}px`,
+              left: `${rect.left}px`,
+              width: `${rect.width}px`,
+              height: `${rect.height}px`,
+              zIndex: '99999',
+              pointerEvents: 'none',
+              opacity: '0.95',
+              boxShadow: '0 8px 20px rgba(0,0,0,0.2)',
+              transform: 'scale(1.02)',
+              margin: '0',
+              transition: 'none',
+              backgroundColor: getMode() === 'dark' ? 'var(--dark-bg)' : 'var(--light-bg)'
+            });
+            
+            const root = document.getElementById(SELECTORS.ROOT);
+            if (root) root.appendChild(ghost);
+            else document.body.appendChild(ghost);
+
+            item.style.opacity = '0.0'; 
+            document.body.style.cursor = 'grabbing';
+            handle.style.cursor = 'grabbing';
+
+            document.addEventListener('mousemove', handleMouseMove);
+            document.addEventListener('mouseup', handleMouseUp);
           });
         };
 
@@ -428,12 +537,30 @@
         form.addEventListener('click', e => e.stopPropagation());
         return form;
       },
-      renderPromptList(prompts = []) {
+      renderPromptList(prompts = [], { mode = 'list' } = {}) {
         const content = Elements.createPanelContent();
         const tagsHost = createEl('div', { className: `opm-tags-filter-host opm-${getMode()}`, styles: { display: 'none' } });
         content.appendChild(tagsHost);
-        const itemsContainer = Elements.createItemsContainer();
-        prompts.forEach(p => itemsContainer.appendChild(Elements.createPromptItem(p)));
+        const itemsContainer = Elements.createItemsContainer({ mode });
+        const reorder = Reorder.attach(
+          itemsContainer,
+          prompts,
+          async (newPrompts) => {
+            prompts.splice(0, prompts.length, ...newPrompts);
+            Array.from(itemsContainer.children)
+              .filter(node => node.classList?.contains('opm-prompt-list-item'))
+              .forEach((node, idx) => { node.dataset.index = idx; });
+            if (window.PromptUIManager?.state?.listMode === 'edit') {
+              window.PromptUIManager.requestListRefreshSuppression?.();
+            }
+            await window.PromptStorageManager.setPrompts(newPrompts);
+          }
+        );
+
+        prompts.forEach((p, idx) => {
+          const item = Elements.createEditablePromptItem(p, idx, reorder);
+          itemsContainer.appendChild(item);
+        });
         content.appendChild(itemsContainer);
         content.appendChild(Elements.createBottomMenu());
 
@@ -751,18 +878,81 @@
           } catch (_) { /* ignore */ }
         })();
 
-        form.append(title, settings, dataSectionTitle, dataActions, deleteAllBtn, tagMgmtTitle, tagMgmtContainer);
+        // COMMENT: Prepare shared styles so the external link tiles match the active theme.
+        const isDarkTheme = getMode() === 'dark';
+        const linkTileStyles = {
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          textDecoration: 'none',
+          borderRadius: '6px',
+          padding: '6px 10px',
+          fontSize: '13px',
+          fontWeight: '500',
+          border: isDarkTheme ? '1px solid rgba(255,255,255,0.12)' : '1px solid rgba(0,0,0,0.05)',
+          backgroundColor: isDarkTheme ? 'rgba(255,255,255,0.03)' : 'rgba(15, 23, 42, 0.03)',
+          color: isDarkTheme ? THEME_COLORS.inputDarkText : THEME_COLORS.inputLightText,
+          transition: 'background-color 0.2s ease, border-color 0.2s ease'
+        };
+
+        // COMMENT: Builder keeps GitHub + review links consistent (icon + label + spacing).
+        const createCommunityLink = ({ label, href, icon, alt }) => {
+          const link = createEl('a', {
+            attributes: { href, target: '_blank', rel: 'noopener noreferrer' },
+            styles: { ...linkTileStyles }
+          });
+          const iconImg = createEl('img', {
+            attributes: { src: chrome.runtime.getURL(icon), alt, width: '20', height: '20' },
+            styles: { filter: iconFilter() }
+          });
+          const text = createEl('span', { innerHTML: label });
+          link.append(iconImg, text);
+          return link;
+        };
+
+        // COMMENT: Highlight community call-to-actions so users can find GitHub + reviews fast.
+        const communityTitle = createEl('div', { styles: { fontWeight: 'bold', fontSize: '13px', marginTop: '10px', opacity: 0.85 }, innerHTML: 'Support & Links' });
+        const communityLinks = createEl('div', { styles: { display: 'flex', flexDirection: 'column', gap: '6px' } });
+        communityLinks.append(
+          createCommunityLink({
+            label: 'Visit the GitHub Repository',
+            href: 'https://github.com/jonathanbertholet/promptmanager',
+            icon: 'icons/github-icon.png',
+            alt: 'GitHub icon'
+          }),
+          createCommunityLink({
+            label: 'Leave a Review',
+            href: 'https://chromewebstore.google.com/detail/open-prompt-manager/gmhaghdbihgenofhnmdbglbkbplolain',
+            icon: 'icons/review-icon.png',
+            alt: 'Review icon'
+          }),
+          createCommunityLink({
+            label: 'Buy me a Coffee',
+            href: 'https://buymeacoffee.com/jonathanbertholet',
+            icon: 'icons/coffee.svg',
+            alt: 'Coffee icon'
+          })
+        );
+
+        form.append(title, settings, dataSectionTitle, dataActions, deleteAllBtn, tagMgmtTitle, tagMgmtContainer, communityTitle, communityLinks);
         return form;
       },
       async createEditView() {
         const prompts = await window.PromptStorageManager.getPrompts();
-        const enableTags = await window.PromptStorageManager.getEnableTags();
-        const container = createEl('div', { className: `opm-form-container opm-${getMode()}`, styles: { padding: '0', display: 'flex', flexDirection: 'column' } });
+        // COMMENT: Treat edit view as a list variant so global search UI stays visible.
+        const container = createEl('div', { className: `opm-form-container opm-view-list opm-${getMode()}`, styles: { padding: '0', display: 'flex', flexDirection: 'column', gap: '4px', minHeight: '0' } });
         const promptsContainer = createEl('div', { className: `${SELECTORS.PROMPT_ITEMS_CONTAINER} opm-prompt-list-items opm-${getMode()}`, styles: { maxHeight: '350px', overflowY: 'auto', marginBottom: '4px' } });
         const reorder = Reorder.attach(
           promptsContainer,
           prompts,
-          (newPrompts) => { window.PromptStorageManager.setPrompts(newPrompts).then(() => { window.PanelRouter.mount(window.PanelView.EDIT); }); }
+          async (newPrompts) => {
+            // COMMENT: Persist the reordered list without remounting so scroll position stays stable.
+            prompts.splice(0, prompts.length, ...newPrompts);
+            Array.from(promptsContainer.children)
+              .filter(node => node.classList?.contains('opm-prompt-list-item'))
+              .forEach((node, idx) => { node.dataset.index = idx; });
+            await window.PromptStorageManager.setPrompts(newPrompts);
+          }
         );
         prompts.forEach((p, idx) => {
           const item = createEl('div', { className: `opm-prompt-list-item opm-${getMode()}`, styles: { justifyContent: 'space-between', padding: '4px 4px', margin: '6px 0' } });
@@ -794,6 +984,7 @@
           item.dataset.title = p.title.toLowerCase();
           item.dataset.content = p.content.toLowerCase();
           item.dataset.tags = lowerTags;
+          item.dataset.tagsList = JSON.stringify(Array.isArray(p.tags) ? p.tags.map(t => String(t).toLowerCase()) : []);
           const actions = createEl('div', { styles: { display: 'flex', gap: '4px' } });
           const editIcon = Elements.createIconButton('edit', () => { window.PromptUIManager.showEditForm(p); });
           const deleteIcon = Elements.createIconButton('delete', () => { if (confirm(`Delete "${p.title}"?`)) window.PromptUIManager.deletePrompt(p.uuid); });
@@ -802,7 +993,42 @@
           promptsContainer.appendChild(item);
         });
         container.appendChild(promptsContainer);
-        if (enableTags) { /* placeholder for future tag display */ }
+
+        (async () => {
+          // COMMENT: Mirror the LIST view tag filter so edit mode can reuse combined tag+search filtering.
+          const tagsHost = document.querySelector(`#${SELECTORS.PANEL_CONTENT} .opm-tags-filter-host`);
+          if (!tagsHost) return;
+          try {
+            const enableTags = await window.PromptStorageManager.getEnableTags();
+            if (!enableTags) {
+              tagsHost.style.display = 'none';
+              return;
+            }
+            const counts = await TagService.getCounts(prompts);
+            if (counts.size === 0) {
+              tagsHost.style.display = 'none';
+              return;
+            }
+            const ordered = await TagService.getOrderedTags(counts);
+            let persisted = 'all';
+            try { persisted = (await window.PromptStorageManager.getActiveTagFilter() || 'all').toLowerCase(); } catch (_) { persisted = 'all'; }
+            const prev = (window.PromptUIManager.activeTagFilter || persisted || 'all').toLowerCase();
+            const selected = prev !== 'all' && counts.has(prev) ? prev : 'all';
+            window.PromptUIManager.activeTagFilter = selected;
+            const bar = Elements.createTagsBar({
+              tags: ordered,
+              counts,
+              selectedTag: selected,
+              onSelect: (tag) => { window.PromptUIManager.filterByTag(tag); }
+            });
+            tagsHost.replaceWith(bar);
+            window.ScrollVisibilityManager?.observe(bar);
+            window.PromptUIManager.filterByTag(selected);
+          } catch (_) {
+            tagsHost.style.display = 'none';
+          }
+        })();
+
         return container;
       }
     };
