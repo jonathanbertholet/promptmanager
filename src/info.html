@@ -1,88 +1,74 @@
-
+<!-- COMMENT: This page is rendered inside the extension panel. We style it using the same theme tokens defined on #opm-root in content.styles.js so it feels native. -->
 <style>
-  /* Container layout and base typography */
-  .pm-info { display: flex; flex-direction: column; gap: 10px; font-size: 14px; line-height: 1.35; }
+  /* COMMENT: Ultra-minimal info view. High-contrast text, no borders/shadows, just essentials. */
+  #opm-root.opm-light .pm-info { color: var(--input-light-text); }
+  #opm-root.opm-dark  .pm-info { color: var(--input-dark-text); }
+  .pm-info { display: flex; flex-direction: column; gap: 8px; font-size: 14px; line-height: 1.4; }
 
-  /* Sections and rows */
-  .pm-section { display: flex; flex-direction: column; gap: 4px; }
-  .pm-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .pm-list { display: flex; flex-direction: column; gap: 6px; }
+  .pm-list-item { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 
-  /* Headings and muted text */
-  .pm-title { font-weight: 500; color: #575757; }
-  .pm-muted, .pm-sep { color: #666; }
-
-  /* Dark mode overrides scoped to our root to avoid affecting host page */
-  @media (prefers-color-scheme: dark) { 
-    #opm-root .pm-info { color: #E2E8F0; }
-    #opm-root .pm-title { color: #E2E8F0; }
-    #opm-root .pm-muted, #opm-root .pm-sep { color: #A0AEC0; }
-    #opm-root .pm-link { color: #E2E8F0; }
-    #opm-root .pm-link:hover, #opm-root .pm-link:focus { text-decoration: underline; }
+  /* COMMENT: Chips and keyboard keys kept for clarity, not decoration */
+  .pm-chip, .pm-kbd {
+    background-color: var(--primary);
+    color: #fff;
+    padding: 2px 8px;
+    border-radius: 9999px;
+    display: inline-flex;
+    align-items: center;
+    height: 22px;
   }
-
-  /* Reusable chips for actions and keys */
-  .pm-chip { background-color: #3674B5; color: #fff; padding: 2px 6px; border-radius: 4px; display: inline-flex; align-items: center; }
-  .pm-kbd { background-color: #3674B5; color: #fff; padding: 2px 6px; border-radius: 4px; display: inline-flex; align-items: center; gap: 2px; font-family: monospace; font-size: 11px; }
+  .pm-kbd { gap: 2px; font-family: monospace; font-size: 11px; }
   .pm-plus { margin: 0 2px; }
+  .pm-sep { margin: 0 4px; opacity: .6; }
+  .pm-muted { opacity: .75; }
 
-  /* Links */
-  .pm-link { color: #3674B5; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; }
-  .pm-icon { min-width: 16px; }
-  .pm-link svg { color: inherit; }
-  .pm-link svg path { fill: currentColor; }
+  /* COMMENT: Link uses theme primary and a subtle underline on hover */
+  .pm-link { color: var(--primary); text-decoration: none; display: inline-flex; align-items: center; gap: 6px; }
+  .pm-link:hover, .pm-link:focus { text-decoration: underline; outline: none; }
+
+  @media (max-width: 360px) {
+    .pm-kbd { font-size: 10px; padding: 2px 6px; }
+    .pm-chip { padding: 2px 6px; }
+  }
 </style>
 
 <div class="pm-info">
-  <!-- Keyboard and interaction quick reference -->
-  <div class="pm-section">
-    <div class="pm-title">Open & close prompt list</div>
-    <div class="pm-row">
-      <span class="pm-chip">Hover</span>
-      <span class="pm-muted">or</span>
+  <!-- COMMENT: Ultra-minimal essentials only -->
+  <div class="pm-list">
+    <div class="pm-list-item">
+      <span class="pm-muted">Open</span>
       <span class="pm-kbd"><span>⌘</span><span class="pm-plus">+</span><span>⇧</span><span class="pm-plus">+</span><span>P</span></span>
       <span class="pm-sep">/</span>
       <span class="pm-kbd"><span>Ctrl</span><span class="pm-plus">+</span><span>M</span></span>
+      <span class="pm-sep">or</span>
+      <span class="pm-chip">Hover</span>
     </div>
+    <div class="pm-list-item">
+      <span class="pm-muted">Navigate</span>
+      <span class="pm-chip">↑ ↓ + Enter</span>
+      <span class="pm-sep">/</span>
+      <span class="pm-chip">Esc</span>
     </div>
-
-    <div class="pm-section">
-    <div class="pm-title">Navigate the prompt list</div>
-    <div class="pm-row">
-      <span class="pm-chip">↑ ↓ + Enter</span> and <span class="pm-chip">Esc</span> to close
+    <div class="pm-list-item">
+      <span class="pm-muted">Variables</span>
+      <span class="pm-chip">#name#</span>
     </div>
+    <div class="pm-list-item">
+      <span class="pm-muted">Copy</span>
+      <span class="pm-chip">Sidebar</span>
+      <span class="pm-sep">/</span>
+      <span class="pm-chip">Right Click</span>
     </div>
-
-    <div class="pm-section">
-    <div class="pm-title">Reorder prompts by dragging</div>
-    <div class="pm-row">
+    <div class="pm-list-item">
+      <span class="pm-muted">Reorder</span>
       <span class="pm-chip">Drag &amp; Drop</span>
-    </div>
-    </div>
-
-  <div class="pm-section">
-    <div class="pm-title">Using variables in prompts</div>
-    <div class="pm-row">
-    <span class="pm-chip">#variable_name#</span>
-    </div>
-    </div>
-
-  <!-- Copy to clipboard affordances -->
-  <div class="pm-section">
-    <div class="pm-title">Copy prompts to clipboard</div>
-    <div class="pm-row">
-      <span class="pm-chip">Sidebar</span> or <span class="pm-chip">Right Click menu</span>
     </div>
   </div>
 
-  <!-- Project link -->
-  <div class="pm-section">
-    <div class="pm-row">
-      <a class="pm-link" href="https://github.com/jonathanbertholet/promptmanager" target="_blank">
-        <svg class="pm-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="#3674B5">
-          <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
-        </svg>
-        <span>Visit my GitHub Repository</span>
-      </a>
+  <div class="pm-list">
+    <div class="pm-list-item">
+      <a class="pm-link" href="https://github.com/jonathanbertholet/promptmanager" target="_blank" rel="noopener noreferrer">Visit my GitHub Repository</a>
     </div>
   </div>
 </div>

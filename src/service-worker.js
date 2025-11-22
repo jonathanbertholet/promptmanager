@@ -42,6 +42,7 @@ chrome.permissions.onAdded.addListener(async (permissions) => {
             files: [
               "inputBoxHandler.js",
               "content.styles.js",
+              "content.shared.js",
               "content.js"
             ]
           });
@@ -91,6 +92,7 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
               files: [
                 "inputBoxHandler.js",
                 "content.styles.js",
+                "content.shared.js",
                 "content.js"
               ]
             });
