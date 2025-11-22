@@ -1,7 +1,7 @@
 {
     "manifest_version": 3,
     "name": "Open Prompt Manager BETA",
-    "version": "2.5.2",
+    "version": "2.5.3",
     "description": "THIS EXTENSION IS FOR BETA TESTING.",
     "permissions": [
         "sidePanel",

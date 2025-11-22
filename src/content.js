@@ -117,6 +117,7 @@ const SEARCH_FOCUS_DELAY_MS = 50;
 const ONBOARDING_AUTO_HIDE_MS = 10000;
 const ONBOARDING_FADE_OUT_MS = 300;
 const IMPORT_SUCCESS_RESET_MS = 2000;
+const SCROLLBAR_PERSIST_MS = 900;
 // Hot corner indicator sizes (px)
 const HOT_CORNER_INDICATOR_SMALL_PX = 20;
 const HOT_CORNER_INDICATOR_LARGE_PX = 30;
@@ -285,6 +286,39 @@ const PanelView = Object.freeze({
 });
 window.PanelView = PanelView;
 
+/* ---------------------------------------------------------------------------
+ * Scroll visibility manager — shows scrollbars only while the user is scrolling.
+ * COMMENT: Keeps the panel minimal until actual scroll activity occurs.
+ * -------------------------------------------------------------------------*/
+const ScrollVisibilityManager = (() => {
+  const observers = new WeakMap();
+  const ACTIVITY_EVENTS = ['scroll', 'wheel', 'touchmove'];
+
+  const markActive = (node, state) => {
+    node.classList.add('opm-scroll-active');
+    clearTimeout(state.timer);
+    state.timer = setTimeout(() => {
+      node.classList.remove('opm-scroll-active');
+    }, SCROLLBAR_PERSIST_MS);
+  };
+
+  const ensureListeners = (node) => {
+    const state = { timer: null };
+    const handler = () => markActive(node, state);
+    ACTIVITY_EVENTS.forEach(evt => node.addEventListener(evt, handler, { passive: true }));
+    observers.set(node, state);
+  };
+
+  return {
+    observe(node) {
+      if (!node || observers.has(node)) return;
+      node.classList.add('opm-scrollable');
+      ensureListeners(node);
+    }
+  };
+})();
+window.ScrollVisibilityManager = ScrollVisibilityManager;
+
 const PanelRouter = (() => {
   const state = {
     currentView: null
@@ -320,6 +354,7 @@ const PanelRouter = (() => {
       .then(r => r.text())
       .then(html => { info.innerHTML = html; })
       .catch(err => console.error(`[PromptManager] Failed to load ${sourcePath}:`, err));
+      ScrollVisibilityManager.observe(info);
       return container;
   };
 
@@ -688,6 +723,13 @@ window.PromptStorageManager = PromptStorageManager;
 
 /* UI Manager */
 class PromptUIManager {
+  // COMMENT: Configuration for the info banner. Toggle 'active' to show/hide.
+  static BANNER_CONFIG = {
+    active: true, 
+    id: 'info-banner-v1', // Change ID to re-show to users who dismissed it
+    html: '<span><strong>New:</strong> select text, right click & save as a new prompt!</span>'
+  };
+
   static state = {
     root: null,
     currentMode: null,
@@ -917,6 +959,23 @@ class PromptUIManager {
     PromptUIManager.selectedSearchIndex = -1;
   }
 
+  // COMMENT: Ensure every scrollable region only shows scrollbars while in motion.
+  static refreshScrollObservers(context = document) {
+    if (!window.ScrollVisibilityManager) return;
+    const selectors = [
+      `.${SELECTORS.PROMPT_ITEMS_CONTAINER}`,
+      '.opm-form-container',
+      `#${SELECTORS.INFO_CONTENT}`,
+      `#${SELECTORS.CHANGELOG_CONTENT}`,
+      '.opm-tags-filter-bar'
+    ];
+    const ensure = (node) => ScrollVisibilityManager.observe(node);
+    selectors.forEach(sel => {
+      if (context.matches?.(sel)) ensure(context);
+      context.querySelectorAll?.(sel)?.forEach(ensure);
+    });
+  }
+
   // COMMENT: Tag filter setter that reruns combined filtering without changing panel height
   static filterByTag(tag) {
     const prev = (PromptUIManager.activeTagFilter || 'all');
@@ -942,7 +1001,67 @@ class PromptUIManager {
     Theme.applyNode(listEl);
     listEl.innerHTML = '';
     const content = PromptUI.Views.renderPromptList(prompts);
+    
+    // COMMENT: Inject Info Banner if active and not dismissed
+    if (PromptUIManager.BANNER_CONFIG.active) {
+      (async () => {
+        try {
+          const dismissed = await PromptStorageManager.getData('dismissedBanners', []);
+          if (dismissed.includes(PromptUIManager.BANNER_CONFIG.id)) return;
+
+          const banner = createEl('div', {
+            className: `opm-info-banner opm-${getMode()}`,
+            styles: {
+              padding: '10px 12px',
+              fontSize: '13px',
+              display: 'flex',
+              alignItems: 'start',
+              justifyContent: 'space-between',
+              gap: '8px',
+              borderBottom: isDarkMode() ? '1px solid rgba(255,255,255,0.1)' : '1px solid rgba(0,0,0,0.06)',
+              backgroundColor: isDarkMode() ? 'rgba(54, 116, 181, 0.15)' : '#ebf8ff', // Tinted primary/blue
+              color: isDarkMode() ? '#E2E8F0' : '#2C5282',
+              flex: '0 0 auto',
+              lineHeight: '1.4'
+            },
+            innerHTML: `
+              <div style="flex: 1;">${PromptUIManager.BANNER_CONFIG.html}</div>
+            `
+          });
+
+          const closeBtn = createEl('button', {
+            innerHTML: '×',
+            styles: {
+              background: 'transparent', border: 'none', cursor: 'pointer',
+              padding: '0 4px', fontSize: '18px', lineHeight: '1', opacity: '0.6',
+              color: 'inherit', display: 'flex', alignItems: 'center'
+            }
+          });
+          closeBtn.addEventListener('mouseenter', () => closeBtn.style.opacity = '1');
+          closeBtn.addEventListener('mouseleave', () => closeBtn.style.opacity = '0.6');
+          closeBtn.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            banner.remove();
+            const current = await PromptStorageManager.getData('dismissedBanners', []);
+            if (!current.includes(PromptUIManager.BANNER_CONFIG.id)) {
+              current.push(PromptUIManager.BANNER_CONFIG.id);
+              await PromptStorageManager.setData('dismissedBanners', current);
+            }
+          });
+
+          banner.appendChild(closeBtn);
+          
+          // Insert before the tags bar (if present) or at the top
+          // The content container has: tagsHost, itemsContainer, bottomMenu.
+          content.insertBefore(banner, content.firstChild);
+        } catch (err) {
+          console.error('[PromptManager] Failed to render banner:', err);
+        }
+      })();
+    }
+
     listEl.appendChild(content);
+    PromptUIManager.refreshScrollObservers(listEl);
   }
 
   static resetPromptListContainer() {
@@ -969,6 +1088,7 @@ class PromptUIManager {
     // COMMENT: Toggle search visibility based on whether the new node is the list view
     const isListView = node.classList && node.classList.contains('opm-view-list');
     PromptUIManager.setSearchVisibility(!!isListView);
+    PromptUIManager.refreshScrollObservers(panel);
   }
 
   // COMMENT: Show the prompt list and handle keyboard navigation
@@ -1120,6 +1240,7 @@ class PromptUIManager {
         paddingBottom: listMode ? '8px' : '0'
       }
     });
+    ScrollVisibilityManager.observe(varContainer);
     const varValues = {};
     variables.forEach(v => {
       // COMMENT: Normalize label text — replace underscores with spaces and capitalize first letter

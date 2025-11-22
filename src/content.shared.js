@@ -186,6 +186,7 @@
       },
       createTagsBar({ tags = [], counts = new Map(), onSelect, selectedTag = 'all' } = {}) {
         const bar = createEl('div', { className: `opm-tags-filter-bar opm-${getMode()}` });
+        window.ScrollVisibilityManager?.observe(bar);
 
         const makePill = (label, isSelected = false) => {
           const pill = createEl('button', { className: `opm-tag-pill-filter opm-${getMode()}`, attributes: { 'aria-pressed': String(!!isSelected) } });
@@ -458,6 +459,7 @@
             });
             tagsHost.replaceWith(bar);
             window.PromptUIManager.filterByTag(selected);
+            window.ScrollVisibilityManager?.observe(bar);
           } catch (_) { tagsHost.style.display = 'none'; }
         })();
         return content;
