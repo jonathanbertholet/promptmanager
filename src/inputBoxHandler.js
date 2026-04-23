@@ -122,15 +122,44 @@ class InputBoxHandler {
             document.execCommand('delete', false, null);
           }
 
-          // COMMENT: Primary path — let the editor handle text via execCommand
+          // COMMENT: Multiline prompts need a paste-style event in Lexical editors.
+          // COMMENT: insertText can flatten newlines in Perplexity's editor.
           const textToInsert = content + '  ';
-          const inserted = document.execCommand('insertText', false, textToInsert);
+          const getPlainEditorText = () => inputBox.innerText || inputBox.textContent || '';
+          const beforeInsertionText = getPlainEditorText();
+          let inserted = false;
+
+          if (content.includes('\n')) {
+            try {
+              const dataTransfer = new DataTransfer();
+              dataTransfer.setData('text/plain', textToInsert);
+              const pasteEvent = new ClipboardEvent('paste', {
+                clipboardData: dataTransfer,
+                bubbles: true,
+                cancelable: true,
+              });
+              inputBox.dispatchEvent(pasteEvent);
+              const afterPasteText = getPlainEditorText();
+              inserted = afterPasteText.length > beforeInsertionText.length;
+            } catch (_) {
+              inserted = false;
+            }
+          }
+
+          // COMMENT: Primary single-line path, and fallback when synthetic paste is ignored.
+          if (!inserted) {
+            try {
+              inserted = document.execCommand('insertText', false, textToInsert);
+            } catch (_) {
+              inserted = false;
+            }
+          }
 
           // COMMENT: Fallback — synthesize input pipeline events
           if (!inserted) {
             try {
               inputBox.dispatchEvent(new InputEvent('beforeinput', {
-                inputType: 'insertText',
+                inputType: content.includes('\n') ? 'insertFromPaste' : 'insertText',
                 data: textToInsert,
                 bubbles: true,
                 cancelable: true,
