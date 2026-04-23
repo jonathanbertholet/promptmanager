@@ -1,6 +1,48 @@
 import { getProviders } from './llm_providers.js'; // Import the correct function
 import { getPrompts, onPromptsChanged, savePrompt } from './promptStorage.js'; // COMMENT: Unified prompt storage API
 
+const CONTENT_SCRIPT_FILES = [
+  "inputBoxHandler.js",
+  "content.styles.js",
+  "content.shared.js",
+  "content.js"
+];
+const CONTENT_SCRIPT_INJECTION_FLAG = '__openPromptManagerInjected';
+
+async function injectPromptManagerScripts(tabId, tabUrl = '') {
+  const [injectionState] = await chrome.scripting.executeScript({
+    target: { tabId },
+    func: flag => {
+      if (window[flag]) return true;
+      window[flag] = true;
+      return false;
+    },
+    args: [CONTENT_SCRIPT_INJECTION_FLAG]
+  });
+
+  if (injectionState?.result) {
+    console.log(`Prompt Manager scripts already injected in tab ${tabId}${tabUrl ? ` (${tabUrl})` : ''}`);
+    return false;
+  }
+
+  try {
+    await chrome.scripting.executeScript({
+      target: { tabId },
+      files: CONTENT_SCRIPT_FILES
+    });
+    console.log(`Successfully injected scripts into tab ${tabId}`);
+    return true;
+  } catch (error) {
+    // COMMENT: If script injection failed, remove the marker so a later tab update can retry.
+    await chrome.scripting.executeScript({
+      target: { tabId },
+      func: flag => { delete window[flag]; },
+      args: [CONTENT_SCRIPT_INJECTION_FLAG]
+    }).catch(() => {});
+    throw error;
+  }
+}
+
 chrome.runtime.onInstalled.addListener(function (details) {
   chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true });
   console.log('onInstalled', details);
@@ -35,18 +77,9 @@ chrome.permissions.onAdded.addListener(async (permissions) => {
         console.log(`Found ${tabs.length} tabs matching ${origin}`);
 
         for (const tab of tabs) {
-          // Inject the scripts into each matching tab
+          // Inject the scripts into each matching tab unless they are already present
           console.log(`Injecting scripts into tab ${tab.id} (${tab.url})`);
-          await chrome.scripting.executeScript({
-            target: { tabId: tab.id },
-            files: [
-              "inputBoxHandler.js",
-              "content.styles.js",
-              "content.shared.js",
-              "content.js"
-            ]
-          });
-          console.log(`Successfully injected scripts into tab ${tab.id}`);
+          await injectPromptManagerScripts(tab.id, tab.url);
         }
       } catch (err) {
         console.error(`Failed to query tabs or inject script for origin ${origin}:`, err);
@@ -79,33 +112,13 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
 
         if (hasPermission && urlRegex.test(tab.url)) {
           console.log(`Injecting scripts into updated tab ${tabId} (${tab.url}) matching ${originPattern}`);
-          // Check if scripts are already injected (optional but good practice)
           try {
-            await chrome.scripting.executeScript({
-              target: { tabId: tabId },
-              func: () => { /* A simple function to check injection */ window.myExtensionInjected = true; }
-            });
-            // If the above doesn't throw, it means scripts might already be there or injection is possible.
-            // Proceed with actual injection.
-            await chrome.scripting.executeScript({
-              target: { tabId: tabId },
-              files: [
-                "inputBoxHandler.js",
-                "content.styles.js",
-                "content.shared.js",
-                "content.js"
-              ]
-            });
-            console.log(`Successfully injected scripts into tab ${tabId}`);
+            await injectPromptManagerScripts(tabId, tab.url);
           } catch (injectionError) {
-             // Check if the error indicates scripts are already injected
              if (injectionError.message.includes('Cannot access a chrome:// URL') || injectionError.message.includes('No matching window')) {
                // Ignore errors for restricted pages or closed tabs
-             } else if (!injectionError.message.includes('already injected')) {
-                // Log other injection errors
-                console.error(`Failed to inject script into tab ${tabId} (${tab.url}):`, injectionError);
              } else {
-               // console.log(`Scripts already injected in tab ${tabId}`); // Optional: Log if already injected
+                console.error(`Failed to inject script into tab ${tabId} (${tab.url}):`, injectionError);
              }
           }
           // Important: break after attempting injection for the first matching pattern
