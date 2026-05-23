@@ -20,7 +20,7 @@ beforeEach(async () => {
     extensionId = await getExtensionId(browser);
 
     console.log(`Dynamically loaded extension ID: ${extensionId}`);
-});
+}, 30000);
 
 afterEach(async () => {
     if (browser) {
@@ -32,10 +32,8 @@ afterEach(async () => {
 // --- The Test Case ---
 test('popup renders correctly', async () => {
     const page = await browser.newPage();
-    // Use the retrieved extensionId
-    await page.goto(`chrome-extension://${extensionId}/sidepanel/index.html`);
+    await page.goto(`chrome-extension://${extensionId}/sidepanel/index.html`, { waitUntil: 'domcontentloaded' });
 
-    // Locate the element with tag <div> and class "title"
     const linkContainer = await page.$('div.title');
     expect(linkContainer).not.toBeNull();
-});
+}, 30000);

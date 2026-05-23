@@ -29,7 +29,7 @@ const ensureStylesInjected = (() => {
   return () => {
     if (injected) return;
     try {
-injectGlobalStyles();
+      injectGlobalStyles();
       injected = true;
     } catch (err) {
       console.error('[PromptManager] Failed to inject global styles safely:', err);
@@ -112,7 +112,7 @@ const ChromeBridge = (() => {
  * COMMENT: Centralized timings and reusable constants.
  * -------------------------------------------------------------------------*/
 const HIDE_ANIMATION_MS = 200;
-const MUTATION_DEBOUNCE_MS = 300;
+const MUTATION_DEBOUNCE_MS = 600;
 const SEARCH_FOCUS_DELAY_MS = 50;
 const ONBOARDING_AUTO_HIDE_MS = 10000;
 const ONBOARDING_FADE_OUT_MS = 300;
@@ -201,6 +201,7 @@ const debounce = (fn, wait = 100) => {
     timeout = setTimeout(() => fn.apply(null, args), wait);
   };
 };
+window.debounce = debounce;
 
 // [02] Theme helpers — centralize theme and basic UI show/hide behavior
 // Helper functions for theme and UI manipulation
@@ -280,7 +281,6 @@ const PanelView = Object.freeze({
   CREATE: 'CREATE',
   EDIT: 'EDIT',
   SETTINGS: 'SETTINGS',
-  HELP: 'HELP',
   CHANGELOG: 'CHANGELOG',
   VARIABLE_INPUT: 'VARIABLE_INPUT'
 });
@@ -325,12 +325,12 @@ const PanelRouter = (() => {
   };
 
   /**
-   * COMMENT: Shared factory for static info views so HELP/CHANGELOG stay consistent.
+   * COMMENT: Shared factory for static info views (e.g. changelog) loaded from extension HTML.
    * @param {{ titleText: string, contentId: string, sourcePath: string }} options
    * @returns {HTMLElement}
    */
   const createInfoView = ({ titleText, contentId, sourcePath }) => {
-      const dark = isDarkMode();
+    const dark = isDarkMode();
     const container = createEl('div', {
       className: `opm-form-container opm-${getMode()}`,
       styles: { padding: '0', display: 'flex', flexDirection: 'column', gap: '6px' }
@@ -349,13 +349,13 @@ const PanelRouter = (() => {
         color: dark ? THEME_COLORS.inputDarkText : THEME_COLORS.inputLightText
       }
     });
-      container.append(title, info);
+    container.append(title, info);
     fetch(chrome.runtime.getURL(sourcePath))
       .then(r => r.text())
       .then(html => { info.innerHTML = html; })
       .catch(err => console.error(`[PromptManager] Failed to load ${sourcePath}:`, err));
-      ScrollVisibilityManager.observe(info);
-      return container;
+    ScrollVisibilityManager.observe(info);
+    return container;
   };
 
   // COMMENT: Central map defining builder + UI rules for each panel view.
@@ -421,16 +421,6 @@ const PanelRouter = (() => {
       panelHeight: 'fixed',
       searchVisible: false,
       description: 'Settings is a standalone form with no search.'
-    },
-    [PanelView.HELP]: {
-      builder: () => createInfoView({
-        titleText: 'Navigation & Features',
-        contentId: SELECTORS.INFO_CONTENT,
-        sourcePath: 'info.html'
-      }),
-      panelHeight: 'fixed',
-      searchVisible: false,
-      description: 'Help content is static HTML pulled from info.html.'
     },
     [PanelView.CHANGELOG]: {
       builder: () => createInfoView({
@@ -578,6 +568,8 @@ class KeyboardManager {
     } else {
       PromptUIManager.manuallyOpened = true;
       await PromptUIManager.mountListOrCreateBasedOnPrompts();
+      // COMMENT: Mounting alone does not reveal the panel — keyboard toggle must show it
+      PromptUIManager.showPromptList(listEl);
     }
   }
 
@@ -646,7 +638,7 @@ class PromptStorageManager {
     if (this.__ps) return this.__ps;
 
     // COMMENT: Dynamically import the web-accessible module so content-scripts can use it
-    const mod = await import(chrome.runtime.getURL('promptStorage.js'));
+    const mod = await import(chrome.runtime.getURL('storage/promptStorage.js'));
 
     // COMMENT: Build a thin adapter to keep current call-sites unchanged
     this.__ps = {
@@ -748,11 +740,11 @@ window.PromptStorageManager = PromptStorageManager;
 class PromptUIManager {
   // COMMENT: Configuration for the info banner. Toggle 'active' to show/hide.
   static BANNER_CONFIG = {
-    active: true, 
-    id: 'info-banner-v2', // Change ID to re-show to users who dismissed it
+    active: true,
+    // COMMENT: Bump id when banner copy changes so users who dismissed an older banner see the update
+    id: 'info-banner-v3',
     html: `<span>
-      <strong>New:</strong> select text, right click & save as a new prompt! </br></br>
-      Enjoy the extension? 
+      <strong>New:</strong> Use Open Prompt Manager on ANY site. Enjoy the extension? </br>
       <a href="https://chromewebstore.google.com/detail/open-prompt-manager/gmhaghdbihgenofhnmdbglbkbplolain" target="_blank" rel="noopener noreferrer" style="color:#3674B5;text-decoration:underline;">Leave a review</a>!
     </span>`
   };
@@ -812,6 +804,14 @@ class PromptUIManager {
   // COMMENT: Removed panel height lock; CSS now enforces min/max height across views
 
   static injectPromptManagerButton(prompts) {
+    // COMMENT: Reuse an existing button container if present in the DOM (survives partial re-inits)
+    const existingContainer = document.getElementById(SELECTORS.PROMPT_BUTTON_CONTAINER);
+    if (existingContainer) {
+      PromptUIManager.state.buttonContainer = existingContainer;
+      PromptUIManager.state.currentMode = 'standard';
+      PromptUIManager.refreshPromptList(prompts);
+      return;
+    }
     if (PromptUIManager.state.buttonContainer &&
         document.body.contains(PromptUIManager.state.buttonContainer)) {
       PromptUIManager.refreshPromptList(prompts);
@@ -1012,7 +1012,6 @@ class PromptUIManager {
     const selectors = [
       `.${SELECTORS.PROMPT_ITEMS_CONTAINER}`,
       '.opm-form-container',
-      `#${SELECTORS.INFO_CONTENT}`,
       `#${SELECTORS.CHANGELOG_CONTENT}`,
       '.opm-tags-filter-bar'
     ];
@@ -1025,7 +1024,6 @@ class PromptUIManager {
 
   // COMMENT: Tag filter setter that reruns combined filtering without changing panel height
   static filterByTag(tag) {
-    const prev = (PromptUIManager.activeTagFilter || 'all');
     PromptUIManager.activeTagFilter = (tag || 'all');
     // Re-apply current search term to combine filters
     const input = document.getElementById(SELECTORS.PROMPT_SEARCH_INPUT);
@@ -1196,7 +1194,9 @@ class PromptUIManager {
       items = Array.from(container.querySelectorAll('.opm-prompt-list-item'))
         .filter(item => item.style.display !== 'none');
     } else {
-      items = Array.from(list.querySelectorAll('.opm-prompt-list-item'));
+      // COMMENT: Respect active tag/search filters — skip hidden items during list navigation
+      items = Array.from(list.querySelectorAll('.opm-prompt-list-item'))
+        .filter(item => item.style.display !== 'none');
     }
     if (items.length === 0) return;
     let idx = context === 'search' ? PromptUIManager.selectedSearchIndex : items.indexOf(document.activeElement);
@@ -1359,7 +1359,13 @@ class PromptUIManager {
       });
       inputField.addEventListener('input', () => { varValues[v] = inputField.value; });
       // COMMENT: Preserve Enter-to-submit behavior for consistency with previous single-line inputs
-      inputField.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); submitBtn.click(); } });
+      // COMMENT: Enter submits; Shift+Enter inserts a newline in multi-line variable fields
+      inputField.addEventListener('keydown', e => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+          e.preventDefault();
+          submitBtn.click();
+        }
+      });
       row.append(label, inputField);
       varContainer.appendChild(row);
       varValues[v] = '';
@@ -1368,7 +1374,7 @@ class PromptUIManager {
     // COMMENT: Ensure non-list view uses fixed height
     PromptUIManager.setPanelHeightMode('fixed');
     // COMMENT: Button container sticks to bottom of the panel
-    const btnContainer = createEl('div', { styles: { display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '8px', marginTop: 'auto', position: 'sticky', bottom: '0', background: 'transparent' } });
+    const btnContainer = createEl('div', { styles: { display: 'flex', flexDirection: 'column', gap: '8px', marginTop: 'auto', position: 'sticky', bottom: '0', background: 'transparent' } });
     const submitBtn = createEl('button', { innerHTML: 'Submit', className: `opm-button opm-${getMode()}` });
     submitBtn.addEventListener('click', () => {
       PromptUIManager.inVariableInputMode = false;
@@ -1382,8 +1388,8 @@ class PromptUIManager {
     btnContainer.append(submitBtn, backBtn);
     form.appendChild(btnContainer);
     requestAnimationFrame(() => {
-    const firstInput = varContainer.querySelector('textarea, input');
-    if (firstInput) firstInput.focus();
+      const firstInput = varContainer.querySelector('textarea, input');
+      if (firstInput) firstInput.focus();
     });
     return form;
   }
@@ -1424,10 +1430,9 @@ class PromptUIManager {
         if (listElAfter) { PromptUIManager.showPromptList(listElAfter); PromptUIManager.setSearchVisibility(false); }
         return;
       }
-      const label = createEl('label', { styles: { fontSize: '12px', fontWeight: 'bold' } });
       const tagInput = TagUI.createTagInput({ initialTags: Array.isArray(prompt.tags) ? prompt.tags : [] });
       const tagsBlock = createEl('div');
-      tagsBlock.append(label, tagInput.element);
+      tagsBlock.append(tagInput.element);
       const saveBtn = form.querySelector('.opm-button');
       if (saveBtn && saveBtn.parentNode) saveBtn.parentNode.insertBefore(tagsBlock, saveBtn);
       if (saveBtn) {
@@ -1491,6 +1496,13 @@ class PromptUIManager {
 
   // HOT CORNER MODE
   static injectHotCorner() {
+    // COMMENT: Reuse an existing hot-corner container if already mounted in the DOM
+    const existingHotCorner = document.getElementById(SELECTORS.HOT_CORNER_CONTAINER);
+    if (existingHotCorner) {
+      PromptUIManager.state.hotCornerContainer = existingHotCorner;
+      PromptUIManager.state.currentMode = 'hotCorner';
+      return;
+    }
     if (PromptUIManager.state.hotCornerContainer &&
         document.body.contains(PromptUIManager.state.hotCornerContainer)) {
       return;
@@ -1697,7 +1709,8 @@ const PromptMediator = (() => {
     processor: null,
     promptSelectHandler: null,
     mutationObserver: null,
-    storageWatcherAttached: false
+    storageWatcherAttached: false,
+    uiRecoverInProgress: false,
   };
 
   /**
@@ -1705,21 +1718,21 @@ const PromptMediator = (() => {
    * @param {Prompt} prompt
    */
   const handlePromptSelect = async (prompt) => {
-      // COMMENT: Be resilient — if input box isn't ready yet, wait briefly before giving up
-      let inputBox = await InputBoxHandler.getInputBox();
-      if (!inputBox) {
-        try {
-          inputBox = await InputBoxHandler.waitForInputBox();
-        } catch (_) {
-          console.error('Input box not found.');
-          return;
-        }
+    // COMMENT: Be resilient — if input box isn't ready yet, wait briefly before giving up
+    let inputBox = await window.InputBoxHandler.getInputBox();
+    if (!inputBox) {
+      try {
+        inputBox = await window.InputBoxHandler.waitForInputBox();
+      } catch (_) {
+        console.error('Input box not found.');
+        return;
       }
+    }
     const vars = state.processor.extractVariables(prompt.content);
-      const listEl = qs(`#${SELECTORS.PROMPT_LIST}`);
-      if (vars.length === 0) {
-        await InputBoxHandler.insertPrompt(inputBox, prompt.content, listEl);
-        PromptUIManager.hidePromptList(listEl);
+    const listEl = qs(`#${SELECTORS.PROMPT_LIST}`);
+    if (vars.length === 0) {
+      await window.InputBoxHandler.insertPrompt(inputBox, prompt.content, listEl);
+      PromptUIManager.hidePromptList(listEl);
       return;
     }
     PanelRouter.mount(PanelView.VARIABLE_INPUT, {
@@ -1728,7 +1741,7 @@ const PromptMediator = (() => {
       variables: vars,
       onSubmit: async values => {
         const processed = state.processor.replaceVariables(prompt.content, values);
-        await InputBoxHandler.insertPrompt(inputBox, processed, qs(`#${SELECTORS.PROMPT_LIST}`));
+        await window.InputBoxHandler.insertPrompt(inputBox, processed, qs(`#${SELECTORS.PROMPT_LIST}`));
         const activeList = qs(`#${SELECTORS.PROMPT_LIST}`);
         if (activeList) PromptUIManager.hidePromptList(activeList);
         setTimeout(() => {
@@ -1752,12 +1765,19 @@ const PromptMediator = (() => {
     if (!target) return;
 
     const ensureUIVisible = debounce(async () => {
-      // COMMENT: Ensure UI is present even if an input box hasn't been detected yet
-      if (!document.getElementById(SELECTORS.PROMPT_BUTTON_CONTAINER) &&
-          !document.getElementById(SELECTORS.HOT_CORNER_CONTAINER)) {
-        PromptUIManager.cleanupAllUIComponents();
+      // COMMENT: Skip work when the injected UI is still present in the DOM
+      if (document.getElementById(SELECTORS.PROMPT_BUTTON_CONTAINER)
+        || document.getElementById(SELECTORS.HOT_CORNER_CONTAINER)) {
+        return;
+      }
+      if (state.uiRecoverInProgress) return;
+
+      state.uiRecoverInProgress = true;
+      try {
         const prompts = await PromptStorageManager.getPrompts();
         await PromptUIManager.injectUIForCurrentMode(prompts);
+      } finally {
+        state.uiRecoverInProgress = false;
       }
     }, MUTATION_DEBOUNCE_MS);
 
@@ -1765,12 +1785,22 @@ const PromptMediator = (() => {
     state.mutationObserver.observe(target, { childList: true, subtree: true });
   };
 
+  const setupDisplayModeWatcher = () => {
+    if (!chrome?.storage?.onChanged) return;
+    chrome.storage.onChanged.addListener((changes, area) => {
+      if (area !== 'local' || !changes.displayMode) return;
+      PromptUIManager.refreshDisplayMode().catch((err) => {
+        console.error('Failed to refresh display mode after storage change:', err);
+      });
+    });
+  };
+
   const setupStorageChangeMonitor = () => {
     if (state.storageWatcherAttached) return;
     state.storageWatcherAttached = true;
     (async () => {
       try {
-        const { onPromptsChanged } = await import(chrome.runtime.getURL('promptStorage.js'));
+        const { onPromptsChanged } = await import(chrome.runtime.getURL('storage/promptStorage.js'));
         onPromptsChanged((prompts) => {
           // COMMENT: Only refresh items when the list view is active to avoid polluting non-list views
           PromptUIManager.refreshItemsIfListActive(prompts);
@@ -1787,7 +1817,9 @@ const PromptMediator = (() => {
   };
 
   const bootstrap = async (ui, processor) => {
-    if (state.initialized) return;
+    // COMMENT: Global guard prevents duplicate UI when scripts are re-injected on SPA navigations
+    if (window.__OPM_INITIALIZED__ || state.initialized) return;
+    window.__OPM_INITIALIZED__ = true;
     state.initialized = true;
     
     // COMMENT: Load theme preference before UI injection
@@ -1802,6 +1834,7 @@ const PromptMediator = (() => {
       .then(prompts => PromptUIManager.injectUIForCurrentMode(prompts))
       .catch(err => console.error('Error initializing extension UI:', err));
     setupMutationObserver();
+    setupDisplayModeWatcher();
     setupStorageChangeMonitor();
     setupKeyboardShortcuts();
   };

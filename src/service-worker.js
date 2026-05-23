@@ -1,5 +1,241 @@
-import { getProviders } from './llm_providers.js'; // Import the correct function
-import { getPrompts, onPromptsChanged, savePrompt } from './promptStorage.js'; // COMMENT: Unified prompt storage API
+import { getProviders } from './llm_providers.js';
+import { getPrompts, onPromptsChanged, savePrompt } from './storage/promptStorage.js';
+import { removePinnedForHostname } from './storage/pinnedInputStorage.js';
+import { resolveProviderIconUrl } from './utils/providerIcons.js';
+
+// COMMENT: Single source of truth for dynamically injected content-script bundles
+const CONTENT_SCRIPT_FILES = [
+  'handlers/inputBoxHandler.js',
+  'content.styles.js',
+  'content.shared.js',
+  'content.js',
+];
+
+// COMMENT: Pre-injection lock — closes the race before content.js sets __OPM_INITIALIZED__
+const CONTENT_SCRIPT_INJECTION_FLAG = '__openPromptManagerInjected';
+const CONTENT_SCRIPT_INIT_FLAG = '__OPM_INITIALIZED__';
+
+/**
+ * COMMENT: Inject content scripts once per tab. Uses an in-page lock so concurrent
+ * tab updates cannot load the bundle twice before bootstrap finishes.
+ * @param {number} tabId
+ * @param {string} [tabUrl]
+ * @returns {Promise<boolean>}
+ */
+async function injectContentScriptsIfNeeded(tabId, tabUrl = '') {
+  let injectionState;
+  try {
+    [{ result: injectionState }] = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: (initFlag, lockFlag) => {
+        if (window[initFlag] === true || window[lockFlag]) return 'skip';
+        window[lockFlag] = true;
+        return 'inject';
+      },
+      args: [CONTENT_SCRIPT_INIT_FLAG, CONTENT_SCRIPT_INJECTION_FLAG],
+    });
+  } catch (error) {
+    const message = error?.message || '';
+    if (message.includes('Cannot access a chrome:// URL') || message.includes('No matching window')) {
+      return false;
+    }
+    console.error(`Failed to check injection state for tab ${tabId}${tabUrl ? ` (${tabUrl})` : ''}:`, error);
+    return false;
+  }
+
+  if (injectionState === 'skip') {
+    return true;
+  }
+
+  try {
+    await chrome.scripting.executeScript({
+      target: { tabId },
+      files: CONTENT_SCRIPT_FILES,
+    });
+    return true;
+  } catch (injectionError) {
+    // COMMENT: Clear the lock when file injection fails so a later tab update can retry.
+    await chrome.scripting.executeScript({
+      target: { tabId },
+      func: (lockFlag) => { delete window[lockFlag]; },
+      args: [CONTENT_SCRIPT_INJECTION_FLAG],
+    }).catch(() => {});
+
+    const message = injectionError?.message || '';
+    if (message.includes('Cannot access a chrome:// URL') || message.includes('No matching window')) {
+      return false;
+    }
+    if (!message.includes('already injected')) {
+      console.error(`Failed to inject script into tab ${tabId}${tabUrl ? ` (${tabUrl})` : ''}:`, injectionError);
+    }
+    return false;
+  }
+}
+
+/**
+ * COMMENT: Convert a Chrome origin pattern into a URL prefix regex.
+ * @param {string} originPattern
+ * @returns {RegExp}
+ */
+function originPatternToRegex(originPattern) {
+  const regexPattern = originPattern
+    .replace(/\\/g, '\\\\')
+    .replace(/[.]/g, '\\.')
+    .replace(/[*]/g, '.*');
+  return new RegExp(`^${regexPattern}`);
+}
+
+/**
+ * COMMENT: Extract hostname from a Chrome origin permission pattern.
+ * @param {string} pattern
+ * @returns {string|null}
+ */
+function patternToHostname(pattern) {
+  if (!pattern || pattern === '<all_urls>') return null;
+  const match = pattern.match(/^\*:\/\/([^/]+)\/\*$/);
+  return match ? match[1] : null;
+}
+
+/**
+ * COMMENT: Mark revoked origins in aiProvidersMap and drop matching pinned inputs.
+ * @param {string[]} originPatterns
+ */
+async function syncStorageAfterPermissionRevoke(originPatterns) {
+  if (!Array.isArray(originPatterns) || originPatterns.length === 0) return;
+
+  const stored = await chrome.storage.local.get(['aiProvidersMap']);
+  let providersMap = stored?.aiProvidersMap && typeof stored.aiProvidersMap === 'object'
+    ? { ...stored.aiProvidersMap }
+    : {};
+
+  for (const pattern of originPatterns) {
+    Object.entries(providersMap).forEach(([name, info]) => {
+      if (info?.urlPattern === pattern) {
+        providersMap[name] = { ...info, hasPermission: 'No' };
+      }
+    });
+
+    const hostname = patternToHostname(pattern);
+    if (hostname) {
+      await removePinnedForHostname(hostname).catch(() => {});
+    }
+  }
+
+  await chrome.storage.local.set({ aiProvidersMap: providersMap });
+}
+
+/**
+ * COMMENT: Inject content scripts into a tab when permitted and not already initialized.
+ * @param {number} tabId
+ * @param {string} url
+ * @param {string} originPattern
+ */
+async function injectIfPermittedAndNeeded(tabId, url, originPattern) {
+  const hasPermission = await chrome.permissions.contains({ origins: [originPattern] });
+  if (!hasPermission || !originPatternToRegex(originPattern).test(url)) return false;
+
+  return injectContentScriptsIfNeeded(tabId, url);
+}
+
+/**
+ * COMMENT: Check whether the extension can script the given page URL.
+ * @param {string} url
+ * @returns {Promise<boolean>}
+ */
+async function tabHasScriptingPermission(url) {
+  if (!url || !/^https?:/i.test(url)) return false;
+
+  if (await chrome.permissions.contains({ origins: ['<all_urls>'] })) {
+    return true;
+  }
+
+  try {
+    const { patternsArray } = await getProviders();
+    for (const originPattern of patternsArray) {
+      if (!originPatternToRegex(originPattern).test(url)) continue;
+      if (await chrome.permissions.contains({ origins: [originPattern] })) {
+        return true;
+      }
+    }
+
+    const { hostname } = new URL(url);
+    return chrome.permissions.contains({ origins: [`*://${hostname}/*`] });
+  } catch (_) {
+    return false;
+  }
+}
+
+/**
+ * COMMENT: Ensure content scripts are present on a tab before pin/status actions run.
+ * @param {number} tabId
+ * @param {string} url
+ * @returns {Promise<boolean>}
+ */
+async function ensureContentScriptsForTab(tabId, url) {
+  if (!(await tabHasScriptingPermission(url))) return false;
+  return injectContentScriptsIfNeeded(tabId, url);
+}
+
+/**
+ * COMMENT: Run a pin-input helper inside the active page tab.
+ * @param {number} tabId
+ * @param {'start'|'clear'|'status'} action
+ * @returns {Promise<object>}
+ */
+async function runPinInputAction(tabId, action) {
+  const [{ result }] = await chrome.scripting.executeScript({
+    target: { tabId },
+    func: async (pinAction) => {
+      const handler = window.InputBoxHandler;
+      if (!handler) return { ok: false, error: 'handler_missing' };
+
+      if (pinAction === 'start') return handler.startPinPickerMode();
+      if (pinAction === 'clear') return handler.clearPinnedInput();
+      if (pinAction === 'status') return handler.getPinnedStatus();
+      return { ok: false, error: 'unknown_action' };
+    },
+    args: [action],
+  });
+
+  return result || { ok: false, error: 'no_result' };
+}
+
+/**
+ * COMMENT: Side panel pin/unpin requests arrive here so we can inject scripts when needed.
+ */
+chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+  if (message?.type !== 'OPM_PIN_INPUT') return undefined;
+
+  (async () => {
+    try {
+      const tab = message.tabId
+        ? await chrome.tabs.get(message.tabId)
+        : (await chrome.tabs.query({ active: true, lastFocusedWindow: true }))[0];
+
+      if (!tab?.id || !tab.url || !/^https?:/i.test(tab.url)) {
+        sendResponse({ ok: false, error: 'no_active_tab' });
+        return;
+      }
+
+      if (!(await tabHasScriptingPermission(tab.url))) {
+        sendResponse({ ok: false, error: 'no_permission', url: tab.url });
+        return;
+      }
+
+      if (!(await ensureContentScriptsForTab(tab.id, tab.url))) {
+        sendResponse({ ok: false, error: 'inject_failed' });
+        return;
+      }
+
+      const result = await runPinInputAction(tab.id, message.action || 'status');
+      sendResponse(result);
+    } catch (error) {
+      sendResponse({ ok: false, error: error?.message || 'pin_action_failed' });
+    }
+  })();
+
+  return true;
+});
 
 chrome.runtime.onInstalled.addListener(function (details) {
   chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true });
@@ -7,6 +243,8 @@ chrome.runtime.onInstalled.addListener(function (details) {
   // COMMENT: Rebuild providers map on install and update (but only open UI on first install)
   const shouldRebuild = ['install', 'update'].includes(details.reason);
   if (details.reason === 'install') {
+    // COMMENT: Default new installs to hover-button mode; user can switch on the install page
+    chrome.storage.local.set({ displayMode: 'standard' });
     chrome.tabs.create({ url: 'permissions/permissions.html' });
   }
   if (shouldRebuild) {
@@ -14,8 +252,10 @@ chrome.runtime.onInstalled.addListener(function (details) {
       try {
         const providersMap = await checkProviderPermissions();
         console.log('Providers Map:', providersMap);
-        // Store the provider map in local storage
-        await chrome.storage.local.set({ 'aiProvidersMap': providersMap });
+        // COMMENT: Never overwrite storage with null when permission checks fail transiently
+        if (providersMap && typeof providersMap === 'object') {
+          await chrome.storage.local.set({ aiProvidersMap: providersMap });
+        }
       } catch (error) {
         console.error('Error:', error);
       }
@@ -23,6 +263,13 @@ chrome.runtime.onInstalled.addListener(function (details) {
   }
 });
 
+
+chrome.permissions.onRemoved.addListener((permissions) => {
+  if (!permissions?.origins?.length) return;
+  syncStorageAfterPermissionRevoke(permissions.origins).catch((error) => {
+    console.error('Failed to sync storage after permission revoke:', error);
+  });
+});
 
 chrome.permissions.onAdded.addListener(async (permissions) => {
   console.log('Permissions added:', permissions.origins);
@@ -35,18 +282,8 @@ chrome.permissions.onAdded.addListener(async (permissions) => {
         console.log(`Found ${tabs.length} tabs matching ${origin}`);
 
         for (const tab of tabs) {
-          // Inject the scripts into each matching tab
           console.log(`Injecting scripts into tab ${tab.id} (${tab.url})`);
-          await chrome.scripting.executeScript({
-            target: { tabId: tab.id },
-            files: [
-              "inputBoxHandler.js",
-              "content.styles.js",
-              "content.shared.js",
-              "content.js"
-            ]
-          });
-          console.log(`Successfully injected scripts into tab ${tab.id}`);
+          await injectContentScriptsIfNeeded(tab.id, tab.url);
         }
       } catch (err) {
         console.error(`Failed to query tabs or inject script for origin ${origin}:`, err);
@@ -59,63 +296,26 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
   // Inject scripts when a tab finishes loading and has a URL
   if (changeInfo.status === 'complete' && tab.url) {
     try {
+      if (!/^https?:/i.test(tab.url)) return;
+
+      // COMMENT: Inject on any site the user has granted access to (supports pinned inputs)
+      if (await tabHasScriptingPermission(tab.url)) {
+        await ensureContentScriptsForTab(tabId, tab.url);
+        return;
+      }
+
       // Get the providers object and extract the patterns array
       const { patternsArray } = await getProviders(); // Call getProviders and destructure
 
       // Check if the tab's URL matches any of the provider patterns
-      for (const originPattern of patternsArray) { // Use patternsArray
-        // Check if the extension has been granted permission for this origin
-        const hasPermission = await chrome.permissions.contains({
-          origins: [originPattern]
-        });
-
-        // Simple matching (more robust matching might be needed depending on patterns)
-        // Convert wildcard pattern to a basic regex check
-        const regexPattern = originPattern
-          .replace(/\\/g, '\\\\') // Escape backslashes first
-          .replace(/[.]/g, '\\.') // Escape dots
-          .replace(/[*]/g, '.*'); // Replace wildcard with .*
-        const urlRegex = new RegExp(`^${regexPattern}`);
-
-        if (hasPermission && urlRegex.test(tab.url)) {
-          console.log(`Injecting scripts into updated tab ${tabId} (${tab.url}) matching ${originPattern}`);
-          // Check if scripts are already injected (optional but good practice)
-          try {
-            await chrome.scripting.executeScript({
-              target: { tabId: tabId },
-              func: () => { /* A simple function to check injection */ window.myExtensionInjected = true; }
-            });
-            // If the above doesn't throw, it means scripts might already be there or injection is possible.
-            // Proceed with actual injection.
-            await chrome.scripting.executeScript({
-              target: { tabId: tabId },
-              files: [
-                "inputBoxHandler.js",
-                "content.styles.js",
-                "content.shared.js",
-                "content.js"
-              ]
-            });
-            console.log(`Successfully injected scripts into tab ${tabId}`);
-          } catch (injectionError) {
-             // Check if the error indicates scripts are already injected
-             if (injectionError.message.includes('Cannot access a chrome:// URL') || injectionError.message.includes('No matching window')) {
-               // Ignore errors for restricted pages or closed tabs
-             } else if (!injectionError.message.includes('already injected')) {
-                // Log other injection errors
-                console.error(`Failed to inject script into tab ${tabId} (${tab.url}):`, injectionError);
-             } else {
-               // console.log(`Scripts already injected in tab ${tabId}`); // Optional: Log if already injected
-             }
-          }
-          // Important: break after attempting injection for the first matching pattern
-          break;
-        }
+      for (const originPattern of patternsArray) {
+        const injected = await injectIfPermittedAndNeeded(tabId, tab.url, originPattern);
+        if (injected) break;
       }
     } catch (err) {
       // Avoid logging errors for URLs like 'chrome://extensions/'
       if (tab.url && !tab.url.startsWith('chrome://')) {
-         // Log errors from getProviders or permission checks
+        // Log errors from getProviders or permission checks
         console.error(`Error during tab update processing for ${tab.url}:`, err);
       }
     }
@@ -131,21 +331,9 @@ async function checkProviderPermissions() {
     }
     const providersData = await response.json();
 
-    // COMMENT: Normalize icon URLs. For local paths (e.g. "../icons/foo.png" or "icons/foo.png"),
-    // convert to an absolute chrome-extension:// URL so all UIs resolve consistently.
-    const resolveIconUrl = (raw) => {
-      if (!raw) return '';
-      // Keep absolute/network/data/chrome-extension URLs as-is
-      if (/^(https?:|data:|chrome-extension:)/.test(raw)) return raw;
-      // Strip leading ./ or ../ segments to anchor at the extension root
-      const normalized = raw.replace(/^(\.\.\/)+/, '').replace(/^\.\//, '');
-      return chrome.runtime.getURL(normalized);
-    };
-
-    // Object to store provider permission status and URL
     const providersMap = {};
 
-    // Loop through each provider object in the patterns array
+    // COMMENT: Normalize icon URLs via shared helper so local and remote paths resolve consistently.
     for (const providerInfo of providersData.llm_providers) {
       // Get provider name, URL pattern, and provider URL
       const providerName = providerInfo.name;
@@ -162,14 +350,15 @@ async function checkProviderPermissions() {
         hasPermission: hasPermission ? 'Yes' : 'No',
         urlPattern: urlPattern,
         url: providerUrl,
-        iconUrl: resolveIconUrl(providerInfo.icon_url)
+        iconUrl: resolveProviderIconUrl(providerInfo.icon_url, providerInfo.url)
       };
     }
 
     return providersMap;
   } catch (error) {
     console.error('Error checking permissions:', error);
-    return null; // Return null or an empty object {} to indicate failure
+    // COMMENT: Return an empty object so callers never persist null into storage
+    return {};
   }
 }
 
@@ -208,11 +397,11 @@ async function createPromptContextMenu() {
     });
     // Add a menu item for each prompt
     getAllPrompts().then(prompts => {
-      prompts.forEach((prompt, idx) => {
+      prompts.forEach((prompt) => {
         chrome.contextMenus.create({
-          id: 'prompt-' + idx,
+          id: 'prompt-' + prompt.uuid,
           parentId: 'open-prompt-manager',
-          title: prompt.title || `Prompt ${idx + 1}`,
+          title: prompt.title || 'Untitled prompt',
           contexts: ['all']
         });
       });
@@ -232,7 +421,9 @@ chrome.runtime.onStartup.addListener(() => {
   (async () => {
     try {
       const providersMap = await checkProviderPermissions();
-      await chrome.storage.local.set({ 'aiProvidersMap': providersMap });
+      if (providersMap && typeof providersMap === 'object') {
+        await chrome.storage.local.set({ aiProvidersMap: providersMap });
+      }
     } catch (e) {
       console.error('Failed to refresh aiProvidersMap on startup:', e);
     }
@@ -253,6 +444,10 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
     // - prompt() to capture the title
     // - alert() to show validation error if title is empty
     try {
+      if (!tab?.id) {
+        console.error('Save-as-prompt requires an active page tab.');
+        return;
+      }
       const selected = info.selectionText || '';
       // Ask for a title using the page's built-in blocking prompt
       const [{ result: titleValue }] = await chrome.scripting.executeScript({
@@ -285,26 +480,24 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
     return;
   }
   if (info.menuItemId.startsWith('prompt-')) {
-    // Extract the prompt index
-    const idx = parseInt(info.menuItemId.replace('prompt-', ''), 10);
+    const uuid = info.menuItemId.replace('prompt-', '');
     const prompts = await getAllPrompts();
-    if (prompts[idx]) {
+    const prompt = prompts.find(p => p.uuid === uuid);
+    if (prompt) {
       // Write the prompt content to the clipboard
       try {
-        await navigator.clipboard.writeText(prompts[idx].content);
-        // Optionally, show a notification
+        await navigator.clipboard.writeText(prompt.content);
         chrome.notifications?.create({
           type: 'basic',
           iconUrl: 'icons/icon128.png',
           title: 'Prompt Copied',
-          message: `Copied: ${prompts[idx].title}`
+          message: `Copied: ${prompt.title}`
         });
       } catch (err) {
-        // Fallback: try to copy using the tabs API if clipboard API fails
         chrome.scripting.executeScript({
           target: { tabId: tab.id },
           func: (text) => navigator.clipboard.writeText(text),
-          args: [prompts[idx].content]
+          args: [prompt.content]
         });
       }
     }

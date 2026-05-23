@@ -251,15 +251,15 @@
 
   /* Dark mode styles are unified below; removing earlier overlapping block */
 
-  /* Prompts container takes available space, but never less than 200px */
+  /* Prompts container grows so Assistants can sit above the footer */
   .prompts-container {
     position: relative;
-    min-height: 200px;
-    flex: 0 0 auto; /* Do not shrink when sections below expand */
+    min-height: 120px;
+    flex: 1 1 auto;
     display: flex;
     flex-direction: column;
     margin-bottom: 10px;
-    overflow: visible; /* Let content push page height */
+    overflow: visible;
   }
 
   /* Prompts section fills container and scrolls if needed */
@@ -353,6 +353,16 @@
     grid-area: footer;
   }
 
+  .sidepanel-bottom-dock {
+    grid-column: 1 / -1;
+    grid-row: 3;
+    align-self: end;
+  }
+
+  .sidepanel-bottom-dock footer.footer {
+    grid-area: auto;
+  }
+
   .prompts-container {
     grid-area: g-prompt-list;
     min-width: 220px;
@@ -398,6 +408,16 @@
     height: 24px;
     max-width: 24px;
     max-height: 24px;
+  }
+
+  .footer-icon-link {
+    width: 36px;
+    height: 36px;
+  }
+
+  .footer-md-icon {
+    width: 20px;
+    height: 20px;
   }
 
   button#submit-button.main {
@@ -452,6 +472,26 @@ div.dataimpexp {
   transition: transform 0.18s ease-out, opacity 0.18s ease-out; /* Smooth transition for release */
 }
 
+/* COMMENT: Keep Assistants pinned above the footer icon row */
+.sidepanel-bottom-dock {
+  flex-shrink: 0;
+  margin-top: auto;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sidepanel-bottom-dock .llms-section {
+  margin-bottom: 0;
+  padding-bottom: 4px;
+}
+
+.sidepanel-bottom-dock footer.footer {
+  margin-top: 0;
+  position: static;
+}
+
 /* Sticky footer styles */
 footer.footer {
   flex-shrink: 0;
@@ -469,7 +509,49 @@ footer.footer {
 
 .footer-icons {
   display: flex;
-  gap: 12px;
+  align-items: center;
+  gap: 10px;
+}
+
+/* COMMENT: Shared footer icon buttons — same size, shape, and hover for every link */
+.footer-icon-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  text-decoration: none;
+  color: var(--primary, #3674B5);
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.footer-icon-link:hover {
+  background: rgba(54, 116, 181, 0.12);
+}
+
+.footer-md-icon {
+  width: 20px;
+  height: 20px;
+  display: block;
+}
+
+.footer-cta-link {
+  display: inline-flex;
+  align-items: center;
+  background-color: var(--primary, #3674B5);
+  color: #fff;
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 500;
+  text-decoration: none;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  transition: background 0.15s ease;
+}
+
+.footer-cta-link:hover {
+  background-color: #2f669f;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -478,16 +560,7 @@ footer.footer {
   }
 }
 
-/* Dark mode ring for icon-only pills */
-@media (prefers-color-scheme: dark) {
-  .llm-pill.icon-only .llm-pill-icon {
-    box-shadow: 0 0 0 1px rgba(54,116,181,0.6);
-    background-color: #1A202C;
-  }
-  .llm-pill.icon-only:hover .llm-pill-icon {
-    box-shadow: 0 0 0 2px rgba(54,116,181,0.7);
-  }
-}
+/* Dark mode ring for icon-only pills — removed duplicate block; see unified rules below */
 
 /* Responsive adjustments */
 @media (max-width: 768px) {
@@ -564,9 +637,12 @@ footer.footer {
   }
   .header-icon,
   .title img,
-  .footer-icons img,
   #prompt-list button img {
     filter: invert(100%) sepia(0%) saturate(0%) hue-rotate(213deg) brightness(130%) contrast(87%);
+  }
+
+  .footer-icon-link {
+    color: #CBD5E0;
   }
 
   /* Info banner links: force readable white in dark mode (override UA visited purple) */
@@ -588,6 +664,12 @@ footer.footer {
     border-color: #0b498a;
     color: #E2E8F0;
   }
+  .llm-pill.icon-only.active,
+  .llm-pill.icon-only.inactive {
+    background: transparent;
+    border: none;
+    box-shadow: none;
+  }
   .llm-pill.active:hover {
     background-color: #0b498a;
     border-color: #0b498a;
@@ -601,6 +683,11 @@ footer.footer {
   .llm-pill.inactive:hover {
     background-color: rgba(54,116,181,0.16);
     box-shadow: 0 0 0 3px rgba(54,116,181,0.28);
+  }
+  .llm-pill.icon-only.active:hover,
+  .llm-pill.icon-only.inactive:hover {
+    background: transparent;
+    box-shadow: none;
   }
 
   /* Footer background stays transparent but icons/text lighten */
@@ -685,9 +772,13 @@ button.main:hover {
   .llms-group {
     margin-bottom: 8px;
   }
+  .llms-group:last-child {
+    margin-bottom: 0;
+  }
   .llms-subheading {
-    margin: 6px 0 6px 0;
+    margin: 6px 0 8px 0;
     font-size: 11px;
+    line-height: 1.45;
     color: #4a5568;
     user-select: none;
   }
@@ -760,18 +851,38 @@ button.main:hover {
     user-select: none;
     transition: background-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
   }
-  /* Icon-only variant: remove pill styling; show just the favicon in a circle */
-  .llm-pill.icon-only {
+  /* Icon-only variant: favicon circles without stretched pill backgrounds */
+  .llm-pill.icon-only,
+  .llm-pill.icon-only.active,
+  .llm-pill.icon-only.inactive {
     padding: 0;
     border: none;
     background: transparent;
+    box-shadow: none;
+    width: 28px;
+    height: 28px;
+    min-width: 28px;
+    min-height: 28px;
+    justify-content: center;
+    align-items: center;
+    flex: 0 0 28px;
+  }
+  .llm-pill.icon-only.active:hover,
+  .llm-pill.icon-only.inactive:hover {
+    background: transparent;
+    border: none;
+    box-shadow: none;
   }
   .llm-pill.icon-only .llm-pill-icon {
-    width: 22px;
-    height: 22px;
+    width: 24px;
+    height: 24px;
+    min-width: 24px;
+    min-height: 24px;
     border-radius: 50%;
+    object-fit: contain;
     background-color: #ffffff;
     box-shadow: 0 0 0 1px rgba(54,116,181,0.35);
+    display: block;
   }
   .llm-pill.icon-only:hover .llm-pill-icon {
     box-shadow: 0 0 0 2px rgba(54,116,181,0.35);
@@ -780,6 +891,7 @@ button.main:hover {
     width: 16px;
     height: 16px;
     border-radius: 50%;
+    object-fit: contain;
     background-color: #ffffff;
   }
   .llm-pill-label {
@@ -804,6 +916,58 @@ button.main:hover {
     background-color: rgba(54,116,181,0.08);
     box-shadow: 0 0 0 3px rgba(54,116,181,0.18);
   }
+
+  /* COMMENT: Custom website picker — explicit Assistants entry for pin mode */
+  .llm-pill.custom-site-add {
+    padding: 6px 12px;
+    border-style: dashed;
+    background: transparent;
+    color: var(--primary);
+    cursor: pointer;
+    font: inherit;
+  }
+
+  .llm-pill.custom-site-add:hover:not(:disabled) {
+    background: rgba(54, 116, 181, 0.08);
+    border-style: solid;
+  }
+
+  .llm-pill.custom-site-add:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+
+  .llm-pill.custom-site-add.is-pinned {
+    border-style: solid;
+    background: rgba(54, 116, 181, 0.12);
+    box-shadow: inset 0 0 0 1px rgba(54, 116, 181, 0.25);
+  }
+
+  .custom-site-add-icon {
+    width: 16px;
+    height: 16px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    color: inherit;
+  }
+
+  .llm-pill.custom-site-pill .llm-pill-icon.custom-site-favicon {
+    box-shadow: 0 0 0 1px rgba(54, 116, 181, 0.35);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    .llm-pill.icon-only .llm-pill-icon,
+    .llm-pill.custom-site-pill .llm-pill-icon.custom-site-favicon {
+      background-color: #1A202C;
+      box-shadow: 0 0 0 1px rgba(54, 116, 181, 0.55);
+    }
+
+    .llm-pill.icon-only:hover .llm-pill-icon {
+      box-shadow: 0 0 0 2px rgba(54, 116, 181, 0.7);
+    }
+  }
   /* ---------------------------------------------------------- */
 
 @media (prefers-color-scheme: light) {
@@ -825,3 +989,140 @@ button.main:hover {
    - Dark mode: white via filter for non-header icons, header uses dark asset
    ============================================================ */
 /* No special light-mode filter needed; using coloured PNG via <picture> */
+
+/* COMMENT: Dedicated settings page blocks (settings.html) */
+.settings-section {
+  margin: 1.25rem 0 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.settings-section-first {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: none;
+}
+
+.settings-heading {
+  margin: 0 0 0.35rem 0;
+  font-size: 1rem;
+}
+
+.settings-mode-options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.65rem;
+  margin-top: 0.75rem;
+}
+
+.settings-mode-option {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 0.85rem;
+  border: 1px solid #cbd5e0;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  background: #fff;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.settings-mode-option input {
+  margin: 0;
+}
+
+.settings-mode-option.is-selected {
+  border-color: var(--primary);
+  box-shadow: inset 0 0 0 1px var(--primary);
+}
+
+.settings-back-btn {
+  margin-top: 0.5rem;
+}
+
+.settings-permissions-empty[hidden] {
+  display: none;
+}
+
+.settings-permissions-list {
+  list-style: none;
+  margin: 0.75rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.settings-permission-item {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.55rem 0.65rem;
+  border: 1px solid #cbd5e0;
+  border-radius: 0.5rem;
+  background: #fff;
+}
+
+.settings-permission-icon {
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  flex-shrink: 0;
+  object-fit: cover;
+  background: #fff;
+}
+
+.settings-permission-label {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.92rem;
+  line-height: 1.3;
+  word-break: break-word;
+}
+
+.settings-permission-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: #718096;
+  cursor: pointer;
+  padding: 0;
+  flex-shrink: 0;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.settings-permission-remove:hover {
+  background: rgba(197, 48, 48, 0.1);
+  color: #c53030;
+}
+
+.settings-permission-remove svg {
+  display: block;
+}
+
+@media (prefers-color-scheme: dark) {
+  .settings-section {
+    border-top-color: rgba(255, 255, 255, 0.08);
+  }
+
+  .settings-mode-option {
+    background: #144272;
+    border-color: #4a5568;
+    color: #e2e8f0;
+  }
+
+  .settings-permission-item {
+    background: #144272;
+    border-color: #4a5568;
+  }
+
+  .settings-permission-remove:hover {
+    background: rgba(252, 129, 129, 0.12);
+    color: #fc8181;
+  }
+}

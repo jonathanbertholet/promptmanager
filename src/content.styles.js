@@ -48,7 +48,6 @@ var SELECTORS = window.SELECTORS || {
   ONBOARDING_POPUP: 'opm-onboarding-popup',
   HOT_CORNER_CONTAINER: 'opm-hot-corner-container',
   HOT_CORNER_INDICATOR: 'opm-hot-corner-indicator',
-  INFO_CONTENT: 'opm-info-content',
   CHANGELOG_CONTENT: 'opm-changelog-content'
 };
 window.SELECTORS = SELECTORS;

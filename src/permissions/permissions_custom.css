@@ -180,9 +180,8 @@ body {
 
 /* Onboarding Section Styles */
 .custom-onboarding-section {
-    margin-top: 2rem;
-    margin-bottom: 2rem;
-    text-align: center;
+  margin-top: 2rem;
+  text-align: center;
 }
 
 .custom-onboarding-title {
@@ -223,18 +222,23 @@ body {
 }
 
 .custom-onboarding-caption {
-    font-size: 0.9rem;
-    color: var(--muted-text);
-    line-height: 1.4;
+  font-size: 0.9rem;
+  color: var(--muted-text);
+  line-height: 1.4;
+  max-width: 280px;
+  margin: 0 auto;
 }
 
 /* COMMENT: Features section on onboarding (cards-style list with check icons) */
 .custom-features-section {
-  margin-top: 1.5rem;
+  margin-top: 0;
+  padding-top: 2rem;
+  border-top: 1px solid var(--border-color);
   text-align: left;
+  clear: both;
 }
 .custom-features-title {
-  margin: 0 0 0.75rem 0;
+  margin: 0 0 1rem 0;
   font-size: 1.35rem;
   color: var(--dark-text);
   text-align: center;
@@ -292,6 +296,153 @@ body {
   line-height: 1.35;
 }
 
+/* COMMENT: Display mode picker on first-install permissions page */
+.custom-display-mode-section {
+  margin-top: 2.5rem;
+  margin-bottom: 0;
+  padding: 1.5rem 0 2rem;
+  text-align: center;
+  border-top: 1px solid var(--border-color);
+}
+
+.custom-display-mode-title {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.35rem;
+  color: var(--dark-text);
+}
+
+.custom-display-mode-lead {
+  margin: 0 auto 1.25rem;
+  max-width: 520px;
+  color: var(--muted-text);
+  font-size: 0.95rem;
+  line-height: 1.45;
+}
+
+.custom-display-mode-options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  max-width: 680px;
+  margin: 0 auto;
+  text-align: left;
+}
+
+.custom-display-mode-option {
+  position: relative;
+  cursor: pointer;
+  display: block;
+  min-width: 0;
+}
+
+.custom-display-mode-option input[type="radio"] {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.custom-display-mode-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  height: 100%;
+  min-height: 220px;
+  padding: 1rem;
+  border: 2px solid var(--border-color);
+  border-radius: 0.75rem;
+  background: var(--white);
+  box-sizing: border-box;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.custom-display-mode-option:hover .custom-display-mode-card {
+  border-color: var(--primary-blue);
+  box-shadow: 0 4px 14px rgba(54, 116, 181, 0.12);
+}
+
+.custom-display-mode-option.is-selected .custom-display-mode-card {
+  border-color: var(--primary-blue);
+  box-shadow: inset 0 0 0 1px var(--primary-blue);
+}
+
+.custom-display-mode-preview {
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-end;
+  width: 100%;
+  height: 72px;
+  border-radius: 0.5rem;
+  background: linear-gradient(180deg, rgba(54, 116, 181, 0.06) 0%, rgba(54, 116, 181, 0.02) 100%);
+  border: 1px solid rgba(54, 116, 181, 0.12);
+  padding: 0.5rem;
+  box-sizing: border-box;
+}
+
+.custom-display-mode-preview-button {
+  justify-content: center;
+  align-items: center;
+}
+
+.custom-display-mode-preview-dot {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #3674B5, #578FCA);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  display: inline-block;
+  position: relative;
+  flex-shrink: 0;
+}
+
+/* COMMENT: Match the live hover button — white bubble icon centered at 50% on the blue circle */
+.custom-display-mode-preview-dot::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: url('../icons/icon-button.png');
+  background-size: 50%;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+.custom-display-mode-preview-triangle {
+  width: 0;
+  height: 0;
+  border-style: solid;
+  border-width: 0 0 22px 22px;
+  border-color: transparent transparent var(--primary-blue) transparent;
+  opacity: 0.9;
+}
+
+.custom-display-mode-name {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--dark-text);
+}
+
+.custom-display-mode-desc {
+  font-size: 0.88rem;
+  line-height: 1.4;
+  color: var(--muted-text);
+}
+
+.custom-display-mode-badge {
+  align-self: flex-start;
+  margin-top: auto;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  background: rgba(54, 116, 181, 0.12);
+  color: var(--primary-blue);
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+/* COMMENT: Keeps both launcher cards the same height when only one shows a badge */
+.custom-display-mode-badge-spacer {
+  visibility: hidden;
+}
+
 /* Responsive adjustments */
 @media (max-width: 768px) {
   .custom-container {
@@ -328,6 +479,15 @@ body {
 
   .custom-col {
     max-width: 90%; /* Single column on small screens */
+  }
+
+  .custom-display-mode-options {
+    grid-template-columns: 1fr;
+    max-width: 100%;
+  }
+
+  .custom-display-mode-card {
+    min-height: 0;
   }
 }
 

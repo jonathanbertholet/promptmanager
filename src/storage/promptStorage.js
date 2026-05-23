@@ -7,7 +7,7 @@
 // NOTE:  The extension uses MV3 so ES-modules are allowed in service-worker
 //        and side-panel.  Content-scripts import this file dynamically.
 
-import { generateUUID } from './utils.js';
+import { generateUUID } from '../utils.js';
 
 // ---------------------------
 // Constants & helpers

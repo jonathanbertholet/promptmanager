@@ -2,6 +2,48 @@
 // It retrieves the providers map from storage and creates elements for each provider
 document.addEventListener('DOMContentLoaded', function () {
 
+  // COMMENT: Storage key shared with content-script display mode preference
+  const DISPLAY_MODE_KEY = 'displayMode';
+  const DEFAULT_DISPLAY_MODE = 'standard';
+  const ALLOWED_DISPLAY_MODES = new Set(['standard', 'hotCorner']);
+
+  /**
+   * COMMENT: Wire the install-page launcher choice (hover button vs hot corner).
+   */
+  function initDisplayModePicker() {
+    const section = document.getElementById('display-mode-section');
+    if (!section) return;
+
+    const radios = section.querySelectorAll('input[name="displayMode"]');
+    const options = section.querySelectorAll('.custom-display-mode-option');
+
+    const updateSelectedUI = (mode) => {
+      options.forEach((option) => {
+        const radio = option.querySelector('input[type="radio"]');
+        option.classList.toggle('is-selected', radio?.value === mode);
+      });
+    };
+
+    chrome.storage.local.get([DISPLAY_MODE_KEY], (result) => {
+      const storedMode = result[DISPLAY_MODE_KEY];
+      const mode = ALLOWED_DISPLAY_MODES.has(storedMode) ? storedMode : DEFAULT_DISPLAY_MODE;
+      radios.forEach((radio) => {
+        radio.checked = radio.value === mode;
+      });
+      updateSelectedUI(mode);
+    });
+
+    radios.forEach((radio) => {
+      radio.addEventListener('change', () => {
+        if (!radio.checked || !ALLOWED_DISPLAY_MODES.has(radio.value)) return;
+        chrome.storage.local.set({ [DISPLAY_MODE_KEY]: radio.value });
+        updateSelectedUI(radio.value);
+      });
+    });
+  }
+
+  initDisplayModePicker();
+
   // Get the target containers
   const permissionGrantedContainer = document.getElementById('permission-granted');
   const requestPermissionContainer = document.getElementById('request-permission');
@@ -39,17 +81,17 @@ document.addEventListener('DOMContentLoaded', function () {
       const ensureUrlPromise = firstAllowedUrl
         ? Promise.resolve(firstAllowedUrl)
         : fetch(chrome.runtime.getURL('/llm_providers.json'))
-            .then(response => response.json())
-            .then(data => {
-              const llmList = data.llm_providers || [];
-              for (const allowed of allowedProviders) {
-                const match = llmList.find(llm => llm.name === allowed.key);
-                if (match && match.url) {
-                  return match.url;
-                }
+          .then(response => response.json())
+          .then(data => {
+            const llmList = data.llm_providers || [];
+            for (const allowed of allowedProviders) {
+              const match = llmList.find(llm => llm.name === allowed.key);
+              if (match && match.url) {
+                return match.url;
               }
-              return null;
-            });
+            }
+            return null;
+          });
 
       ensureUrlPromise.then(resolvedUrl => {
         if (resolvedUrl) {
@@ -85,7 +127,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     for (const [key, providerInfo] of Object.entries(providersMap)) {
       const iconUrl = providerInfo.iconUrl;
-      const isAllowed = providerInfo.hasPermission === "Yes";
+      const isAllowed = providerInfo.hasPermission === 'Yes';
 
       // For allowed providers, clicking should open their website in a new tab.
       // For not-yet-allowed providers, the link remains "#" and we attach the
@@ -105,7 +147,7 @@ document.addEventListener('DOMContentLoaded', function () {
       let targetContainer;
       let needsClickListener = false;
 
-      if (providerInfo.hasPermission == "Yes") {
+      if (providerInfo.hasPermission == 'Yes') {
         targetContainer = permissionGrantedContainer;
         allowedProviders.push({ key, providerInfo }); // Collect allowed providers
       } else {
@@ -127,7 +169,7 @@ document.addEventListener('DOMContentLoaded', function () {
             chrome.permissions.request({ origins: [originPattern] }, (granted) => {
               if (granted) {
                 // Update local providersMap and persist
-                providersMap[providerKey].hasPermission = "Yes";
+                providersMap[providerKey].hasPermission = 'Yes';
                 // Persist change; UI will refresh via storage.onChanged listener
                 chrome.storage.local.set({ aiProvidersMap: providersMap });
               } else {
@@ -195,7 +237,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 hasPermission: 'No'
               };
             }
-            chrome.storage.local.set({ aiProvidersMap: updated });
+            // COMMENT: Clear custom pinned inputs when all site access is revoked
+            chrome.storage.local.set({ aiProvidersMap: updated, pinned_inputs_v1: {} });
           });
         } catch (e) {
           // On error, still set map to "No" to reset UI; users can re-grant
@@ -206,7 +249,7 @@ document.addEventListener('DOMContentLoaded', function () {
               hasPermission: 'No'
             };
           }
-          chrome.storage.local.set({ aiProvidersMap: updated });
+          chrome.storage.local.set({ aiProvidersMap: updated, pinned_inputs_v1: {} });
         }
       });
     });

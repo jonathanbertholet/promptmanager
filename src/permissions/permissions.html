@@ -23,7 +23,7 @@
         Open Source & Forever Simple.
       </p>
 
-      <div class="custom-container-mt5 custom-onboarding-section">
+      <div class="custom-onboarding-section">
         <div class="custom-row">
           <div class="custom-col">
             <img src="../icons/onboarding-start.png" alt="Hover to start" class="custom-onboarding-gif"> <!-- Updated path to onboarding-start.png -->
@@ -35,9 +35,40 @@
           <div class="custom-col">
             <img src="../icons/onboarding-start2.png" alt="Explore features" class="custom-onboarding-gif"> <!-- Updated path to onboarding-start.png -->
             <h3 class="custom-onboarding-gif-title">...And Explore</h3>
-            <p class="custom-onboarding-caption">Hot Corner Mode, Prompt Variables, Right Click Menu, Organize Prompts, Export and Import,...</p>
+            <p class="custom-onboarding-caption">Hot Corner, variables, context menu, tags, and more.</p>
           </div>
         </div>
+
+        <!-- COMMENT: Let new users pick hover button vs hot corner before granting permissions -->
+        <section id="display-mode-section" class="custom-display-mode-section" aria-labelledby="display-mode-title">
+          <h3 id="display-mode-title" class="custom-display-mode-title">How would you like to open your prompts?</h3>
+          <p class="custom-display-mode-lead">Choose your preferred launcher. You can change this anytime in Settings.</p>
+          <div class="custom-display-mode-options" role="radiogroup" aria-labelledby="display-mode-title">
+            <label class="custom-display-mode-option">
+              <input type="radio" name="displayMode" value="standard">
+              <span class="custom-display-mode-card">
+                <span class="custom-display-mode-preview custom-display-mode-preview-button" aria-hidden="true">
+                  <span class="custom-display-mode-preview-dot"></span>
+                </span>
+                <span class="custom-display-mode-name">Hover button</span>
+                <span class="custom-display-mode-desc">A small button appears when you hover near the chat input.</span>
+                <span class="custom-display-mode-badge">Default</span>
+              </span>
+            </label>
+            <label class="custom-display-mode-option">
+              <input type="radio" name="displayMode" value="hotCorner">
+              <span class="custom-display-mode-card">
+                <span class="custom-display-mode-preview custom-display-mode-preview-corner" aria-hidden="true">
+                  <span class="custom-display-mode-preview-triangle"></span>
+                </span>
+                <span class="custom-display-mode-name">Hot corner</span>
+                <span class="custom-display-mode-desc">Move your cursor to the bottom-right corner to open prompts instantly.</span>
+                <span class="custom-display-mode-badge custom-display-mode-badge-spacer" aria-hidden="true">Default</span>
+              </span>
+            </label>
+          </div>
+        </section>
+
         <!-- COMMENT: Features section (inserted between onboarding row and get-started button) -->
         <section class="custom-features-section" aria-labelledby="features-title">
           <h3 id="features-title" class="custom-features-title">Features</h3>
@@ -76,7 +107,7 @@
               <!-- COMMENT: Subtitle reassures users about data portability -->
               <div class="custom-feature-copy">
                 <span class="custom-feature-text">Clean & Simple</span>
-                <span class="custom-feature-subtitle">User friendly, Ligh & Dark mode, Hot Corner Mode.</span>
+                <span class="custom-feature-subtitle">User friendly, Light &amp; Dark mode, Hot Corner Mode.</span>
               </div>
             </li>
             <li class="custom-feature-item">

@@ -103,12 +103,21 @@ test('Test element selectors for all LLM providers', async () => {
                 continue;
             }
 
-            // Test the element selector with better error handling
-            const element = await page.$(provider.element_selector);
-            console.log("Test the element selector with better error handling");
+            // COMMENT: Support comma-separated fallback selectors like the content script does
+            const selectors = provider.element_selector.split(',').map(s => s.trim()).filter(Boolean);
+            let element = null;
+            let matchedSelector = null;
+            for (const selector of selectors) {
+                element = await page.$(selector);
+                if (element) {
+                    matchedSelector = selector;
+                    break;
+                }
+            }
+            console.log('Test the element selector with better error handling');
 
             if (element) {
-                console.log(`✅ ${provider.name}: Element found with selector "${provider.element_selector}"`);
+                console.log(`✅ ${provider.name}: Element found with selector "${matchedSelector}"`);
 
                 // Enter text for test prompt with better error handling
                 try {
@@ -119,7 +128,7 @@ test('Test element selectors for all LLM providers', async () => {
                     await page.evaluate((selector) => {
                         const el = document.querySelector(selector);
                         if (el) {
-                            if (el.tagName === 'TEXTAREA') {
+                            if (el.tagName === 'TEXTAREA' || el.tagName === 'INPUT') {
                                 el.value = 'Test prompt for automation';
                             } else if (el.contentEditable === 'true') {
                                 el.innerText = 'Test prompt for automation';
@@ -127,7 +136,7 @@ test('Test element selectors for all LLM providers', async () => {
                                 el.value = 'Test prompt for automation';
                             }
                         }
-                    }, provider.element_selector);
+                    }, matchedSelector);
                 }
 
                 // Validate that the value of the input box changed

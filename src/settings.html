@@ -1,75 +1,86 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Information</title>
-<!-- Link to the main stylesheet for consistent styling -->
-<link rel="stylesheet" href="sidepanel/styles.css">
-<meta charset="UTF-8">
+  <title>Settings</title>
+  <!-- COMMENT: Reuse side panel styles for a consistent extension look -->
+  <link rel="stylesheet" href="sidepanel/styles.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
 <body>
-<div class="title">
-  <img class="icon" src="icons/icon128.png" alt="Extension Icon" style="width: 22px; height: 22px;">
-  <h2>Information</h2>
-</div>
-
-<!--Keyboard shortcut-->
-<div id="empty-state" class="shortcut-container">
-    <h3>Keyboard Navigation & Shortcuts</h3>
-    <p style="display: flex; align-items: center; margin: 8px 0;">
-      <span style="background-color: #0077B6; color: white; padding: 4px 8px; border-radius: 4px; margin-right: 10px;">
-        Hover/Click
-      </span>
-      <span>Open prompt list buttons</span>
-    </p>
-    <p style="display: flex; align-items: center; margin: 8px 0;">
-      <span style="background-color: #0077B6; color: white; padding: 4px 8px; border-radius: 4px; margin-right: 10px;">
-        ⌘ + ⇧ + P or Ctrl + M
-      </span>
-      <span>Open / close prompt list</span>
-    </p>
-    <p style="display: flex; align-items: center; margin: 8px 0;">
-      <span style="background-color: #0077B6; color: white; padding: 4px 8px; border-radius: 4px; margin-right: 10px;">↑↓</span>
-      <span>Navigate the prompt list</span>
-    </p>
-    <p style="display: flex; align-items: center; margin: 8px 0;">
-      <span style="background-color: #0077B6; color: white; padding: 4px 8px; border-radius: 4px; margin-right: 10px;">Enter</span>
-      <span>Select a prompt</span>
-    </p>
-    <p style="display: flex; align-items: center; margin: 8px 0;">
-      <span style="background-color: #0077B6; color: white; padding: 4px 8px; border-radius: 4px; margin-right: 10px;">Esc</span>
-      <span>Close the prompt manager</span>
-    </p>
+  <div class="title">
+    <img class="icon" src="icons/icon128.png" alt="Extension Icon" style="width: 22px; height: 22px;">
+    <h2>Settings</h2>
   </div>
 
-<h3 style="margin-bottom: 2px;">Optional permissions, Hot Corner Mode, Sidebar!</h3>
-<p>Hope you enjoy !</p>
+  <section class="settings-section settings-section-first">
+    <h3 class="settings-heading">Keyboard shortcuts</h3>
+    <div id="empty-state" class="shortcut-container">
+      <p style="display: flex; align-items: center; margin: 8px 0;">
+        <span style="background-color: var(--primary); color: white; padding: 4px 8px; border-radius: 4px; margin-right: 10px;">
+          Hover/Click
+        </span>
+        <span>Open prompt list buttons</span>
+      </p>
+      <p style="display: flex; align-items: center; margin: 8px 0;">
+        <span style="background-color: var(--primary); color: white; padding: 4px 8px; border-radius: 4px; margin-right: 10px;">
+          ⌘ + ⇧ + P or Ctrl + M
+        </span>
+        <span>Open / close prompt list</span>
+      </p>
+      <p style="display: flex; align-items: center; margin: 8px 0;">
+        <span style="background-color: var(--primary); color: white; padding: 4px 8px; border-radius: 4px; margin-right: 10px;">↑↓</span>
+        <span>Navigate the prompt list</span>
+      </p>
+      <p style="display: flex; align-items: center; margin: 8px 0;">
+        <span style="background-color: var(--primary); color: white; padding: 4px 8px; border-radius: 4px; margin-right: 10px;">Enter</span>
+        <span>Select a prompt</span>
+      </p>
+      <p style="display: flex; align-items: center; margin: 8px 0;">
+        <span style="background-color: var(--primary); color: white; padding: 4px 8px; border-radius: 4px; margin-right: 10px;">Esc</span>
+        <span>Close the prompt manager</span>
+      </p>
+    </div>
+  </section>
 
+  <!-- COMMENT: Launcher preference moved here from the install page promise -->
+  <section class="settings-section">
+    <h3 class="settings-heading">Launcher mode</h3>
+    <p class="pm-subtitle">Choose how prompts open on assistant pages.</p>
+    <div id="display-mode-section" class="settings-mode-options" role="radiogroup" aria-label="Launcher mode">
+      <label class="settings-mode-option">
+        <input type="radio" name="displayMode" value="standard">
+        <span>Hover button</span>
+      </label>
+      <label class="settings-mode-option">
+        <input type="radio" name="displayMode" value="hotCorner">
+        <span>Hot corner</span>
+      </label>
+    </div>
+  </section>
 
-<h3 style="margin-bottom: 2px;">Feature requests</h3>
-<p>Contact me on <a href="https://github.com/jonathanbertholet" target="_blank">Github</a></p>
+  <!-- COMMENT: Prompt import/export moved from the side panel Settings section -->
+  <section class="settings-section">
+    <h3 class="settings-heading">Prompt management</h3>
+    <p class="pm-subtitle">Manage your saved prompts.</p>
+    <div class="pm-row">
+      <button class="main" id="export-btn" type="button">Export</button>
+      <button class="main" id="import-btn" type="button">Import</button>
+    </div>
+    <input type="file" id="import-file" accept=".json" hidden />
+    <p class="pm-subtitle">Tags, append mode, and dark mode are available in the assistant prompt panel settings.</p>
+  </section>
 
-<!-- Support section: Buy Me a Coffee -->
-<div class="coffee-support" style="margin: 18px 0 10px 0; display: flex; justify-content: center; align-items: center;">
-  <a href="https://coff.ee/jonathanbertholet" target="_blank" class="coffee-link" style="text-decoration: none;">
-    <button class="main coffee-btn" style="display: flex; align-items: center; gap: 8px; background-color: #0077B6; color: #fff; font-weight: 500; border: none; border-radius: 6px; padding: 10px 20px; cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,0.07); font-size: 1rem; transition: background 0.2s;">
-      <span style="font-size: 1.3em;">☕</span>
-      <span>Buy Me a Coffee</span>
-    </button>
-  </a>
-</div>
-<!-- End Buy Me a Coffee section -->
+  <!-- COMMENT: Revoke optional host permissions from the settings page -->
+  <section class="settings-section">
+    <h3 class="settings-heading">Permissions editor</h3>
+    <p class="pm-subtitle">Sites where the extension can inject prompts.</p>
+    <p id="permissions-empty" class="pm-subtitle settings-permissions-empty">No website access granted yet.</p>
+    <ul id="permissions-list" class="settings-permissions-list" aria-live="polite"></ul>
+  </section>
 
-<a href="/sidepanel/index.html"><button class="main" style="margin-top: 10px;">Back</button></a>
+  <a href="sidepanel/index.html"><button class="main settings-back-btn" type="button">Back to side panel</button></a>
 
-<!-- Add script import -->
-<script type="module" src="settings.js"></script>
-
-<style>
-  /* Make the coffee button look more integrated and add a hover effect */
-  .coffee-btn:hover {
-    background-color: #005f87 !important;
-  }
-</style>
-
+  <script type="module" src="settings.js"></script>
 </body>
 </html>

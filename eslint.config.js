@@ -1,32 +1,92 @@
-import globals from "globals";
-import js from "@eslint/js";
+import globals from 'globals';
+import js from '@eslint/js';
+
+// COMMENT: Globals available to content scripts after the injection bundle loads
+const contentScriptGlobals = {
+  ...globals.browser,
+  ...globals.webextensions,
+  chrome: 'readonly',
+  PromptUIManager: 'readonly',
+  InputBoxHandler: 'readonly',
+  PromptStorageManager: 'readonly',
+  PanelRouter: 'readonly',
+  PanelView: 'readonly',
+  TagService: 'readonly',
+  TagUI: 'readonly',
+  PromptUI: 'readonly',
+  ScrollVisibilityManager: 'readonly',
+  injectGlobalStyles: 'readonly',
+  SELECTORS: 'readonly',
+  THEME_COLORS: 'readonly',
+  UI_STYLES: 'readonly',
+  PROMPT_CLOSE_DELAY: 'readonly',
+  IMPORT_SUCCESS_RESET_MS: 'readonly',
+  createEl: 'readonly',
+  getMode: 'readonly',
+  getIconFilter: 'readonly',
+  showEl: 'readonly',
+  hideEl: 'readonly',
+  isDarkMode: 'readonly',
+};
+
+const baseRules = {
+  indent: ['error', 2],
+  quotes: ['error', 'single'],
+  semi: ['error', 'always'],
+  'no-unused-vars': 'off',
+  'no-console': 'off',
+  'no-empty': ['error', { allowEmptyCatch: true }],
+};
+
+const classicScriptRules = {
+  ...baseRules,
+  // COMMENT: Classic scripts intentionally assign classes/constants onto shared globals
+  'no-redeclare': ['error', { builtinGlobals: false }],
+};
 
 export default [
-    js.configs.recommended,
-    {
-        languageOptions: {
-            globals: {
-                ...globals.browser,                 // This adds browser APIs for Firefox and other browsers
-                ...globals.webextensions,           // This adds chrome and other extension APIs
-                chrome: 'readonly',       // Explicitly define Chrome API
-                PromptUIManager: 'readonly',       // Explicitly define Chrome API
-                InputBoxHandler: 'readonly',       // Explicitly define Chrome API
-            },
-            ecmaVersion: 2022,
-            sourceType: "module",
-        },
-        rules: {
-            "indent": ["error", 2],
-            "linebreak-style": ["error", "unix"],   // Enforce Unix line endings
-            "quotes": ["error", "single"],          // Enforce single quotes
-            "semi": ["error", "always"],            // Enforce semicolons
-            "no-unused-vars": "off",                // Warn on unused variables
-            "no-console": "off",                    // Allow console statements for debugging
-        },
-        ignores: [
-            "node_modules/*",
-            "tests/*",
-            "src/icons/*"
-        ]
-    }
+  js.configs.recommended,
+  {
+    files: ['src/**/*.js'],
+    languageOptions: {
+      globals: {
+        ...globals.browser,
+        ...globals.webextensions,
+        chrome: 'readonly',
+      },
+      ecmaVersion: 2022,
+      sourceType: 'module',
+    },
+    rules: baseRules,
+  },
+  {
+    files: ['src/content.js', 'src/content.shared.js'],
+    languageOptions: {
+      globals: contentScriptGlobals,
+      ecmaVersion: 2022,
+      sourceType: 'script',
+    },
+    rules: classicScriptRules,
+  },
+  {
+    files: ['src/content.styles.js', 'src/handlers/inputBoxHandler.js'],
+    languageOptions: {
+      globals: {
+        ...globals.browser,
+        ...globals.webextensions,
+        chrome: 'readonly',
+        PromptUIManager: 'readonly',
+      },
+      ecmaVersion: 2022,
+      sourceType: 'script',
+    },
+    rules: classicScriptRules,
+  },
+  {
+    ignores: [
+      'node_modules/**',
+      'tests/**',
+      'src/icons/**',
+    ],
+  },
 ];

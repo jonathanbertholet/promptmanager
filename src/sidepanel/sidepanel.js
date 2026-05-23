@@ -1,21 +1,233 @@
 // sidepanel.js
 
 // COMMENT: Use unified prompt storage for all prompt operations
-import * as PromptStorage from '../promptStorage.js';
-import { exportPrompts, importPrompts } from '../importExport.js';
+import * as PromptStorage from '../storage/promptStorage.js';
+import { getPinnedForHostname, getAllPinnedInputs } from '../storage/pinnedInputStorage.js';
+import {
+  resolveProviderIconUrl,
+  attachProviderIconFallback,
+  getFaviconFallbackForUrl,
+} from '../utils/providerIcons.js';
+
+// COMMENT: Debounce rapid tab events so switching tabs does not rebuild the whole Assistants section
+function debounceSidepanel(fn, wait = 250) {
+  let timeout;
+  return (...args) => {
+    clearTimeout(timeout);
+    timeout = setTimeout(() => fn.apply(null, args), wait);
+  };
+}
+
+let llmsSectionRenderInFlight = null;
+let cachedProvidersMap = null;
+
+/**
+ * COMMENT: Update only the custom-website button when the active tab changes.
+ */
+async function refreshActiveTabAssistantsUI() {
+  const customWebsiteBtn = document.getElementById('custom-website-btn');
+  await refreshCustomWebsiteButton(customWebsiteBtn);
+}
+
+const scheduleActiveTabAssistantsRefresh = debounceSidepanel(refreshActiveTabAssistantsUI, 250);
+
+/**
+ * COMMENT: Get the currently focused browser tab for pin/status actions.
+ * @returns {Promise<chrome.tabs.Tab|null>}
+ */
+async function getActiveBrowserTab() {
+  const tabs = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+  return tabs[0] || null;
+}
+
+/**
+ * COMMENT: Ask the service worker to run a pin-input action in the active tab.
+ * @param {'start'|'clear'|'status'} action
+ * @returns {Promise<object>}
+ */
+function sendPinInputAction(action) {
+  return new Promise(resolve => {
+    chrome.runtime.sendMessage({ type: 'OPM_PIN_INPUT', action }, response => {
+      if (chrome.runtime.lastError) {
+        resolve({ ok: false, error: chrome.runtime.lastError.message });
+        return;
+      }
+      resolve(response || { ok: false, error: 'empty_response' });
+    });
+  });
+}
+
+/**
+ * COMMENT: Request host permission for the active tab when pinning on a new site.
+ * @param {string} url
+ * @returns {Promise<boolean>}
+ */
+async function requestPermissionForUrl(url) {
+  try {
+    const { hostname } = new URL(url);
+    const pattern = `*://${hostname}/*`;
+    return await new Promise(resolve => {
+      chrome.permissions.request({ origins: [pattern] }, granted => resolve(Boolean(granted)));
+    });
+  } catch (_) {
+    return false;
+  }
+}
+
+/**
+ * COMMENT: Update the Assistants custom-website button for the active tab.
+ * @param {HTMLButtonElement|null} customWebsiteBtn
+ */
+async function refreshCustomWebsiteButton(customWebsiteBtn) {
+  if (!customWebsiteBtn) return;
+
+  const tab = await getActiveBrowserTab();
+  if (!tab?.url || !/^https?:/i.test(tab.url)) {
+    customWebsiteBtn.disabled = true;
+    customWebsiteBtn.classList.remove('is-pinned');
+    customWebsiteBtn.setAttribute('aria-pressed', 'false');
+    customWebsiteBtn.title = 'Open a website tab, then click to pick its input field';
+    return;
+  }
+
+  customWebsiteBtn.disabled = false;
+  let hostname = '';
+  try {
+    hostname = new URL(tab.url).hostname;
+  } catch (_) {
+    hostname = '';
+  }
+
+  const stored = hostname ? await getPinnedForHostname(hostname) : null;
+  const pinned = Boolean(stored);
+
+  customWebsiteBtn.classList.toggle('is-pinned', pinned);
+  customWebsiteBtn.setAttribute('aria-pressed', pinned ? 'true' : 'false');
+  customWebsiteBtn.title = pinned
+    ? `Unpin custom input on ${hostname}${stored?.label ? ` (${stored.label})` : ''}`
+    : `Pick the input field on ${hostname}`;
+}
+
+/**
+ * COMMENT: Start input picker mode or unpin the active custom website.
+ * @param {HTMLButtonElement} customWebsiteBtn
+ */
+async function handleCustomWebsiteAction(customWebsiteBtn) {
+  const tab = await getActiveBrowserTab();
+  if (!tab?.url || !/^https?:/i.test(tab.url)) return;
+
+  let hostname = '';
+  try {
+    hostname = new URL(tab.url).hostname;
+  } catch (_) {
+    return;
+  }
+
+  const currentlyPinned = Boolean(await getPinnedForHostname(hostname));
+  if (currentlyPinned) {
+    const result = await sendPinInputAction('clear');
+    if (!result?.ok) {
+      window.alert(result?.error || 'Could not unpin this custom website.');
+      return;
+    }
+    await refreshCustomWebsiteButton(customWebsiteBtn);
+    await renderLLMsSection();
+    return;
+  }
+
+  let result = await sendPinInputAction('start');
+  if (result?.error === 'no_permission') {
+    const granted = await requestPermissionForUrl(tab.url);
+    if (!granted) {
+      window.alert('Allow site access for this page to pick its input field.');
+      return;
+    }
+    result = await sendPinInputAction('start');
+  }
+
+  if (!result?.ok && result?.error !== 'picker_already_active') {
+    window.alert(result?.error || 'Could not start input picker on this page.');
+    return;
+  }
+
+  await refreshCustomWebsiteButton(customWebsiteBtn);
+}
+
+/**
+ * COMMENT: Build a pill for a user-pinned custom website hostname.
+ * @param {string} hostname
+ * @returns {HTMLAnchorElement}
+ */
+function createCustomSitePill(hostname) {
+  const link = document.createElement('a');
+  link.className = 'llm-pill icon-only active custom-site-pill';
+  link.href = `https://${hostname}`;
+  link.target = '_blank';
+  link.rel = 'noopener';
+  link.title = `Open ${hostname}`;
+
+  const img = document.createElement('img');
+  img.src = getFaviconFallbackForUrl(`https://${hostname}`);
+  img.alt = `${hostname} icon`;
+  img.width = 24;
+  img.height = 24;
+  img.className = 'llm-pill-icon custom-site-favicon';
+  attachProviderIconFallback(img, `https://${hostname}`);
+  link.appendChild(img);
+
+  return link;
+}
+
+/**
+ * COMMENT: Explicit Assistants entry that launches click-to-pick input mode.
+ * @returns {HTMLButtonElement}
+ */
+function createCustomWebsiteButton() {
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.id = 'custom-website-btn';
+  button.className = 'llm-pill custom-site-add';
+  button.setAttribute('aria-pressed', 'false');
+
+  const icon = document.createElement('span');
+  icon.className = 'custom-site-add-icon';
+  icon.setAttribute('aria-hidden', 'true');
+  icon.innerHTML = '<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>';
+
+  const label = document.createElement('span');
+  label.className = 'llm-pill-label';
+  label.textContent = '+ Custom website';
+
+  button.appendChild(icon);
+  button.appendChild(label);
+  button.addEventListener('click', () => {
+    handleCustomWebsiteAction(button).catch(console.error);
+  });
+
+  return button;
+}
 
 // COMMENT: Helper to check if any provider permissions are granted
 async function hasAnyGrantedProviderPermission() {
   return new Promise(resolve => {
     try {
-      chrome.storage.local.get(['aiProvidersMap'], result => {
-        if (!result || !result.aiProvidersMap) {
-          resolve(false);
-          return;
+      chrome.storage.local.get(['aiProvidersMap'], async result => {
+        if (result?.aiProvidersMap) {
+          const providersMap = result.aiProvidersMap;
+          const anyGranted = Object.values(providersMap).some(p => p && p.hasPermission === 'Yes');
+          if (anyGranted) {
+            resolve(true);
+            return;
+          }
         }
-        const providersMap = result.aiProvidersMap;
-        const anyGranted = Object.values(providersMap).some(p => p && p.hasPermission === 'Yes');
-        resolve(anyGranted);
+
+        // COMMENT: Custom pinned websites also unlock the prompt list
+        try {
+          const pinned = await getAllPinnedInputs();
+          resolve(Object.keys(pinned).length > 0);
+        } catch (_) {
+          resolve(false);
+        }
       });
     } catch (err) {
       resolve(false);
@@ -25,8 +237,6 @@ async function hasAnyGrantedProviderPermission() {
 
 // COMMENT: Track folded state of the "Available" group (collapsed by default)
 let llmsAvailableCollapsed = true;
-// COMMENT: Track folded state of Prompt Management (collapsed by default)
-let pmCollapsed = true;
 
 // COMMENT: Smoothly open/close a collapsible element without auto-scrolling the view
 function setCollapsibleOpen(collapsibleEl, open) {
@@ -38,17 +248,16 @@ function setCollapsibleOpen(collapsibleEl, open) {
     // Ensure transition starts from 0 -> height
     collapsibleEl.classList.add('open');
     collapsibleEl.style.maxHeight = '0px';
-    // Force reflow then expand to content height
-    // eslint-disable-next-line no-unused-expressions
-    collapsibleEl.offsetHeight;
+    // COMMENT: Force reflow so the expand transition starts from zero height
+    void collapsibleEl.offsetHeight;
     collapsibleEl.style.maxHeight = `${targetHeight}px`;
   } else {
     // Collapse from current height -> 0
     const currentMax = getComputedStyle(collapsibleEl).maxHeight;
     if (currentMax === 'none') {
       collapsibleEl.style.maxHeight = `${targetHeight}px`;
-      // eslint-disable-next-line no-unused-expressions
-      collapsibleEl.offsetHeight;
+      // COMMENT: Force reflow before collapsing to the target height
+      void collapsibleEl.offsetHeight;
     }
     collapsibleEl.style.maxHeight = '0px';
     collapsibleEl.classList.remove('open');
@@ -72,50 +281,51 @@ function setCollapsibleOpen(collapsibleEl, open) {
   collapsibleEl.addEventListener('transitionend', onEnd);
 }
 
-// COMMENT: Build a providers map from storage or compute a fallback by reading llm_providers.json and checking current permissions
+// COMMENT: Build a providers map from storage or compute a fallback by reading llm_providers.json
 async function getProvidersMapOrFallback() {
-  return new Promise(async (resolve) => {
-    try {
-      // First, try the canonical storage source (populated by service worker on install/changes)
-      chrome.storage.local.get(['aiProvidersMap'], async (result) => {
-        if (result && result.aiProvidersMap && Object.keys(result.aiProvidersMap).length > 0) {
-          resolve(result.aiProvidersMap);
-          return;
-        }
-        // Fallback: compute from llm_providers.json + current chrome.permissions
-        try {
-          const response = await fetch(chrome.runtime.getURL('llm_providers.json'));
-          const data = await response.json();
-          const list = Array.isArray(data?.llm_providers) ? data.llm_providers : [];
-          const computedEntries = await Promise.all(list.map(async (p) => {
-            const pattern = p.pattern;
-            let permitted = false;
-            try {
-              permitted = await chrome.permissions.contains({ origins: [pattern] });
-            } catch (e) {
-              permitted = false;
-            }
-            return [p.name, {
-              hasPermission: permitted ? 'Yes' : 'No',
-              urlPattern: p.pattern,
-              url: p.url,
-              iconUrl: p.icon_url
-            }];
-          }));
-          const computedMap = Object.fromEntries(computedEntries);
-          resolve(computedMap);
-        } catch (e) {
-          resolve({});
-        }
-      });
-    } catch (e) {
-      resolve({});
+  if (cachedProvidersMap && Object.keys(cachedProvidersMap).length > 0) {
+    return cachedProvidersMap;
+  }
+
+  try {
+    const stored = await new Promise(resolve => {
+      chrome.storage.local.get(['aiProvidersMap'], resolve);
+    });
+    if (stored?.aiProvidersMap && Object.keys(stored.aiProvidersMap).length > 0) {
+      cachedProvidersMap = stored.aiProvidersMap;
+      return cachedProvidersMap;
     }
-  });
+  } catch (_) {
+    // Fall through to computed map
+  }
+
+  try {
+    const response = await fetch(chrome.runtime.getURL('llm_providers.json'));
+    const data = await response.json();
+    const list = Array.isArray(data?.llm_providers) ? data.llm_providers : [];
+    const computedEntries = await Promise.all(list.map(async (p) => {
+      let permitted = false;
+      try {
+        permitted = await chrome.permissions.contains({ origins: [p.pattern] });
+      } catch (_) {
+        permitted = false;
+      }
+      return [p.name, {
+        hasPermission: permitted ? 'Yes' : 'No',
+        urlPattern: p.pattern,
+        url: p.url,
+        iconUrl: resolveProviderIconUrl(p.icon_url, p.url),
+      }];
+    }));
+    cachedProvidersMap = Object.fromEntries(computedEntries);
+    return cachedProvidersMap;
+  } catch (_) {
+    return {};
+  }
 }
 
 // COMMENT: Render the LLMs section with "Activated" and "Available" pills, reflecting storage status and permissions behavior
-async function renderLLMsSection() {
+async function renderLLMsSectionBody() {
   const section = document.getElementById('llms-section');
   const activeWrap = document.getElementById('llms-activated');
   const availableWrap = document.getElementById('llms-available');
@@ -130,13 +340,11 @@ async function renderLLMsSection() {
   availableWrap.innerHTML = '';
 
   const providersMap = await getProvidersMapOrFallback();
-  if (!providersMap || Object.keys(providersMap).length === 0) {
-    // Nothing to show; leave containers empty
-    return;
-  }
+  const pinnedInputs = await getAllPinnedInputs();
+  const customSites = Object.keys(pinnedInputs).sort();
 
   // Split into active vs available
-  const entries = Object.entries(providersMap);
+  const entries = Object.entries(providersMap || {});
   const active = entries.filter(([, v]) => v && v.hasPermission === 'Yes');
   const inactive = entries.filter(([, v]) => !v || v.hasPermission !== 'Yes');
 
@@ -158,11 +366,12 @@ async function renderLLMsSection() {
 
     // Icon
     const img = document.createElement('img');
-    img.src = iconUrl || '';
+    img.src = resolveProviderIconUrl(iconUrl, url);
     img.alt = `${name} icon`;
-    img.width = 20;
-    img.height = 20;
+    img.width = 24;
+    img.height = 24;
     img.className = 'llm-pill-icon';
+    attachProviderIconFallback(img, url);
     a.appendChild(img);
 
     if (!active) {
@@ -208,6 +417,15 @@ async function renderLLMsSection() {
       }));
     });
 
+  // COMMENT: Show pinned custom websites alongside built-in assistants
+  customSites.forEach((hostname) => {
+    activeWrap.appendChild(createCustomSitePill(hostname));
+  });
+
+  const customWebsiteBtn = createCustomWebsiteButton();
+  activeWrap.appendChild(customWebsiteBtn);
+  refreshCustomWebsiteButton(customWebsiteBtn);
+
   // Render inactive
   inactive
     .sort((a, b) => a[0].localeCompare(b[0]))
@@ -223,19 +441,32 @@ async function renderLLMsSection() {
 
   // COMMENT: Apply folded state to Available group; collapsed by default
   // Special rule: if Shortcuts is empty, hide it and force Available open
-  const hasActive = active.length > 0;
-  if (!hasActive) {
-    if (shortcutsGroup) shortcutsGroup.style.display = 'none';
+  const hasKnownActive = active.length > 0 || customSites.length > 0;
+  if (shortcutsGroup) shortcutsGroup.style.display = '';
+  if (!hasKnownActive) {
     if (availableGroup) availableGroup.style.display = '';
     llmsAvailableCollapsed = false;
     setCollapsibleOpen(availableWrap, true);
     if (availableToggle) availableToggle.setAttribute('aria-expanded', 'true');
   } else {
-    if (shortcutsGroup) shortcutsGroup.style.display = '';
+    if (availableGroup) availableGroup.style.display = '';
     setCollapsibleOpen(availableWrap, !llmsAvailableCollapsed);
     if (availableToggle) {
       availableToggle.setAttribute('aria-expanded', llmsAvailableCollapsed ? 'false' : 'true');
     }
+  }
+}
+
+async function renderLLMsSection() {
+  if (llmsSectionRenderInFlight) {
+    return llmsSectionRenderInFlight;
+  }
+
+  llmsSectionRenderInFlight = renderLLMsSectionBody();
+  try {
+    await llmsSectionRenderInFlight;
+  } finally {
+    llmsSectionRenderInFlight = null;
   }
 }
 
@@ -274,8 +505,9 @@ function displayPrompts(prompts) {
     return;
   }
   if (emptyState) emptyState.style.display = 'none';
-  prompts.forEach((prompt, index) => {
+  prompts.forEach((prompt) => {
     const li = document.createElement('li');
+    li.dataset.uuid = prompt.uuid;
     const titleSpan = document.createElement('span');
     titleSpan.textContent = prompt.title;
     titleSpan.style.margin = '2px';
@@ -314,10 +546,10 @@ function displayPrompts(prompts) {
     editBtn.style.backgroundColor = '#ffffff00';
     editBtn.appendChild(editImg);
     editBtn.addEventListener('click', () => {
-      // COMMENT: Populate the form for editing
+      // COMMENT: Track by stable uuid so reordering elsewhere cannot corrupt edits
       document.getElementById('prompt-title').value = prompt.title;
       document.getElementById('prompt-content').value = prompt.content;
-      document.getElementById('prompt-index').value = index;
+      document.getElementById('prompt-uuid').value = prompt.uuid;
       document.getElementById('submit-button').textContent = 'Update';
       document.getElementById('cancel-edit-button').style.display = 'inline';
     });
@@ -337,9 +569,7 @@ function displayPrompts(prompts) {
     delBtn.appendChild(delImg);
     delBtn.addEventListener('click', async () => {
       if (!window.confirm('Are you sure you want to delete this prompt?')) return;
-      const current = await PromptStorage.getPrompts();
-      if (index < 0 || index >= current.length) return;
-      await PromptStorage.deletePrompt(current[index].uuid);
+      await PromptStorage.deletePrompt(prompt.uuid);
     });
     li.appendChild(delBtn);
 
@@ -369,12 +599,9 @@ document.addEventListener('DOMContentLoaded', () => {
   const form = document.getElementById('prompt-form');
   const titleInput = document.getElementById('prompt-title');
   const contentInput = document.getElementById('prompt-content');
-  const promptIndexInput = document.getElementById('prompt-index');
+  const promptUuidInput = document.getElementById('prompt-uuid');
   const submitButton = document.getElementById('submit-button');
   const cancelEditButton = document.getElementById('cancel-edit-button');
-  const exportBtn = document.getElementById('export-btn');
-  const importBtn = document.getElementById('import-btn');
-  const importFile = document.getElementById('import-file');
   // COMMENT: Info banner elements for close/dismiss behavior
   const infoBanner = document.getElementById('info-banner');
   const infoBannerClose = document.getElementById('info-banner-close');
@@ -385,6 +612,25 @@ document.addEventListener('DOMContentLoaded', () => {
   renderPermissionsGate();
   // COMMENT: Render LLMs section on load
   renderLLMsSection();
+
+  try {
+    chrome.tabs.onActivated.addListener(() => {
+      scheduleActiveTabAssistantsRefresh();
+    });
+    chrome.tabs.onUpdated.addListener((_tabId, changeInfo) => {
+      if (changeInfo.status === 'complete' || changeInfo.url) {
+        scheduleActiveTabAssistantsRefresh();
+      }
+    });
+    chrome.storage.onChanged.addListener((changes, area) => {
+      if (area === 'local' && changes.pinned_inputs_v1) {
+        renderPermissionsGate();
+        renderLLMsSection();
+      }
+    });
+  } catch (_) {
+    // Ignore if tabs API is unavailable in this context
+  }
 
   // COMMENT: Wire Available subheading toggle (fold/unfold)
   const availableToggle = document.getElementById('llms-available-toggle');
@@ -406,26 +652,6 @@ document.addEventListener('DOMContentLoaded', () => {
     availableToggle.setAttribute('aria-expanded', 'false');
   }
 
-  // COMMENT: Wire Prompt Management toggle (fold/unfold), collapsed by default
-  const pmToggle = document.getElementById('pm-toggle');
-  const pmControls = document.getElementById('pm-controls');
-  if (pmToggle && pmControls) {
-    const togglePM = (ev) => {
-      if (ev && ev.type === 'keydown') {
-        if (ev.key !== 'Enter' && ev.key !== ' ') return;
-        ev.preventDefault();
-      }
-      pmCollapsed = !pmCollapsed;
-      setCollapsibleOpen(pmControls, !pmCollapsed);
-      pmToggle.setAttribute('aria-expanded', pmCollapsed ? 'false' : 'true');
-    };
-    pmToggle.addEventListener('click', togglePM);
-    pmToggle.addEventListener('keydown', togglePM);
-    // Ensure default collapsed state reflected in DOM
-    setCollapsibleOpen(pmControls, false);
-    pmToggle.setAttribute('aria-expanded', 'false');
-  }
-
   // COMMENT: Refresh UI whenever prompts change in storage
   PromptStorage.onPromptsChanged(loadPrompts);
 
@@ -433,6 +659,7 @@ document.addEventListener('DOMContentLoaded', () => {
   try {
     chrome.storage.onChanged.addListener((changes, area) => {
       if (area === 'local' && changes.aiProvidersMap) {
+        cachedProvidersMap = changes.aiProvidersMap.newValue || null;
         renderPermissionsGate();
         // COMMENT: Also refresh the LLMs section so pills reflect new activation status
         renderLLMsSection();
@@ -487,24 +714,18 @@ document.addEventListener('DOMContentLoaded', () => {
     const title = titleInput.value.trim();
     const content = contentInput.value;
 
-    if (promptIndexInput.value === '') {
+    if (promptUuidInput.value === '') {
       // COMMENT: Add new prompt via unified manager
       PromptStorage.savePrompt({ title, content }).catch(console.error);
     } else {
-      // COMMENT: Update existing prompt by mapping index to uuid via unified manager
-      const index = parseInt(promptIndexInput.value, 10);
-      PromptStorage.getPrompts().then(prompts => {
-        if (index >= 0 && index < prompts.length) {
-          const uuid = prompts[index].uuid;
-          return PromptStorage.updatePrompt(uuid, { title, content });
-        }
-      }).catch(console.error);
+      // COMMENT: Update existing prompt by uuid via unified manager
+      PromptStorage.updatePrompt(promptUuidInput.value, { title, content }).catch(console.error);
     }
 
     // Reset form
     titleInput.value = '';
     contentInput.value = '';
-    promptIndexInput.value = '';
+    promptUuidInput.value = '';
     submitButton.textContent = 'Save prompt';
     cancelEditButton.style.display = 'none';
   });
@@ -514,18 +735,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // Reset form
     titleInput.value = '';
     contentInput.value = '';
-    promptIndexInput.value = '';
+    promptUuidInput.value = '';
     submitButton.textContent = 'Add Prompt';
     cancelEditButton.style.display = 'none';
-  });
-
-  // Export prompts
-  exportBtn.addEventListener('click', exportPrompts);
-
-  // Import prompts
-  importBtn.addEventListener('click', () => importFile.click());
-  importFile.addEventListener('change', event => {
-    const file = event.target.files[0];
-    if (file) importPrompts(file);
   });
 });

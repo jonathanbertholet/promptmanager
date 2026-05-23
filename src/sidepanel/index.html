@@ -21,7 +21,7 @@
     </a>
   </div>
   <form id="prompt-form">
-    <input type="hidden" id="prompt-index" />
+    <input type="hidden" id="prompt-uuid" />
     <input type="text" id="prompt-title" placeholder="Prompt Title" required />
     <textarea id="prompt-content" placeholder="Enter your prompt here - Use #variablename# for dynamic values." required style="height: 100%"></textarea>
     <button class="main" type="submit" id="submit-button">
@@ -110,9 +110,9 @@
     </div>
   </div>
   <!-- COMMENT: LLMs section shows activated and available providers, mirroring the permissions page behavior -->
+  <div class="sidepanel-bottom-dock">
   <div id="llms-section" class="llms-section">
     <h3 class="llms-heading">Assistants</h3>
-    <p></p>
     <div class="llms-group">
       <div id="llms-activated" class="llms-pills" aria-live="polite">
         <!-- COMMENT: Active provider pills rendered here -->
@@ -126,65 +126,30 @@
       </div>
     </div>
   </div>
-  <!-- COMMENT: Prompt Management section with fold/unfold, folded by default -->
-  <div id="pm-section" class="llms-section">
-    <h3 class="llms-heading" id="pm-toggle" role="button" tabindex="0" aria-controls="pm-controls" aria-expanded="false">Settings</h3>
-    <div class="llms-group">
-      <div id="pm-controls" class="pm-controls collapsible" aria-live="polite">
-        <div class="pm-subtitle">Manage your saved prompts.</div>
-        <div class="pm-row">
-          <button class="main" id="export-btn">Export</button>
-          <button class="main" id="import-btn">Import</button>
-        </div>
-        <input type="file" id="import-file" accept=".json" hidden />
-        <div class="pm-subtitle">Other settings can be found when using the Assistants.</div>
-      </div>
-    </div>
-  </div>
-  <p></p>
   <!-- Sticky footer for icons/links -->
   <footer class="footer">
-    <div class="footer-icons" style="display: flex; align-items: center; gap: 8px;">
-      <a id="link" href="https://github.com/jonathanbertholet/promptmanager"
-        target="_blank" title="Github"><img class="footer-icons" src="../icons/github-icon.png" alt="Github" /></a>
-      <!-- COMMENT: Buy Me a Coffee link inserted between GitHub and Chrome Web Store -->
-      <a id="link" href="https://buymeacoffee.com/jonathanbertholet"
-        target="_blank" title="Buy me a coffee">
-          <span style="
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            width: 18px;
-            height: 18px;
-            border-radius: 50%;
-            background: #3674B5;
-          ">
-            <img class="footer-icons" src="../icons/coffee.svg" alt="Buy me a coffee" style="width: 12px; height: 12px; filter: brightness(0) invert(1);" />
-          </span>
-        </a>
-      <a id="link" href="https://chromewebstore.google.com/detail/open-prompt-manager/gmhaghdbihgenofhnmdbglbkbplolain"
-        target="_blank" title="Review me"><img class="footer-icons" src="../icons/review-icon.png" alt="Review me" /></a>
-      <a id="link" href="../settings.html" title="Settings"><img id="settings-icon" class="footer-icons"
-          src="../icons/settings-icon.png" alt="Settings" /></a>
-      <a id="link" href="../permissions/permissions.html" title="Get Started" target="_blank" style="text-decoration: none;">
-        <span style="
-          display: inline-flex;
-          align-items: center;
-          background-color: var(--primary, #3674B5);
-          color: #fff;
-          padding: 4px 14px;
-          border-radius: 999px;
-          font-size: 13px;
-          font-weight: 500;
-          gap: 7px;
-          box-shadow: 0 1px 2px rgba(0,0,0,0.04);
-          transition: background 0.15s;
-        ">
-          Get Started
-        </span>
+    <div class="footer-icons">
+      <a class="footer-icon-link" href="https://github.com/jonathanbertholet/promptmanager"
+        target="_blank" rel="noopener" title="Github">
+        <svg class="footer-md-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12c0 4.42 2.87 8.17 6.84 9.49.5.09.68-.22.68-.48 0-.24-.01-.87-.01-1.7-2.78.62-3.37-1.37-3.37-1.37-.45-1.16-1.11-1.47-1.11-1.47-.91-.64.07-.63.07-.63 1 .07 1.53 1.05 1.53 1.05.89 1.52 2.34 1.08 2.91.83.09-.64.35-1.08.63-1.33-2.22-.26-4.56-1.14-4.56-5.07 0-1.12.39-2.03 1.03-2.75-.1-.26-.45-1.3.1-2.71 0 0 .84-.27 2.75 1.05A9.2 9.2 0 0 1 12 6.84c.85.004 1.71.12 2.51.34 1.91-1.32 2.75-1.05 2.75-1.05.55 1.41.2 2.45.1 2.71.64.72 1.03 1.63 1.03 2.75 0 3.94-2.34 4.81-4.57 5.07.36.32.68.94.68 1.9 0 1.37-.01 2.47-.01 2.8 0 .27.18.58.69.48A10.01 10.01 0 0 0 22 12c0-5.52-4.48-10-10-10z"/></svg>
+      </a>
+      <a class="footer-icon-link" href="https://buymeacoffee.com/jonathanbertholet"
+        target="_blank" rel="noopener" title="Buy me a coffee">
+        <svg class="footer-md-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M20 3H4v10c0 2.21 1.79 4 4 4h6c2.21 0 4-1.79 4-4v-3h2c1.11 0 2-.9 2-2V5c0-1.11-.9-2-2-2zm0 5h-2V5h2v3zM4 19h16v2H4v-2z"/></svg>
+      </a>
+      <a class="footer-icon-link" href="https://chromewebstore.google.com/detail/open-prompt-manager/gmhaghdbihgenofhnmdbglbkbplolain"
+        target="_blank" rel="noopener" title="Review me">
+        <svg class="footer-md-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 17.27 18.18 21l-1.64-7.03L22 9.24l-7.19-.62L12 2 9.19 8.62 2 9.24l5.46 4.73L5.82 21 12 17.27z"/></svg>
+      </a>
+      <a class="footer-icon-link" href="../settings.html" title="Settings">
+        <svg id="settings-icon" class="footer-md-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M19.14 12.94c.04-.31.06-.63.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.488.488 0 0 0-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94L14.4 2.81a.488.488 0 0 0-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96a.488.488 0 0 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58a.49.49 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.03-1.58zM12 15.6A3.6 3.6 0 1 1 12 8.4a3.6 3.6 0 0 1 0 7.2z"/></svg>
+      </a>
+      <a class="footer-cta-link" href="../permissions/permissions.html" title="Get Started" target="_blank" rel="noopener">
+        Get Started
       </a>
     </div>
   </footer>
+  </div>
   <script type="module" src="sidepanel.js"></script>
 
 </body>

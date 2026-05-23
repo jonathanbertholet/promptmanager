@@ -1,7 +1,7 @@
 // importExport.js
 
 // COMMENT: Use unified prompt storage; remove dependency on prompts.js
-import * as PromptStorage from './promptStorage.js';
+import * as PromptStorage from './storage/promptStorage.js';
 
 // Export prompts from local storage as JSON
 export async function exportPrompts() {
