@@ -140,7 +140,14 @@
           options.forEach((t, idx) => {
             const item = createEl('div', { className: 'opm-tag-suggestion-item', innerHTML: t });
             if (idx === activeIndex) item.classList.add('active');
-            item.addEventListener('mousedown', e => { e.preventDefault(); addTag(t); input.value = ''; suggestions.style.display = 'none'; });
+            item.addEventListener('mousedown', e => {
+              e.preventDefault();
+              e.stopPropagation();
+              addTag(t);
+              input.value = '';
+              suggestions.style.display = 'none';
+            });
+            item.addEventListener('click', e => e.stopPropagation());
             suggestions.appendChild(item);
           });
           if (options.length > 0) {
@@ -159,10 +166,15 @@
           refreshSuggestions();
         });
         input.addEventListener('keydown', e => {
-          if (e.key === 'Enter') { e.preventDefault(); if (activeIndex >= 0 && activeIndex < options.length) { addTag(options[activeIndex]); input.value = ''; } else { addTag(input.value); input.value = ''; } suggestions.style.display = 'none'; }
-          if (e.key === 'ArrowDown') { e.preventDefault(); activeIndex = Math.min(activeIndex + 1, options.length - 1); refreshSuggestions(); }
-          if (e.key === 'ArrowUp') { e.preventDefault(); activeIndex = Math.max(activeIndex - 1, -1); refreshSuggestions(); }
-          if (e.key === 'Escape') { suggestions.style.display = 'none'; }
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            e.stopPropagation();
+            if (activeIndex >= 0 && activeIndex < options.length) { addTag(options[activeIndex]); input.value = ''; } else { addTag(input.value); input.value = ''; }
+            suggestions.style.display = 'none';
+          }
+          if (e.key === 'ArrowDown') { e.preventDefault(); e.stopPropagation(); activeIndex = Math.min(activeIndex + 1, options.length - 1); refreshSuggestions(); }
+          if (e.key === 'ArrowUp') { e.preventDefault(); e.stopPropagation(); activeIndex = Math.max(activeIndex - 1, -1); refreshSuggestions(); }
+          if (e.key === 'Escape') { e.stopPropagation(); suggestions.style.display = 'none'; }
         });
         input.addEventListener('focus', () => { suggestions.style.display = 'none'; });
         input.addEventListener('blur', () => { suggestions.style.display = 'none'; });

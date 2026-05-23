@@ -513,7 +513,10 @@ const OutsideClickCloser = (() => {
       || e.target.closest(`.${SELECTORS.PROMPT_ITEMS_CONTAINER}`)
       || e.target.closest('.opm-icon-button')
       || e.target.closest('.opm-form-container')
-      || e.target.closest('.opm-button');
+      || e.target.closest('.opm-button')
+      // COMMENT: Tag suggestions render in a portal on #opm-root — keep panel open when picking a tag (#71)
+      || e.target.closest('.opm-tag-suggestions')
+      || e.target.closest('.opm-tag-row');
     if (!isMenu) PromptUIManager.hidePromptList(listEl);
   };
   return {
