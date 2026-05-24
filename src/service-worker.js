@@ -467,13 +467,6 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
       }
       // Persist the prompt using the unified storage API
       await savePrompt({ title, content: selected });
-      // Optional: fire a lightweight notification if available
-      chrome.notifications?.create({
-        type: 'basic',
-        iconUrl: 'icons/icon128.png',
-        title: 'Prompt Saved',
-        message: `Saved: ${title}`
-      });
     } catch (err) {
       console.error('Failed to save prompt from selection:', err);
     }
@@ -487,12 +480,6 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
       // Write the prompt content to the clipboard
       try {
         await navigator.clipboard.writeText(prompt.content);
-        chrome.notifications?.create({
-          type: 'basic',
-          iconUrl: 'icons/icon128.png',
-          title: 'Prompt Copied',
-          message: `Copied: ${prompt.title}`
-        });
       } catch (err) {
         chrome.scripting.executeScript({
           target: { tabId: tab.id },
