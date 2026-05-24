@@ -280,6 +280,7 @@ const PanelView = Object.freeze({
   LIST: 'LIST',
   CREATE: 'CREATE',
   EDIT: 'EDIT',
+  EDIT_PROMPT: 'EDIT_PROMPT',
   SETTINGS: 'SETTINGS',
   CHANGELOG: 'CHANGELOG',
   VARIABLE_INPUT: 'VARIABLE_INPUT'
@@ -364,7 +365,7 @@ const PanelRouter = (() => {
       kind: 'list',
       panelHeight: 'variable',
       searchVisible: true,
-      alwaysRebuild: true,
+      alwaysRebuild: false,
       description: 'Prompt list view needs live data + persisted tags every time.',
       async controller(listEl) {
         try {
@@ -387,15 +388,15 @@ const PanelRouter = (() => {
     },
     [PanelView.CREATE]: {
       builder: () => PromptUIManager.createPromptCreationForm(''),
-      panelHeight: 'fixed',
+      panelHeight: 'create',
       searchVisible: false,
-      description: 'Create view uses fixed-height form; search stays hidden.'
+      description: 'Create view uses a wider, taller panel; search stays hidden.'
     },
     [PanelView.EDIT]: {
       kind: 'list',
       panelHeight: 'variable',
       searchVisible: true,
-      alwaysRebuild: true,
+      alwaysRebuild: false,
       description: 'Edit view reuses the prompt list with edit + reorder controls.',
       async controller(listEl) {
         try {
@@ -439,11 +440,20 @@ const PanelRouter = (() => {
       description: 'Variable input form that collects placeholder values before insertion.',
       requiresContext: true,
       alwaysRebuild: true
+    },
+    [PanelView.EDIT_PROMPT]: {
+      builder: (context) => PromptUIManager.buildEditPromptForm(context.prompt),
+      panelHeight: 'create',
+      searchVisible: false,
+      description: 'Single-prompt edit form with back navigation.',
+      requiresContext: true,
+      alwaysRebuild: true
     }
   };
 
   const applyViewChrome = (definition) => {
-    const heightMode = definition.panelHeight === 'variable' ? 'variable' : 'fixed';
+    // COMMENT: panelHeight drives fixed, variable, or create-specific panel dimensions.
+    const heightMode = definition.panelHeight || 'fixed';
     PromptUIManager.setPanelHeightMode(heightMode);
     PromptUIManager.setSearchVisibility(definition.searchVisible !== false);
     Theme.applyAll();
@@ -452,7 +462,7 @@ const PanelRouter = (() => {
   const mount = async (view, context = undefined) => {
     const definition = VIEW_DEFINITIONS[view];
     if (!definition) return;
-    if (definition.requiresContext && !context) {
+    if (definition.requiresContext && (view === PanelView.EDIT_PROMPT ? !context?.prompt : !context)) {
       console.warn(`[PromptManager] Missing context for view ${view}`);
       return;
     }
@@ -466,34 +476,48 @@ const PanelRouter = (() => {
       return;
     }
 
-    state.currentView = view;
-    PromptUIManager.inVariableInputMode = (view === PanelView.VARIABLE_INPUT);
+    const previousView = state.currentView;
+    const shouldAnimate = listEl.classList.contains('opm-visible')
+      && previousView !== null
+      && previousView !== view;
+    const targetHeightMode = definition.panelHeight || 'fixed';
 
-    if (definition.kind === 'list') {
+    const applyView = async () => {
+      state.currentView = view;
+      PromptUIManager.inVariableInputMode = (view === PanelView.VARIABLE_INPUT);
+
+      if (definition.kind === 'list') {
+        applyViewChrome(definition);
+        await definition.controller(listEl);
+        return;
+      }
+
+      const builder = definition.builder;
+      if (!builder) return;
+
+      // COMMENT: Reset the shared panel scaffolding first so builders can rely on
+      // the latest tags/search host before injecting their custom content.
+      PromptUIManager.resetPromptListContainer();
+
+      let node = null;
+      try {
+        node = await builder(context);
+      } catch (err) {
+        console.error(`[PromptManager] Failed to build view "${view}":`, err);
+        return;
+      }
+      if (!node) return;
+
+      PromptUIManager.replacePanelMainContent(node);
       applyViewChrome(definition);
-      await definition.controller(listEl);
-      return;
+      PromptUIManager.showPromptList(listEl);
+    };
+
+    if (shouldAnimate) {
+      await PromptUIManager.animatePanelResize(listEl, applyView, targetHeightMode);
+    } else {
+      await applyView();
     }
-
-    const builder = definition.builder;
-    if (!builder) return;
-
-    // COMMENT: Reset the shared panel scaffolding first so builders can rely on
-    // the latest tags/search host before injecting their custom content.
-    PromptUIManager.resetPromptListContainer();
-
-    let node = null;
-    try {
-      node = await builder(context);
-    } catch (err) {
-      console.error(`[PromptManager] Failed to build view "${view}":`, err);
-      return;
-    }
-    if (!node) return;
-
-    PromptUIManager.replacePanelMainContent(node);
-    applyViewChrome(definition);
-    PromptUIManager.showPromptList(listEl);
   };
 
   return { mount };
@@ -761,7 +785,9 @@ class PromptUIManager {
     lastPromptsSignature: null,
     listMode: 'list',
     tagsBar: null,
-    suppressNextListRefresh: false
+    suppressNextListRefresh: false,
+    listPanelPromptCount: 0,
+    listPanelHeight: null
   };
 
   static _ensureRoot() {
@@ -777,11 +803,272 @@ class PromptUIManager {
     return root;
   }
   // COMMENT: Toggle panel height mode: 'variable' (LIST) or 'fixed' (other views)
+  static PANEL_RESIZE_MS = 180;
+  static PANEL_DIMENSIONS = {
+    create: { width: 360, height: 480 },
+    fixed: { width: 300, height: 400 },
+    variable: { width: 300, maxHeight: 400 }
+  };
+  // COMMENT: List panel height derives from total prompt count (not tag/search filtered subset).
+  static LIST_PANEL_LAYOUT = {
+    width: 300,
+    maxHeight: 400,
+    minHeight: 220,
+    baseChrome: 158,
+    tagsBar: 34,
+    banner: 56,
+    itemsAreaPadding: 28,
+    itemsMaxScroll: 350,
+    itemHeightList: 32,
+    itemHeightEdit: 44
+  };
+  static _deferHeightMode = false;
+  static _pendingHeightMode = null;
+  static _panelResizeAnimation = null;
+  static _listLayoutReady = null;
+
+  static _beginDeferredHeightMode() {
+    PromptUIManager._deferHeightMode = true;
+    PromptUIManager._pendingHeightMode = null;
+  }
+
+  static _endDeferredHeightMode(fallbackMode) {
+    PromptUIManager._deferHeightMode = false;
+    const mode = PromptUIManager._pendingHeightMode ?? fallbackMode;
+    PromptUIManager._pendingHeightMode = null;
+    PromptUIManager.setPanelHeightMode(mode);
+  }
+
+  // COMMENT: Derive a stable list panel height from total prompts, optional chrome, and a max cap.
+  static computeListPanelHeight(promptCount, { hasTagsBar = false, hasBanner = false, isEditMode = false } = {}) {
+    const L = PromptUIManager.LIST_PANEL_LAYOUT;
+    const itemHeight = isEditMode ? L.itemHeightEdit : L.itemHeightList;
+    const itemsBlock = Math.min(Math.max(promptCount, 0) * itemHeight + L.itemsAreaPadding, L.itemsMaxScroll);
+    let height = L.baseChrome + itemsBlock;
+    if (hasTagsBar) height += L.tagsBar;
+    if (hasBanner) height += L.banner;
+    return Math.min(Math.max(Math.round(height), L.minHeight), L.maxHeight);
+  }
+
+  // COMMENT: Apply count-based list height; tag/search filters must not call this.
+  static syncListPanelHeight(listEl = null) {
+    const el = listEl || qs(`#${SELECTORS.PROMPT_LIST}`);
+    if (!el) return;
+    const panel = el.querySelector(`#${SELECTORS.PANEL_CONTENT}`);
+    if (!panel?.querySelector('.opm-view-list')) return;
+
+    const promptCount = PromptUIManager.state.listPanelPromptCount ?? 0;
+    const hasTagsBar = !!panel.querySelector('.opm-tags-filter-bar');
+    const hasBanner = !!panel.querySelector('.opm-info-banner');
+    const isEditMode = PromptUIManager.state.listMode === 'edit';
+    const height = PromptUIManager.computeListPanelHeight(promptCount, { hasTagsBar, hasBanner, isEditMode });
+
+    PromptUIManager.state.listPanelHeight = height;
+    el.style.setProperty('--opm-list-height', `${height}px`);
+  }
+
+  // COMMENT: Fixed/create targets use layout constants; list views use count-based height.
+  static _measurePanelTargetSize(listEl, mode) {
+    if (mode === 'create') return { ...PromptUIManager.PANEL_DIMENSIONS.create };
+    if (mode === 'variable') {
+      PromptUIManager.syncListPanelHeight(listEl);
+      const height = PromptUIManager.state.listPanelHeight || PromptUIManager.LIST_PANEL_LAYOUT.maxHeight;
+      return { width: PromptUIManager.LIST_PANEL_LAYOUT.width, height };
+    }
+    return { ...PromptUIManager.PANEL_DIMENSIONS.fixed };
+  }
+
+  static _clearPanelResizeStyles(listEl) {
+    listEl.classList.remove('opm-resizing');
+    listEl.style.height = '';
+    listEl.style.width = '';
+    listEl.style.minHeight = '';
+    listEl.style.maxHeight = '';
+    listEl.style.overflow = '';
+    listEl.style.boxSizing = '';
+    listEl.style.transition = '';
+  }
+
+  static async _awaitListLayoutReady() {
+    const listEl = qs(`#${SELECTORS.PROMPT_LIST}`);
+    const panel = listEl?.querySelector(`#${SELECTORS.PANEL_CONTENT}`);
+    // COMMENT: Skip waiting when tags/banner chrome is already in the DOM (reopen / tag switch).
+    if (panel?.querySelector('.opm-tags-filter-bar') || panel?.querySelector('.opm-info-banner')) {
+      PromptUIManager._listLayoutReady = null;
+      PromptUIManager.syncListPanelHeight(listEl);
+      return;
+    }
+    const pending = PromptUIManager._listLayoutReady;
+    PromptUIManager._listLayoutReady = null;
+    if (pending) await pending;
+    PromptUIManager.syncListPanelHeight(listEl);
+  }
+
+  // COMMENT: List views use count-based height; only tween width when it changed.
+  static async _animatePanelResizeToList(listEl, updateFn, startHeight, startWidth) {
+    listEl.classList.add('opm-resizing');
+    listEl.style.boxSizing = 'border-box';
+    listEl.style.overflow = 'hidden';
+    listEl.style.height = `${startHeight}px`;
+    listEl.style.width = `${startWidth}px`;
+
+    PromptUIManager._beginDeferredHeightMode();
+    try {
+      await updateFn();
+    } catch (err) {
+      PromptUIManager._deferHeightMode = false;
+      PromptUIManager._pendingHeightMode = null;
+      PromptUIManager._panelResizeAnimation?.cancel?.();
+      PromptUIManager._panelResizeAnimation = null;
+      PromptUIManager._clearPanelResizeStyles(listEl);
+      throw err;
+    }
+
+    await PromptUIManager._awaitListLayoutReady();
+    PromptUIManager.syncListPanelHeight(listEl);
+
+    const targetWidth = PromptUIManager.LIST_PANEL_LAYOUT.width;
+    const settledHeight = PromptUIManager.state.listPanelHeight || PromptUIManager.LIST_PANEL_LAYOUT.maxHeight;
+    const widthDelta = Math.abs(targetWidth - startWidth);
+    const heightDelta = Math.abs(settledHeight - startHeight);
+
+    listEl.style.height = `${settledHeight}px`;
+    listEl.style.minHeight = `${settledHeight}px`;
+    listEl.style.maxHeight = `${settledHeight}px`;
+
+    const finishList = () => {
+      PromptUIManager._panelResizeAnimation?.cancel?.();
+      PromptUIManager._panelResizeAnimation = null;
+      PromptUIManager._endDeferredHeightMode('variable');
+      listEl.classList.remove('opm-resizing');
+      listEl.style.height = '';
+      listEl.style.minHeight = '';
+      listEl.style.maxHeight = '';
+      listEl.style.width = '';
+      listEl.style.overflow = '';
+      listEl.style.boxSizing = '';
+    };
+
+    if (widthDelta < 1 && heightDelta < 1) {
+      finishList();
+      return;
+    }
+
+    const animation = listEl.animate(
+      [
+        { width: `${startWidth}px`, height: `${startHeight}px` },
+        { width: `${targetWidth}px`, height: `${settledHeight}px` }
+      ],
+      {
+        duration: PromptUIManager.PANEL_RESIZE_MS,
+        easing: 'ease',
+        fill: 'forwards'
+      }
+    );
+    PromptUIManager._panelResizeAnimation = animation;
+
+    try {
+      await animation.finished;
+    } catch (_) {
+      // COMMENT: Cancelled by a rapid successive view change — still apply final list chrome.
+    } finally {
+      finishList();
+    }
+  }
+
+  // COMMENT: WAAPI tweens width + height together for fixed/create; list views use _animatePanelResizeToList.
+  static async animatePanelResize(listEl, updateFn, targetMode = 'fixed') {
+    if (!listEl || typeof updateFn !== 'function') return;
+    if (!listEl.classList.contains('opm-visible')) {
+      await updateFn();
+      return;
+    }
+
+    PromptUIManager._panelResizeAnimation?.cancel?.();
+
+    const startHeight = listEl.offsetHeight;
+    const startWidth = listEl.offsetWidth;
+
+    if (targetMode === 'variable') {
+      await PromptUIManager._animatePanelResizeToList(listEl, updateFn, startHeight, startWidth);
+      return;
+    }
+
+    listEl.classList.add('opm-resizing');
+    listEl.style.boxSizing = 'border-box';
+    listEl.style.overflow = 'hidden';
+    listEl.style.height = `${startHeight}px`;
+    listEl.style.width = `${startWidth}px`;
+
+    PromptUIManager._beginDeferredHeightMode();
+    try {
+      await updateFn();
+    } catch (err) {
+      PromptUIManager._deferHeightMode = false;
+      PromptUIManager._pendingHeightMode = null;
+      PromptUIManager._panelResizeAnimation?.cancel?.();
+      PromptUIManager._panelResizeAnimation = null;
+      PromptUIManager._clearPanelResizeStyles(listEl);
+      throw err;
+    }
+
+    const target = PromptUIManager._measurePanelTargetSize(listEl, targetMode);
+    const heightDelta = Math.abs(target.height - startHeight);
+    const widthDelta = Math.abs(target.width - startWidth);
+
+    const finish = () => {
+      PromptUIManager._panelResizeAnimation?.cancel?.();
+      PromptUIManager._panelResizeAnimation = null;
+      PromptUIManager._endDeferredHeightMode(targetMode);
+      PromptUIManager._clearPanelResizeStyles(listEl);
+    };
+
+    if (heightDelta < 1 && widthDelta < 1) {
+      finish();
+      return;
+    }
+
+    const animation = listEl.animate(
+      [
+        { width: `${startWidth}px`, height: `${startHeight}px` },
+        { width: `${target.width}px`, height: `${target.height}px` }
+      ],
+      {
+        duration: PromptUIManager.PANEL_RESIZE_MS,
+        easing: 'ease',
+        fill: 'forwards'
+      }
+    );
+    PromptUIManager._panelResizeAnimation = animation;
+
+    try {
+      await animation.finished;
+    } catch (_) {
+      // COMMENT: Animation was cancelled by a rapid successive view change — still apply final chrome.
+    } finally {
+      finish();
+    }
+  }
+
   static setPanelHeightMode(mode) {
+    if (PromptUIManager._deferHeightMode) {
+      PromptUIManager._pendingHeightMode = mode;
+      return;
+    }
     const listEl = qs(`#${SELECTORS.PROMPT_LIST}`);
     if (!listEl) return;
-    listEl.classList.remove('opm-fixed-400', 'opm-variable');
-    if (mode === 'variable') listEl.classList.add('opm-variable'); else listEl.classList.add('opm-fixed-400');
+    listEl.classList.remove('opm-fixed-400', 'opm-list-sized', 'opm-panel-create');
+    if (mode === 'variable') {
+      listEl.classList.add('opm-list-sized');
+      PromptUIManager.syncListPanelHeight(listEl);
+    } else if (mode === 'create') {
+      listEl.classList.remove('opm-list-sized');
+      listEl.style.removeProperty('--opm-list-height');
+      listEl.classList.add('opm-panel-create');
+    } else {
+      listEl.style.removeProperty('--opm-list-height');
+      listEl.classList.add('opm-fixed-400');
+    }
   }
   // COMMENT: Track whether the active list should expose editing controls or standard view.
   static setListMode(mode = 'list') {
@@ -882,9 +1169,9 @@ class PromptUIManager {
     }, ONBOARDING_AUTO_HIDE_MS);
   }
 
-  static attachButtonEvents(button, listEl /*, container, prompts */) {
-    // COMMENT: Delegate event wiring to internal PromptUI.Events
-    PromptUI.Events.attachButtonEvents(button, listEl);
+  static attachButtonEvents(button, listEl, container) {
+    // COMMENT: Delegate event wiring to internal PromptUI.Events (container enables hover reopen).
+    PromptUI.Events.attachButtonEvents(button, listEl, container);
   }
 
   static startCloseTimer(e, listEl, callback) {
@@ -1032,7 +1319,7 @@ class PromptUIManager {
     const input = document.getElementById(SELECTORS.PROMPT_SEARCH_INPUT);
     const term = input ? input.value : '';
     PromptUIManager.filterPromptItems(term);
-    // COMMENT: Persist selected tag for future sessions
+    // COMMENT: Height stays based on total prompt count — not visible/filtered items
     PromptStorageManager.saveActiveTagFilter(PromptUIManager.activeTagFilter);
   }
 
@@ -1046,6 +1333,7 @@ class PromptUIManager {
   static buildPromptListContainer(prompts = []) {   // COMMENT: Rebuild the list content using internal view composition
     const listEl = qs(`#${SELECTORS.PROMPT_LIST}`);
     if (!listEl) return;
+    PromptUIManager.state.listPanelPromptCount = prompts.length;
     Theme.applyNode(listEl);
     const existingPanel = listEl.querySelector(`#${SELECTORS.PANEL_CONTENT}`);
     const existingItems = existingPanel?.querySelector(`.${SELECTORS.PROMPT_ITEMS_CONTAINER}`);
@@ -1053,10 +1341,12 @@ class PromptUIManager {
     listEl.innerHTML = '';
     const mode = PromptUIManager.state.listMode || 'list';
     const content = PromptUI.Views.renderPromptList(prompts, { mode });
+    const tagsLayoutReady = content.__opmLayoutReady || Promise.resolve();
     
     // COMMENT: Inject Info Banner if active and not dismissed
+    let bannerLayoutReady = Promise.resolve();
     if (PromptUIManager.BANNER_CONFIG.active) {
-      (async () => {
+      bannerLayoutReady = (async () => {
         try {
           const dismissed = await PromptStorageManager.getData('dismissedBanners', []);
           if (dismissed.includes(PromptUIManager.BANNER_CONFIG.id)) return;
@@ -1112,6 +1402,10 @@ class PromptUIManager {
       })();
     }
 
+    PromptUIManager._listLayoutReady = Promise.all([tagsLayoutReady, bannerLayoutReady]).then(() => {
+      PromptUIManager.syncListPanelHeight(listEl);
+    });
+
     listEl.appendChild(content);
     const newItems = content.querySelector(`.${SELECTORS.PROMPT_ITEMS_CONTAINER}`);
     if (newItems) {
@@ -1156,10 +1450,16 @@ class PromptUIManager {
     // COMMENT: When showing, if current view is LIST, allow variable height; else keep fixed
     const panelNode = document.getElementById(SELECTORS.PANEL_CONTENT);
     const isListView = panelNode && panelNode.querySelector(`.${SELECTORS.PROMPT_ITEMS_CONTAINER}.opm-view-list`);
-    PromptUIManager.setPanelHeightMode(isListView ? 'variable' : 'fixed');
+    const isCreateView = panelNode && panelNode.querySelector('.opm-create-form');
+    const isEditPromptView = panelNode && panelNode.querySelector('.opm-edit-prompt-form');
+    let heightMode = 'fixed';
+    if (isListView) heightMode = 'variable';
+    else if (isCreateView || isEditPromptView) heightMode = 'create';
+    PromptUIManager.setPanelHeightMode(heightMode);
     PromptUI.Behaviors.showList(listEl);
     const panel = document.getElementById(SELECTORS.PANEL_CONTENT);
     const hasListItems = panel && panel.querySelector(`.${SELECTORS.PROMPT_ITEMS_CONTAINER}.opm-view-list`);
+    if (hasListItems) PromptUIManager.syncListPanelHeight(listEl);
     // COMMENT: Reapply existing filters/search when reopening the list instead of refetching storage data
     if (!wasVisible && hasListItems) {
       const searchInput = document.getElementById(SELECTORS.PROMPT_SEARCH_INPUT);
@@ -1181,9 +1481,8 @@ class PromptUIManager {
     // COMMENT: Use unified hide behavior, then perform manager-side cleanup
     PromptUI.Behaviors.hideList(listEl);
     PromptUIManager.clearSearchInput();
-    // Reset both flags when hiding the view
     PromptUIManager.manuallyOpened = false;
-    PromptUIManager.inVariableInputMode = false;
+    // COMMENT: Preserve inVariableInputMode so hover can restore the variable form without remounting.
   }
 
   static handleKeyboardNavigation(e, context = 'list') {
@@ -1272,97 +1571,53 @@ class PromptUIManager {
     PromptUIManager.inVariableInputMode = true;
 
     const form = createEl('div', {
-      className: `opm-form-container opm-${getMode()}`,
-      styles: { padding: '12px', display: 'flex', flexDirection: 'column', gap: '8px', overflow: 'hidden', minHeight: '0' }
+      className: `opm-form-container opm-variable-input-form opm-${getMode()}`
     });
-    // COMMENT: Layout behavior depends on the number of variables
-    const count = Array.isArray(variables) ? variables.length : 0;
-    const singleMode = count <= 1;
-    const splitMode = count === 2 || count === 3;   // COMMENT: equal split within available height
-    const listMode = count >= 4;                    // COMMENT: compact list of single-line inputs
-    const itemGap = listMode ? '8px' : '12px';
-    // COMMENT: In single-variable mode, do not expand to fill all available height
-    const varContainerFlex = singleMode ? '0 1 auto' : '1 1 auto';
+
+    // COMMENT: Scrollable field stack — no equal-height flex splits that cause overlap in a fixed panel.
     const varContainer = createEl('div', {
-      // COMMENT: Grow to fill remaining height and become the only scrollable area when content exceeds space.
-      // COMMENT: Use both gap and rowGap for broader compatibility across flex-gap implementations.
+      className: 'opm-variable-fields',
       styles: {
         display: 'flex',
         flexDirection: 'column',
-        gap: itemGap,
-        rowGap: itemGap,
-        flex: varContainerFlex,
+        gap: '12px',
+        flex: '1 1 auto',
         minHeight: '0',
         overflowY: 'auto',
-        // COMMENT: Add subtle top/bottom padding for list presentation when many variables
-        paddingTop: listMode ? '8px' : '0',
-        paddingBottom: listMode ? '8px' : '0'
+        paddingBottom: '4px'
       }
     });
     ScrollVisibilityManager.observe(varContainer);
+
     const varValues = {};
+    const submitBtn = createEl('button', { innerHTML: 'Submit', className: `opm-button opm-${getMode()}` });
+    const backBtn = createEl('button', { innerHTML: 'Back', className: `opm-button opm-${getMode()}` });
+
     variables.forEach(v => {
-      // COMMENT: Normalize label text — replace underscores with spaces and capitalize first letter
       const displayLabel = String(v).replace(/_/g, ' ').replace(/^./, c => c.toUpperCase());
-      // COMMENT: Each variable row flexes so space is shared logically between variables.
-      // - For 1 variable: grow to consume available height (textarea fills the space)
-      // - For 2 or 3 variables: share space evenly (50-50 or thirds) within available height
-      // - For 4+ variables: compact rows that do not grow, list scrolls when needed
       const row = createEl('div', {
-        styles: {
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '4px',
-          // COMMENT: Equal splits for 2 or 3 variables; single mode stays compact; list is compact.
-          flex: singleMode ? '0 0 auto' : (splitMode ? '1 1 0%' : '0 0 auto'),
-          // COMMENT: Let flex children shrink properly in split mode
-          minHeight: splitMode ? '0' : 'auto',
-          // COMMENT: Add explicit margin fallback so rows never visually collide if gap is not honored.
-          marginBottom: itemGap,
-          // COMMENT: Apply list-like vertical padding when many variables
-          padding: listMode ? '6px 0' : '0'
-        }
+        className: 'opm-variable-row',
+        styles: { display: 'flex', flexDirection: 'column', gap: '4px', flex: '0 0 auto' }
       });
-      // COMMENT: Use standard font inheritance by avoiding custom font styles and rely on theme class
-      // COMMENT: Subtle, consistent label styling to match the rest of the UI
       const label = createEl('label', {
         innerHTML: displayLabel,
         className: `opm-${getMode()}`,
-        styles: {
-          fontSize: '12px',
-          fontWeight: '600',
-          letterSpacing: '0.2px',
-          opacity: '0.85',
-          padding: '0 2px'
-        }
+        styles: { fontSize: '12px', fontWeight: '600', letterSpacing: '0.2px', opacity: '0.85', lineHeight: '1.2' }
       });
-      // COMMENT: Use a textarea with approx three lines height for easier multi-line input
-      // COMMENT: Rows: single = compact editor; 2-3 = shared vertical space; 4+ = compact single-line list
-      const rowsAttr = listMode ? '1' : (splitMode ? '3' : '6');
       const inputField = createEl('textarea', {
-        // COMMENT: Rows tuned per mode and clear placeholder
-        attributes: { rows: rowsAttr, placeholder: `${displayLabel} value` },
+        attributes: { rows: '2', placeholder: `${displayLabel} value` },
         className: `opm-textarea-field opm-${getMode()}`,
-        // COMMENT: Let the textarea expand within its row. In split mode, disable manual resize to preserve equal distribution.
-        // COMMENT: Minimum height ~ one line; when there are many variables and space runs out, the container scrolls.
         styles: {
-          // COMMENT: Increase vertical padding for a more comfortable input.
-          padding: '12px 10px',
-          // COMMENT: Taller minima so fields feel more usable without manual resizing.
-          minHeight: listMode ? '18px' : (splitMode ? '60px' : '1px'),
-          // COMMENT: For list mode enforce single-line visual height
-          height: listMode ? '18px' : 'auto',
-          // COMMENT: Ensure sizing accounts for padding and borders to prevent layout overflow/overlap.
           boxSizing: 'border-box',
           width: '100%',
-          // COMMENT: Flex behavior depends on mode: split fills evenly; single & list are compact
-          flex: listMode ? '0 0 auto' : (splitMode ? '1 1 auto' : '0 0 auto'),
-          resize: (splitMode || listMode) ? 'none' : 'vertical'
+          minHeight: '44px',
+          height: 'auto',
+          resize: 'vertical',
+          flex: '0 0 auto',
+          marginBottom: '0'
         }
       });
       inputField.addEventListener('input', () => { varValues[v] = inputField.value; });
-      // COMMENT: Preserve Enter-to-submit behavior for consistency with previous single-line inputs
-      // COMMENT: Enter submits; Shift+Enter inserts a newline in multi-line variable fields
       inputField.addEventListener('keydown', e => {
         if (e.key === 'Enter' && !e.shiftKey) {
           e.preventDefault();
@@ -1373,23 +1628,35 @@ class PromptUIManager {
       varContainer.appendChild(row);
       varValues[v] = '';
     });
+
     form.appendChild(varContainer);
-    // COMMENT: Ensure non-list view uses fixed height
     PromptUIManager.setPanelHeightMode('fixed');
-    // COMMENT: Button container sticks to bottom of the panel
-    const btnContainer = createEl('div', { styles: { display: 'flex', flexDirection: 'column', gap: '8px', marginTop: 'auto', position: 'sticky', bottom: '0', background: 'transparent' } });
-    const submitBtn = createEl('button', { innerHTML: 'Submit', className: `opm-button opm-${getMode()}` });
+
+    // COMMENT: Action row pinned to the bottom of the form, side by side.
+    const btnContainer = createEl('div', {
+      className: 'opm-variable-actions',
+      styles: {
+        display: 'flex',
+        flexDirection: 'row',
+        gap: '8px',
+        flex: '0 0 auto',
+        marginTop: 'auto',
+        paddingTop: '8px'
+      }
+    });
+
     submitBtn.addEventListener('click', () => {
       PromptUIManager.inVariableInputMode = false;
       onSubmit(varValues);
     });
-    const backBtn = createEl('button', { innerHTML: 'Back', className: `opm-button opm-${getMode()}` });
     backBtn.addEventListener('click', () => {
       PromptUIManager.inVariableInputMode = false;
       PanelRouter.mount(PanelView.LIST);
     });
+
     btnContainer.append(submitBtn, backBtn);
     form.appendChild(btnContainer);
+
     requestAnimationFrame(() => {
       const firstInput = varContainer.querySelector('textarea, input');
       if (firstInput) firstInput.focus();
@@ -1403,58 +1670,98 @@ class PromptUIManager {
   }
 
   static async showEditForm(prompt /*, index */) {
-    const list = qs(`#${SELECTORS.PROMPT_LIST}`);
-    if (!list) return;
-    PromptUIManager.resetPromptListContainer();
-    // COMMENT: Show search in edit form as well for consistent filtering
-    PromptUIManager.setSearchVisibility(true);
-    const form = PromptUI.Views.createPromptForm({
-      initialTitle: prompt.title,
-      initialContent: prompt.content,
-      submitLabel: 'Save Changes',
-      onSubmit: async ({ title, content, tags }) => {
-        const ps = await PromptStorageManager._ps();
-        const update = { title, content };
-        if (Array.isArray(tags)) update.tags = tags;
-        await ps.updatePrompt(prompt.uuid, update);
-        PanelRouter.mount(PanelView.EDIT);
+    if (!prompt || !qs(`#${SELECTORS.PROMPT_LIST}`)) return;
+    await PanelRouter.mount(PanelView.EDIT_PROMPT, { prompt });
+  }
+
+  // COMMENT: Build the single-prompt edit form (used by PanelRouter for animated transitions).
+  static async buildEditPromptForm(prompt) {
+    const form = createEl('div', {
+      className: `opm-form-container opm-edit-prompt-form opm-${getMode()}`,
+      styles: {
+        display: 'flex',
+        flexDirection: 'column',
+        minHeight: '0',
+        overflow: 'hidden',
+        gap: '0'
       }
     });
-    // COMMENT: Immediately render base form to avoid an empty panel while tags load
-    PromptUIManager.replacePanelMainContent(form);
-    const listElInitial = qs(`#${SELECTORS.PROMPT_LIST}`);
-    if (listElInitial) { PromptUIManager.showPromptList(listElInitial); PromptUIManager.setSearchVisibility(false); }
-    // COMMENT: If tags are enabled, mount a reusable TagUI input
-    (async () => {
-      const enableTags = await PromptStorageManager.getEnableTags();
-      if (!enableTags) {
-        PromptUIManager.replacePanelMainContent(form);
-        const listElAfter = qs(`#${SELECTORS.PROMPT_LIST}`);
-        if (listElAfter) { PromptUIManager.showPromptList(listElAfter); PromptUIManager.setSearchVisibility(false); }
-        return;
+
+    const fields = createEl('div', {
+      className: 'opm-edit-prompt-fields',
+      styles: {
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '8px',
+        flex: '1 1 auto',
+        minHeight: '0',
+        overflowY: 'auto',
+        paddingBottom: '4px'
       }
-      const tagInput = TagUI.createTagInput({ initialTags: Array.isArray(prompt.tags) ? prompt.tags : [] });
-      const tagsBlock = createEl('div');
+    });
+    ScrollVisibilityManager.observe(fields);
+
+    const titleIn = createEl('input', {
+      attributes: { placeholder: 'Prompt Title' },
+      className: `opm-input-field opm-${getMode()}`,
+      styles: { borderRadius: '4px', flex: '0 0 auto' }
+    });
+    const contentArea = createEl('textarea', {
+      attributes: { placeholder: 'Write your prompt. Use hashtags for #variables#' },
+      className: `opm-textarea-field opm-${getMode()}`,
+      styles: { flex: '1 1 auto', minHeight: '120px', resize: 'vertical', boxSizing: 'border-box' }
+    });
+    titleIn.value = prompt.title || '';
+    contentArea.value = prompt.content || '';
+    fields.append(titleIn, contentArea);
+
+    const enableTags = await PromptStorageManager.getEnableTags();
+    let tagInput = null;
+    if (enableTags) {
+      tagInput = window.TagUI.createTagInput({ initialTags: Array.isArray(prompt.tags) ? prompt.tags : [] });
+      const tagsBlock = createEl('div', { styles: { flex: '0 0 auto' } });
       tagsBlock.append(tagInput.element);
-      const saveBtn = form.querySelector('.opm-button');
-      if (saveBtn && saveBtn.parentNode) saveBtn.parentNode.insertBefore(tagsBlock, saveBtn);
-      if (saveBtn) {
-        const newBtn = saveBtn.cloneNode(true);
-        saveBtn.replaceWith(newBtn);
-        newBtn.addEventListener('click', async e => {
-          e.stopPropagation();
-          const titleIn = form.querySelector('.opm-input-field');
-          const contentArea = form.querySelector('.opm-textarea-field');
-          const t = titleIn.value.trim(), c = contentArea.value.trim();
-          if (!t || !c) { alert('Please fill in both title and content.'); return; }
-          const ps = await PromptStorageManager._ps();
-          await ps.updatePrompt(prompt.uuid, { title: t, content: c, tags: tagInput.getTags() });
-          PanelRouter.mount(PanelView.EDIT);
-        }, { once: true });
+      fields.appendChild(tagsBlock);
+    }
+
+    form.appendChild(fields);
+
+    const btnContainer = createEl('div', {
+      className: 'opm-form-actions opm-variable-actions',
+      styles: {
+        display: 'flex',
+        flexDirection: 'row',
+        gap: '8px',
+        flex: '0 0 auto',
+        marginTop: 'auto',
+        paddingTop: '8px'
       }
-      const listElAfter = qs(`#${SELECTORS.PROMPT_LIST}`);
-      if (listElAfter) { PromptUIManager.showPromptList(listElAfter); PromptUIManager.setSearchVisibility(false); }
-    })();
+    });
+
+    const backBtn = createEl('button', { innerHTML: 'Back', className: `opm-button opm-${getMode()}` });
+    backBtn.addEventListener('click', () => {
+      PanelRouter.mount(PromptUIManager.state.listMode === 'edit' ? PanelView.EDIT : PanelView.LIST);
+    });
+
+    const saveBtn = createEl('button', { innerHTML: 'Save Changes', className: `opm-button opm-${getMode()}` });
+    saveBtn.addEventListener('click', async e => {
+      e.stopPropagation();
+      const t = titleIn.value.trim();
+      const c = contentArea.value.trim();
+      if (!t || !c) { alert('Please fill in both title and content.'); return; }
+      const ps = await PromptStorageManager._ps();
+      const update = { title: t, content: c };
+      if (tagInput) update.tags = tagInput.getTags();
+      await ps.updatePrompt(prompt.uuid, update);
+      PanelRouter.mount(PromptUIManager.state.listMode === 'edit' ? PanelView.EDIT : PanelView.LIST);
+    });
+
+    btnContainer.append(saveBtn, backBtn);
+    form.appendChild(btnContainer);
+    form.addEventListener('click', e => e.stopPropagation());
+
+    requestAnimationFrame(() => titleIn.focus());
+    return form;
   }
 
   static async deletePrompt(uuid) {
@@ -1558,13 +1865,31 @@ class PromptUIManager {
       e.stopPropagation();
       PromptUIManager.cancelCloseTimer();
 
-      // COMMENT: Mirror button-mode behavior — only mount if the list is not already visible
       const listIsVisible = listEl.classList.contains('opm-visible');
-      if (!listIsVisible && !PromptUIManager.inVariableInputMode) {
-        PromptUIManager.manuallyOpened = false;
+      if (listIsVisible) {
         indicator.style.borderWidth = `0 0 ${HOT_CORNER_INDICATOR_LARGE_PX}px ${HOT_CORNER_INDICATOR_LARGE_PX}px`;
         indicator.style.borderColor = `transparent transparent ${THEME_COLORS.primary} transparent`;
+        return;
+      }
+
+      indicator.style.borderWidth = `0 0 ${HOT_CORNER_INDICATOR_LARGE_PX}px ${HOT_CORNER_INDICATOR_LARGE_PX}px`;
+      indicator.style.borderColor = `transparent transparent ${THEME_COLORS.primary} transparent`;
+
+      const hasVariableForm = listEl.querySelector('.opm-variable-input-form');
+      const hasEditForm = listEl.querySelector('.opm-edit-prompt-form');
+      if (hasVariableForm) {
+        PromptUIManager.inVariableInputMode = true;
+        PromptUI.Behaviors.showList(listEl);
+        return;
+      }
+      if (hasEditForm) {
+        PromptUI.Behaviors.showList(listEl);
+        return;
+      }
+      if (!PromptUIManager.inVariableInputMode) {
+        PromptUIManager.manuallyOpened = false;
         await PromptUIManager.mountListOrCreateBasedOnPrompts();
+        PromptUI.Behaviors.showList(listEl);
       }
     });
 
@@ -1578,7 +1903,6 @@ class PromptUIManager {
       // COMMENT: Ensure flags are reset when auto-closing so future hovers work
       PromptUIManager.startCloseTimer(e, listEl, () => {
         PromptUIManager.manuallyOpened = false;
-        PromptUIManager.inVariableInputMode = false;
       });
     });
 
@@ -1586,10 +1910,8 @@ class PromptUIManager {
       e.stopPropagation();
       indicator.style.borderWidth = `0 0 ${HOT_CORNER_INDICATOR_SMALL_PX}px ${HOT_CORNER_INDICATOR_SMALL_PX}px`;
       indicator.style.borderColor = `transparent transparent ${THEME_COLORS.primary}90 transparent`;
-      // COMMENT: Reset flags on timed close to avoid getting stuck in a "manually opened" state
       PromptUIManager.startCloseTimer(e, listEl, () => {
         PromptUIManager.manuallyOpened = false;
-        PromptUIManager.inVariableInputMode = false;
       });
     });
 

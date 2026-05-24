@@ -1,0 +1,142 @@
+[
+  {
+    "uuid": "test-0001-email-follow-up",
+    "title": "Polite follow-up email",
+    "content": "Write a short follow-up email to #recipient# about #topic#. Keep the tone #tone# and under 120 words.",
+    "tags": ["work", "email", "writing"],
+    "createdAt": "2025-01-10T09:00:00.000Z"
+  },
+  {
+    "uuid": "test-0002-meeting-summary",
+    "title": "Meeting summary",
+    "content": "Summarize the key decisions, action items, and owners from these notes:\n\n#notes#",
+    "tags": ["work", "writing"],
+    "createdAt": "2025-01-10T09:05:00.000Z"
+  },
+  {
+    "uuid": "test-0003-bug-report",
+    "title": "Bug report template",
+    "content": "Turn this rough description into a clear bug report with steps to reproduce, expected vs actual behavior, and environment details:\n\n#description#",
+    "tags": ["work", "code", "support"],
+    "createdAt": "2025-01-10T09:10:00.000Z"
+  },
+  {
+    "uuid": "test-0004-code-review",
+    "title": "Code review feedback",
+    "content": "Review the following #language# code for readability, edge cases, and security issues. Be constructive and prioritize findings:\n\n#code#",
+    "tags": ["code", "work"],
+    "createdAt": "2025-01-10T09:15:00.000Z"
+  },
+  {
+    "uuid": "test-0005-refactor-plan",
+    "title": "Refactor plan",
+    "content": "Propose a minimal refactor plan for #module# that reduces complexity without changing external behavior. Include risks and test strategy.",
+    "tags": ["code", "research"],
+    "createdAt": "2025-01-10T09:20:00.000Z"
+  },
+  {
+    "uuid": "test-0006-sql-explainer",
+    "title": "Explain SQL query",
+    "content": "Explain what this SQL query does, table by table, and suggest one index if performance might be an issue:\n\n#query#",
+    "tags": ["code", "research"],
+    "createdAt": "2025-01-10T09:25:00.000Z"
+  },
+  {
+    "uuid": "test-0007-blog-outline",
+    "title": "Blog post outline",
+    "content": "Create an outline for a blog post titled \"#title#\" aimed at #audience#. Include hook, 4–6 sections, and a CTA.",
+    "tags": ["writing", "marketing"],
+    "createdAt": "2025-01-10T09:30:00.000Z"
+  },
+  {
+    "uuid": "test-0008-social-caption",
+    "title": "Social media caption",
+    "content": "Write three caption options for #platform# promoting #product#. Match a #tone# voice and include relevant hashtags.",
+    "tags": ["writing", "marketing"],
+    "createdAt": "2025-01-10T09:35:00.000Z"
+  },
+  {
+    "uuid": "test-0009-landing-headline",
+    "title": "Landing page headline",
+    "content": "Generate 5 headline/subheadline pairs for a landing page about #offer#. Focus on clarity and a specific benefit.",
+    "tags": ["marketing", "writing"],
+    "createdAt": "2025-01-10T09:40:00.000Z"
+  },
+  {
+    "uuid": "test-0010-customer-reply",
+    "title": "Support reply draft",
+    "content": "Draft a support reply to this customer message. Acknowledge the issue, explain next steps, and stay empathetic:\n\n#message#",
+    "tags": ["support", "email", "work"],
+    "createdAt": "2025-01-10T09:45:00.000Z"
+  },
+  {
+    "uuid": "test-0011-faq-answer",
+    "title": "FAQ answer",
+    "content": "Write a concise FAQ answer for: \"#question#\". Use plain language and one example if helpful.",
+    "tags": ["support", "writing"],
+    "createdAt": "2025-01-10T09:50:00.000Z"
+  },
+  {
+    "uuid": "test-0012-research-brief",
+    "title": "Research brief",
+    "content": "Create a one-page research brief on #topic# including context, key questions, suggested sources, and success criteria.",
+    "tags": ["research", "work"],
+    "createdAt": "2025-01-10T09:55:00.000Z"
+  },
+  {
+    "uuid": "test-0013-pros-cons",
+    "title": "Pros and cons list",
+    "content": "List balanced pros and cons for #decision#. End with a recommendation based on #priority#.",
+    "tags": ["research", "personal"],
+    "createdAt": "2025-01-10T10:00:00.000Z"
+  },
+  {
+    "uuid": "test-0014-weekly-plan",
+    "title": "Weekly planning prompt",
+    "content": "Help me plan my week. Goals: #goals#. Constraints: #constraints#. Output a day-by-day plan with top 3 priorities.",
+    "tags": ["personal", "work"],
+    "createdAt": "2025-01-10T10:05:00.000Z"
+  },
+  {
+    "uuid": "test-0015-journal-reflection",
+    "title": "Journal reflection",
+    "content": "Ask me 5 thoughtful reflection questions about #theme# and suggest one small action for tomorrow.",
+    "tags": ["personal", "writing"],
+    "createdAt": "2025-01-10T10:10:00.000Z"
+  },
+  {
+    "uuid": "test-0016-translate",
+    "title": "Translate text",
+    "content": "Translate the following text to #language#. Preserve meaning and natural phrasing:\n\n#text#",
+    "tags": ["writing", "research"],
+    "createdAt": "2025-01-10T10:15:00.000Z"
+  },
+  {
+    "uuid": "test-0017-simplify",
+    "title": "Simplify wording",
+    "content": "Rewrite this passage for a #audience# audience at an 8th-grade reading level without losing key facts:\n\n#passage#",
+    "tags": ["writing"],
+    "createdAt": "2025-01-10T10:20:00.000Z"
+  },
+  {
+    "uuid": "test-0018-regex-helper",
+    "title": "Regex helper",
+    "content": "Write a regex to match #pattern_description# in #language#. Explain each part and include two test cases.",
+    "tags": ["code"],
+    "createdAt": "2025-01-10T10:25:00.000Z"
+  },
+  {
+    "uuid": "test-0019-api-docs",
+    "title": "API endpoint docs",
+    "content": "Document this API endpoint for developers: method, path, auth, request body, response schema, and one curl example.\n\n#endpoint_spec#",
+    "tags": ["code", "work", "writing"],
+    "createdAt": "2025-01-10T10:30:00.000Z"
+  },
+  {
+    "uuid": "test-0020-brainstorm",
+    "title": "Brainstorm ideas",
+    "content": "Brainstorm 12 ideas for #challenge#. Group them into themes and mark the top 3 to explore first.",
+    "tags": ["research", "marketing", "personal"],
+    "createdAt": "2025-01-10T10:35:00.000Z"
+  }
+]

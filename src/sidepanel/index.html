@@ -15,23 +15,134 @@
         <img class="header-icon" src="../icons/icon-main-s color.png" alt="Extension Icon" style="width: 22px; height: 22px" />
       </picture>
     <h2>Open Prompt Manager</h2>
-    <a href="index.html" target="_blank">
-      <img id="open-new-tab" class="header-icon" src="../icons/open_in_new.svg" alt="Open in New Tab"
-        title="Open in New Tab" />
-    </a>
+    <div class="title-actions">
+      <a id="open-new-tab-link" href="index.html?expanded=1" target="_blank" rel="noopener" title="Open in New Tab">
+        <img id="open-new-tab" class="header-icon" src="../icons/open_in_new.svg" alt="Open in New Tab" />
+      </a>
+      <!-- COMMENT: Close control only shown in the expanded tab view -->
+      <button type="button" id="close-expanded-view" class="header-close-btn" aria-label="Close" title="Close">&times;</button>
+    </div>
   </div>
-  <form id="prompt-form">
-    <input type="hidden" id="prompt-uuid" />
-    <input type="text" id="prompt-title" placeholder="Prompt Title" required />
-    <textarea id="prompt-content" placeholder="Enter your prompt here - Use #variablename# for dynamic values." required style="height: 100%"></textarea>
-    <button class="main" type="submit" id="submit-button">
-      <img src="../icons/add-icon.png" alt="Add" style="margin-right: 5px" />
-      Save prompt
-    </button>
-    <button type="button" id="cancel-edit-button" style="display: none">
-      Cancel
-    </button>
-  </form>
+  <div class="main-layout">
+  <!-- COMMENT: Sidebar first in DOM for grid layout; reordered in narrow view via CSS -->
+  <aside class="sidebar-panel">
+    <div class="prompts-container">
+      <div class="prompts-section">
+        <!-- COMMENT: Empty state when no LLM provider permissions are enabled -->
+        <div id="permissions-shortcut" class="shortcut-container" style="display: none">
+          <p style="margin: 8px 0">Add your supported Assistants below to get started.</p>
+        </div>
+        <!-- COMMENT: Search + tag filters mirror the in-page prompt list controls -->
+        <div id="prompt-list-controls" class="prompt-list-controls" hidden>
+          <div id="prompt-tags-filter" class="prompt-tags-filter" hidden></div>
+          <input type="search" id="prompt-search-input" class="prompt-search-input" placeholder="Type to search" autocomplete="off" />
+        </div>
+        <ul id="prompt-list">
+
+        </ul>
+        <!-- Add title and message about storage changes -->
+        <div id="empty-state" class="shortcut-container" style="display: none">
+          <h3>Keyboard Navigation &amp; Shortcuts</h3>
+          <p>These can be used on any page supported by the extension.</p>
+          <p style="display: flex; align-items: center; margin: 8px 0"> <span style="
+                  background-color: var(--primary);
+                  color: white;
+                  padding: 4px 8px;
+                  border-radius: 4px;
+                  margin-right: 10px;
+                ">
+              Hover/Click </span> <span>Open prompt list buttons</span> </p>
+          <p style="display: flex; align-items: center; margin: 8px 0"> <span style="
+                  background-color: var(--primary);
+                  color: white;
+                  padding: 4px 8px;
+                  border-radius: 4px;
+                  margin-right: 10px;
+                ">
+              ⌘ + ⇧ + P or Ctrl + M </span> <span>Open / close prompt list</span> </p>
+          <p style="display: flex; align-items: center; margin: 8px 0"> <span style="
+                  background-color: var(--primary);
+                  color: white;
+                  padding: 4px 8px;
+                  border-radius: 4px;
+                  margin-right: 10px;
+                ">↑↓</span> <span>Navigate the prompt list</span> </p>
+          <p style="display: flex; align-items: center; margin: 8px 0"> <span style="
+                  background-color: var(--primary);
+                  color: white;
+                  padding: 4px 8px;
+                  border-radius: 4px;
+                  margin-right: 10px;
+                ">Enter</span> <span>Select a prompt</span> </p>
+          <p style="display: flex; align-items: center; margin: 8px 0"> <span style="
+                  background-color: var(--primary);
+                  color: white;
+                  padding: 4px 8px;
+                  border-radius: 4px;
+                  margin-right: 10px;
+                ">Esc</span> <span>Close the prompt manager</span> </p>
+        </div>
+      </div>
+    </div>
+    <div class="sidepanel-bottom-dock">
+      <div id="llms-section" class="llms-section">
+        <h3 class="llms-heading">Assistants</h3>
+        <div class="llms-group">
+          <div id="llms-activated" class="llms-pills" aria-live="polite">
+            <!-- COMMENT: Active provider pills rendered here -->
+          </div>
+        </div>
+        <div class="llms-group">
+          <!-- COMMENT: Available section is foldable; collapsed by default -->
+          <div class="llms-subheading" id="llms-available-toggle" role="button" tabindex="0" aria-controls="llms-available" aria-expanded="false">Add more</div>
+          <div id="llms-available" class="llms-pills collapsible" aria-live="polite">
+            <!-- COMMENT: Available provider pills rendered here (click to request permission) -->
+          </div>
+        </div>
+      </div>
+      <footer class="footer">
+        <div class="footer-icons">
+          <a class="footer-icon-link" href="https://github.com/jonathanbertholet/promptmanager"
+            target="_blank" rel="noopener" title="Github">
+            <svg class="footer-md-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12c0 4.42 2.87 8.17 6.84 9.49.5.09.68-.22.68-.48 0-.24-.01-.87-.01-1.7-2.78.62-3.37-1.37-3.37-1.37-.45-1.16-1.11-1.47-1.11-1.47-.91-.64.07-.63.07-.63 1 .07 1.53 1.05 1.53 1.05.89 1.52 2.34 1.08 2.91.83.09-.64.35-1.08.63-1.33-2.22-.26-4.56-1.14-4.56-5.07 0-1.12.39-2.03 1.03-2.75-.1-.26-.45-1.3.1-2.71 0 0 .84-.27 2.75 1.05A9.2 9.2 0 0 1 12 6.84c.85.004 1.71.12 2.51.34 1.91-1.32 2.75-1.05 2.75-1.05.55 1.41.2 2.45.1 2.71.64.72 1.03 1.63 1.03 2.75 0 3.94-2.34 4.81-4.57 5.07.36.32.68.94.68 1.9 0 1.37-.01 2.47-.01 2.8 0 .27.18.58.69.48A10.01 10.01 0 0 0 22 12c0-5.52-4.48-10-10-10z"/></svg>
+          </a>
+          <a class="footer-icon-link" href="https://buymeacoffee.com/jonathanbertholet"
+            target="_blank" rel="noopener" title="Buy me a coffee">
+            <svg class="footer-md-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M20 3H4v10c0 2.21 1.79 4 4 4h6c2.21 0 4-1.79 4-4v-3h2c1.11 0 2-.9 2-2V5c0-1.11-.9-2-2-2zm0 5h-2V5h2v3zM4 19h16v2H4v-2z"/></svg>
+          </a>
+          <a class="footer-icon-link" href="https://chromewebstore.google.com/detail/open-prompt-manager/gmhaghdbihgenofhnmdbglbkbplolain"
+            target="_blank" rel="noopener" title="Review me">
+            <svg class="footer-md-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 17.27 18.18 21l-1.64-7.03L22 9.24l-7.19-.62L12 2 9.19 8.62 2 9.24l5.46 4.73L5.82 21 12 17.27z"/></svg>
+          </a>
+          <a class="footer-icon-link" href="../settings.html" title="Settings">
+            <svg id="settings-icon" class="footer-md-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M19.14 12.94c.04-.31.06-.63.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.488.488 0 0 0-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94L14.4 2.81a.488.488 0 0 0-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96a.488.488 0 0 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58a.49.49 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.03-1.58zM12 15.6A3.6 3.6 0 1 1 12 8.4a3.6 3.6 0 0 1 0 7.2z"/></svg>
+          </a>
+          <a class="footer-cta-link" href="../permissions/permissions.html" title="Get Started" target="_blank" rel="noopener">
+            Get Started
+          </a>
+        </div>
+      </footer>
+    </div>
+  </aside>
+  <div class="composer-panel">
+    <form id="prompt-form">
+      <input type="hidden" id="prompt-uuid" />
+      <input type="text" id="prompt-title" class="opm-input-field" placeholder="Prompt Title" required />
+      <textarea id="prompt-content" class="opm-textarea-field" placeholder="Enter your prompt here - Use #variablename# for dynamic values." required></textarea>
+      <!-- COMMENT: Tag input row mirrors the in-page create/edit form when tags are enabled -->
+      <div id="prompt-tags-host" class="prompt-tags-host" hidden></div>
+      <div class="form-actions">
+        <button type="button" id="cancel-edit-button" style="display: none">
+          Cancel
+        </button>
+        <button class="main" type="submit" id="submit-button">
+          <img src="../icons/add-icon.png" alt="Add" style="margin-right: 5px" />
+          Save prompt
+        </button>
+      </div>
+    </form>
+  </div>
+  </div>
   <div id="info-banner" class="info-banner" role="status" aria-live="polite">
     <button id="info-banner-close" class="info-banner-close" aria-label="Dismiss info banner">&times;</button>
     <h3 class="info-banner-title">New updates, new features!</h3>
@@ -55,100 +166,6 @@
     <p class="info-banner-text">Don't hesitate to review <a href="https://chromewebstore.google.com/detail/open-prompt-manager/gmhaghdbihgenofhnmdbglbkbplolain" target="_blank">Open Prompt Manager</a> on the Chrome Web Store.</p>
     <br />
     <p class="info-banner-text">Thanks again!</p>
-  </div>
-  <div class="prompts-container">
-    <div class="prompts-section">
-      <!-- COMMENT: Empty state when no LLM provider permissions are enabled -->
-      <div id="permissions-shortcut" class="shortcut-container" style="display: none">
-        <p style="margin: 8px 0">Add your supported Assistants below to get started.</p>
-      </div>
-      <ul id="prompt-list">
-
-      </ul>
-      <!-- Add title and message about storage changes -->
-      <div id="empty-state" class="shortcut-container" style="display: none">
-        <h3>Keyboard Navigation &amp; Shortcuts</h3>
-        <p>These can be used on any page supported by the extension.</p>
-        <p style="display: flex; align-items: center; margin: 8px 0"> <span style="
-                background-color: var(--primary);
-                color: white;
-                padding: 4px 8px;
-                border-radius: 4px;
-                margin-right: 10px;
-              ">
-            Hover/Click </span> <span>Open prompt list buttons</span> </p>
-        <p style="display: flex; align-items: center; margin: 8px 0"> <span style="
-                background-color: var(--primary);
-                color: white;
-                padding: 4px 8px;
-                border-radius: 4px;
-                margin-right: 10px;
-              ">
-            ⌘ + ⇧ + P or Ctrl + M </span> <span>Open / close prompt list</span> </p>
-        <p style="display: flex; align-items: center; margin: 8px 0"> <span style="
-                background-color: var(--primary);
-                color: white;
-                padding: 4px 8px;
-                border-radius: 4px;
-                margin-right: 10px;
-              ">↑↓</span> <span>Navigate the prompt list</span> </p>
-        <p style="display: flex; align-items: center; margin: 8px 0"> <span style="
-                background-color: var(--primary);
-                color: white;
-                padding: 4px 8px;
-                border-radius: 4px;
-                margin-right: 10px;
-              ">Enter</span> <span>Select a prompt</span> </p>
-        <p style="display: flex; align-items: center; margin: 8px 0"> <span style="
-                background-color: var(--primary);
-                color: white;
-                padding: 4px 8px;
-                border-radius: 4px;
-                margin-right: 10px;
-              ">Esc</span> <span>Close the prompt manager</span> </p>
-      </div>
-    </div>
-  </div>
-  <!-- COMMENT: LLMs section shows activated and available providers, mirroring the permissions page behavior -->
-  <div class="sidepanel-bottom-dock">
-  <div id="llms-section" class="llms-section">
-    <h3 class="llms-heading">Assistants</h3>
-    <div class="llms-group">
-      <div id="llms-activated" class="llms-pills" aria-live="polite">
-        <!-- COMMENT: Active provider pills rendered here -->
-      </div>
-    </div>
-    <div class="llms-group">
-      <!-- COMMENT: Available section is foldable; collapsed by default -->
-      <div class="llms-subheading" id="llms-available-toggle" role="button" tabindex="0" aria-controls="llms-available" aria-expanded="false">Add more</div>
-      <div id="llms-available" class="llms-pills collapsible" aria-live="polite">
-        <!-- COMMENT: Available provider pills rendered here (click to request permission) -->
-      </div>
-    </div>
-  </div>
-  <!-- Sticky footer for icons/links -->
-  <footer class="footer">
-    <div class="footer-icons">
-      <a class="footer-icon-link" href="https://github.com/jonathanbertholet/promptmanager"
-        target="_blank" rel="noopener" title="Github">
-        <svg class="footer-md-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12c0 4.42 2.87 8.17 6.84 9.49.5.09.68-.22.68-.48 0-.24-.01-.87-.01-1.7-2.78.62-3.37-1.37-3.37-1.37-.45-1.16-1.11-1.47-1.11-1.47-.91-.64.07-.63.07-.63 1 .07 1.53 1.05 1.53 1.05.89 1.52 2.34 1.08 2.91.83.09-.64.35-1.08.63-1.33-2.22-.26-4.56-1.14-4.56-5.07 0-1.12.39-2.03 1.03-2.75-.1-.26-.45-1.3.1-2.71 0 0 .84-.27 2.75 1.05A9.2 9.2 0 0 1 12 6.84c.85.004 1.71.12 2.51.34 1.91-1.32 2.75-1.05 2.75-1.05.55 1.41.2 2.45.1 2.71.64.72 1.03 1.63 1.03 2.75 0 3.94-2.34 4.81-4.57 5.07.36.32.68.94.68 1.9 0 1.37-.01 2.47-.01 2.8 0 .27.18.58.69.48A10.01 10.01 0 0 0 22 12c0-5.52-4.48-10-10-10z"/></svg>
-      </a>
-      <a class="footer-icon-link" href="https://buymeacoffee.com/jonathanbertholet"
-        target="_blank" rel="noopener" title="Buy me a coffee">
-        <svg class="footer-md-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M20 3H4v10c0 2.21 1.79 4 4 4h6c2.21 0 4-1.79 4-4v-3h2c1.11 0 2-.9 2-2V5c0-1.11-.9-2-2-2zm0 5h-2V5h2v3zM4 19h16v2H4v-2z"/></svg>
-      </a>
-      <a class="footer-icon-link" href="https://chromewebstore.google.com/detail/open-prompt-manager/gmhaghdbihgenofhnmdbglbkbplolain"
-        target="_blank" rel="noopener" title="Review me">
-        <svg class="footer-md-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 17.27 18.18 21l-1.64-7.03L22 9.24l-7.19-.62L12 2 9.19 8.62 2 9.24l5.46 4.73L5.82 21 12 17.27z"/></svg>
-      </a>
-      <a class="footer-icon-link" href="../settings.html" title="Settings">
-        <svg id="settings-icon" class="footer-md-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M19.14 12.94c.04-.31.06-.63.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.488.488 0 0 0-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94L14.4 2.81a.488.488 0 0 0-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96a.488.488 0 0 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58a.49.49 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.03-1.58zM12 15.6A3.6 3.6 0 1 1 12 8.4a3.6 3.6 0 0 1 0 7.2z"/></svg>
-      </a>
-      <a class="footer-cta-link" href="../permissions/permissions.html" title="Get Started" target="_blank" rel="noopener">
-        Get Started
-      </a>
-    </div>
-  </footer>
   </div>
   <script type="module" src="sidepanel.js"></script>
 

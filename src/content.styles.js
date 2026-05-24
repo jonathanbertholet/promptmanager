@@ -193,7 +193,7 @@ var injectGlobalStyles = window.injectGlobalStyles || function injectGlobalStyle
       padding: 10px;
       border-radius: var(--border-radius);
       display: none;
-      width: 280px;
+      width: 300px;
       z-index: 10000;
       opacity: 0;
       transform: translateY(10px);
@@ -221,6 +221,11 @@ var injectGlobalStyles = window.injectGlobalStyles || function injectGlobalStyle
       opacity: 1;
       transform: translateY(0);
     }
+    /* COMMENT: During view transitions, suppress mode min/max height only — width stays inline-driven */
+    #${SELECTORS.ROOT} .opm-prompt-list.opm-resizing {
+      min-height: unset !important;
+      max-height: unset !important;
+    }
     #${SELECTORS.ROOT} .opm-prompt-list.opm-light {
       background-color: var(--light-bg);
       border: 1px solid var(--light-border);
@@ -231,15 +236,23 @@ var injectGlobalStyles = window.injectGlobalStyles || function injectGlobalStyle
       border: 1px solid var(--dark-border);
       box-shadow: var(--dark-shadow);
     }
-    /* Height modes: fixed (non-list views) vs variable (list view) */
+    /* Height modes: fixed (non-list views) vs count-sized list view */
     #${SELECTORS.ROOT} .opm-prompt-list.opm-fixed-400 {
       min-height: 400px;
       max-height: 400px;
     }
-    #${SELECTORS.ROOT} .opm-prompt-list.opm-variable {
-      height: auto;
-      min-height: 0;
-      max-height: 400px;
+    /* COMMENT: Create view gets a wider, taller panel for comfortable prompt authoring */
+    #${SELECTORS.ROOT} .opm-prompt-list.opm-panel-create {
+      width: 360px;
+      min-height: 480px;
+      max-height: 520px;
+    }
+    /* COMMENT: List height is set from total prompt count (--opm-list-height), not visible/filtered items */
+    #${SELECTORS.ROOT} .opm-prompt-list.opm-list-sized {
+      width: 300px;
+      height: var(--opm-list-height, 400px);
+      min-height: var(--opm-list-height, 400px);
+      max-height: var(--opm-list-height, 400px);
     }
     /* List Items styled as modern cards */
     #${SELECTORS.ROOT} .opm-prompt-list-items {
@@ -318,6 +331,71 @@ var injectGlobalStyles = window.injectGlobalStyles || function injectGlobalStyle
       flex: 1 1 auto;
       min-height: 0;
       resize: vertical;
+    }
+    /* COMMENT: Variable + edit forms stack above the bottom menu (flex, no overlap) */
+    #${SELECTORS.ROOT} #${SELECTORS.PANEL_CONTENT}:has(.opm-variable-input-form),
+    #${SELECTORS.ROOT} #${SELECTORS.PANEL_CONTENT}:has(.opm-edit-prompt-form) {
+      padding-bottom: 0;
+      display: flex;
+      flex-direction: column;
+    }
+    #${SELECTORS.ROOT} #${SELECTORS.PANEL_CONTENT}:has(.opm-variable-input-form) .opm-bottom-menu,
+    #${SELECTORS.ROOT} #${SELECTORS.PANEL_CONTENT}:has(.opm-edit-prompt-form) .opm-bottom-menu {
+      position: relative;
+      flex: 0 0 auto;
+      left: auto;
+      right: auto;
+      bottom: auto;
+    }
+    #${SELECTORS.ROOT} .opm-variable-input-form,
+    #${SELECTORS.ROOT} .opm-edit-prompt-form {
+      position: relative;
+      flex: 1 1 auto;
+      min-height: 0;
+      padding: 12px 12px 0 12px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      box-sizing: border-box;
+    }
+    #${SELECTORS.ROOT} .opm-variable-input-form .opm-variable-fields,
+    #${SELECTORS.ROOT} .opm-edit-prompt-form .opm-edit-prompt-fields {
+      flex: 1 1 auto;
+      min-height: 0;
+      overflow-y: auto;
+    }
+    #${SELECTORS.ROOT} .opm-variable-input-form .opm-variable-row {
+      flex: 0 0 auto;
+    }
+    #${SELECTORS.ROOT} .opm-variable-input-form .opm-variable-row label,
+    #${SELECTORS.ROOT} .opm-edit-prompt-form label {
+      display: block;
+      margin: 0 0 2px 0;
+    }
+    #${SELECTORS.ROOT} .opm-variable-input-form .opm-textarea-field {
+      flex: 0 0 auto;
+      min-height: 44px;
+      margin-bottom: 0;
+    }
+    #${SELECTORS.ROOT} .opm-edit-prompt-form .opm-textarea-field {
+      flex: 1 1 auto;
+      min-height: 120px;
+      margin-bottom: 0;
+    }
+    #${SELECTORS.ROOT} .opm-variable-input-form .opm-variable-actions,
+    #${SELECTORS.ROOT} .opm-edit-prompt-form .opm-form-actions {
+      flex: 0 0 auto;
+      margin-top: auto;
+      display: flex;
+      flex-direction: row;
+      gap: 8px;
+      padding: 8px 0 10px 0;
+    }
+    #${SELECTORS.ROOT} .opm-variable-input-form .opm-variable-actions .opm-button,
+    #${SELECTORS.ROOT} .opm-edit-prompt-form .opm-form-actions .opm-button {
+      flex: 1 1 0;
+      width: auto;
+      margin-top: 0;
     }
     #${SELECTORS.ROOT} .opm-prompt-list-item.opm-light { color: var(--input-light-text); }
     #${SELECTORS.ROOT} .opm-prompt-list-item.opm-dark { color: var(--input-dark-text); }
@@ -428,6 +506,11 @@ var injectGlobalStyles = window.injectGlobalStyles || function injectGlobalStyle
       color: var(--input-dark-text);
       min-height: 120px;
       resize: vertical;
+    }
+    /* COMMENT: Create form prompt area is taller than other textareas */
+    #${SELECTORS.ROOT} .opm-create-form .opm-create-textarea.opm-light,
+    #${SELECTORS.ROOT} .opm-create-form .opm-create-textarea.opm-dark {
+      min-height: 180px;
     }
     /* Button styling */
     #${SELECTORS.ROOT} .opm-button {

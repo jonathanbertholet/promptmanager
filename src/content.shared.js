@@ -583,6 +583,11 @@
           content.appendChild(itemsContainer);
           content.appendChild(Elements.createBottomMenu());
 
+          // COMMENT: List panel resize waits for this before measuring natural height.
+          let resolveTagsLayout;
+          const tagsLayoutReady = new Promise((resolve) => { resolveTagsLayout = resolve; });
+          content.__opmLayoutReady = tagsLayoutReady;
+
           (async () => {
             try {
               const enableTags = await window.PromptStorageManager.getEnableTags();
@@ -609,6 +614,7 @@
               window.PromptUIManager.filterByTag(selected);
               window.ScrollVisibilityManager?.observe(bar);
             } catch (_) { tagsHost.style.display = 'none'; }
+            finally { resolveTagsLayout(); }
           })();
           return content;
         },
@@ -618,11 +624,11 @@
 
           const enableTags = await window.PromptStorageManager.getEnableTags();
 
-          const form = createEl('div', { className: `opm-form-container opm-${getMode()}`, styles: { padding: '0', display: 'flex', flexDirection: 'column', gap: '8px' } });
+          const form = createEl('div', { className: `opm-form-container opm-create-form opm-${getMode()}`, styles: { padding: '0', display: 'flex', flexDirection: 'column', gap: '8px' } });
           const titleIn = createEl('input', { attributes: { placeholder: 'Prompt Title' }, className: `opm-input-field opm-${getMode()}`, styles: { borderRadius: '4px' } });
           const contentArea = createEl('textarea', {
             attributes: { placeholder: 'Enter prompt. # for #variables#' },
-            className: `opm-textarea-field opm-${getMode()}`,
+            className: `opm-textarea-field opm-create-textarea opm-${getMode()}`,
             styles: { flex: '1 1 auto', minHeight: '0', height: 'auto' }
           });
           titleIn.value = '';
@@ -1082,43 +1088,51 @@
       };
 
       const Events = {
-        attachButtonEvents(button, listEl) {
-          let isOpen = false;
+        attachButtonEvents(button, listEl, container) {
+          const isListVisible = () => listEl.classList.contains('opm-visible');
+
           const startClose = (e) => {
             if (e) e.stopPropagation();
-            Behaviors.startCloseTimer(listEl, () => { isOpen = false; });
+            Behaviors.startCloseTimer(listEl);
+          };
+
+          // COMMENT: Reopen hidden panel on hover — preserve in-progress forms instead of remounting.
+          const reopenPanel = async (e) => {
+            if (e) e.stopPropagation();
+            Behaviors.cancelCloseTimer();
+            if (isListVisible()) return;
+
+            const hasVariableForm = !!listEl.querySelector('.opm-variable-input-form');
+            const hasEditForm = !!listEl.querySelector('.opm-edit-prompt-form');
+            if (hasVariableForm) {
+              window.PromptUIManager.inVariableInputMode = true;
+              Behaviors.showList(listEl);
+              return;
+            }
+            if (hasEditForm) {
+              Behaviors.showList(listEl);
+              return;
+            }
+
+            await window.PromptUIManager.mountListOrCreateBasedOnPrompts();
+            Behaviors.showList(listEl);
           };
 
           button.addEventListener('click', async e => {
             e.stopPropagation();
             State.manuallyOpened = true;
-            if (isOpen) {
+            if (isListVisible()) {
               Behaviors.hideList(listEl);
-              isOpen = false;
               return;
             }
-            // COMMENT: Mount list/create content before showing — matches hover and keyboard behavior
-            if (!listEl.classList.contains('opm-visible') && !window.PromptUIManager.inVariableInputMode) {
-              await window.PromptUIManager.mountListOrCreateBasedOnPrompts();
-            }
-            Behaviors.showList(listEl);
-            isOpen = true;
+            await reopenPanel();
           });
 
-          button.addEventListener('mouseenter', async e => {
-            e.stopPropagation();
-            Behaviors.cancelCloseTimer();
-            const listIsVisible = listEl.classList.contains('opm-visible');
-            if (!listIsVisible && !window.PromptUIManager.inVariableInputMode) {
-              window.PromptUIManager.manuallyOpened = false;
-              await window.PromptUIManager.mountListOrCreateBasedOnPrompts();
-              isOpen = true;
-            } else {
-              isOpen = true;
-            }
-          });
+          button.addEventListener('mouseenter', reopenPanel);
+          if (container) container.addEventListener('mouseenter', reopenPanel);
 
           button.addEventListener('mouseleave', startClose);
+          if (container) container.addEventListener('mouseleave', startClose);
           listEl.addEventListener('mouseenter', Behaviors.cancelCloseTimer);
           listEl.addEventListener('mouseleave', startClose);
         }

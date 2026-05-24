@@ -32,11 +32,10 @@
 
   form {
     margin-bottom: 15px;
-    grid-area: g-prompt-form;
     display: flex;
     flex-direction: column;
-    box-sizing: content-box;
-    grid-row: 0;
+    box-sizing: border-box;
+    gap: 8px;
   }
 
   /* Info banner block placed after the form, above the prompt list */
@@ -93,11 +92,68 @@
     background-color: rgba(0,0,0,0.06);
   }
 
-  input[type="text"],
-  textarea {
+  /* COMMENT: Prompt form fields mirror in-page opm-input-field / opm-textarea-field styling */
+  #prompt-form .opm-input-field,
+  #prompt-form .opm-textarea-field {
+    width: 100%;
+    padding: 8px;
+    border-radius: 6px;
+    box-sizing: border-box;
+    font-size: 14px;
+    font-family: Helvetica, Verdana, Geneva, Tahoma, sans-serif;
+    margin-bottom: 4px;
+    outline: none;
+    border: var(--input-light-border);
+    background-color: var(--input-light-bg);
+    color: var(--input-light-text);
+  }
+
+  #prompt-form .opm-textarea-field {
+    min-height: 120px;
+    resize: vertical;
+  }
+
+  #prompt-form .opm-input-field:focus,
+  #prompt-form .opm-textarea-field:focus {
+    border: var(--input-light-border);
+    box-shadow: none;
+    outline: none;
+  }
+
+  #prompt-form .spm-tag-row {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-wrap: wrap;
     width: 100%;
     box-sizing: border-box;
-    margin-bottom: 6px; /* Reduced from 4px to 2px to tighten spacing between fields */
+    margin-bottom: 4px;
+    font-family: Helvetica, Verdana, Geneva, Tahoma, sans-serif;
+    border: var(--input-light-border);
+    background-color: var(--input-light-bg);
+    color: var(--input-light-text);
+    border-radius: 6px;
+    padding: 4px 6px;
+    min-height: 34px;
+  }
+
+  #prompt-form .spm-tag-row:focus-within {
+    border: var(--input-light-border);
+    box-shadow: none;
+  }
+
+  .spm-tags-container {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  input[type="text"]:not(.opm-input-field),
+  textarea:not(.opm-textarea-field) {
+    width: 100%;
+    box-sizing: border-box;
+    margin-bottom: 6px;
     font-family: Helvetica, Verdana, Geneva, Tahoma, sans-serif;
     background-color: #FFFFFF;
     color: #2D3748;
@@ -109,12 +165,12 @@
     outline: none;
   }
 
-  input[type="text"]:focus,
-  textarea:focus {
+  input[type="text"]:not(.opm-input-field):focus,
+  textarea:not(.opm-textarea-field):focus {
     border-color: var(--primary);
   }
 
-  textarea {
+  textarea:not(.opm-textarea-field) {
     resize: vertical;
     min-height: 70px;
   }
@@ -208,6 +264,126 @@
     cursor: pointer;
   }
 
+  /* COMMENT: Search + tag filter controls (mirrors in-page panel list view) */
+  .prompt-list-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+
+  .prompt-search-input {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 8px 10px;
+    border: 1px solid #cbd5e0;
+    border-radius: 6px;
+    font-size: 14px;
+    background: #fff;
+    color: #494949;
+  }
+
+  .prompt-search-input:focus {
+    outline: none;
+    border-color: var(--primary);
+  }
+
+  .spm-tags-filter-bar {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 6px;
+    overflow-x: auto;
+    padding-bottom: 2px;
+    scrollbar-width: thin;
+  }
+
+  .spm-tag-pill-filter {
+    flex-shrink: 0;
+    border: 1px solid #cbd5e0;
+    border-radius: 999px;
+    background: #fff;
+    color: #494949;
+    font-size: 12px;
+    padding: 4px 10px;
+    cursor: pointer;
+  }
+
+  .spm-tag-pill-filter[aria-pressed="true"] {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: #fff;
+  }
+
+  /* COMMENT: Tag input row on create/edit form — one bordered field like title/content */
+  #prompt-tags-host {
+    width: 100%;
+    margin: 0;
+  }
+
+  /* COMMENT: Inner tag input must not pick up the standalone text-field border/padding */
+  #prompt-form .spm-tag-row input[type="text"] {
+    flex: 1;
+    min-width: 80px;
+    width: auto;
+    margin-bottom: 0;
+    border: none;
+    border-radius: 0;
+    padding: 2px 4px;
+    box-shadow: none;
+    background: transparent;
+    outline: none;
+    font-size: inherit;
+    color: inherit;
+  }
+
+  #prompt-form .spm-tag-row input[type="text"]:focus {
+    border: none;
+    box-shadow: none;
+  }
+
+  .spm-tag-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    border: 1px solid #cbd5e0;
+    border-radius: 999px;
+    padding: 2px 6px;
+    font-size: 12px;
+    background: #f7fafc;
+    color: #494949;
+  }
+
+  .spm-tag-remove {
+    border: none;
+    background: transparent;
+    color: #718096;
+    cursor: pointer;
+    font-size: 14px;
+    line-height: 1;
+    padding: 0 2px;
+  }
+
+  .spm-tag-suggestions {
+    max-height: 160px;
+    overflow-y: auto;
+    background: #fff;
+    border: 1px solid #cbd5e0;
+    border-radius: 6px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  }
+
+  .spm-tag-suggestion-item {
+    padding: 8px 10px;
+    font-size: 13px;
+    cursor: pointer;
+    color: #494949;
+  }
+
+  .spm-tag-suggestion-item:hover,
+  .spm-tag-suggestion-item.active {
+    background: #edf2f7;
+  }
+
   .shortcut-container {
     margin-bottom: 18px;
   }
@@ -222,10 +398,8 @@
     display: inline-block;
     font-size: 13px;
     border-radius: 8px;
-
-    /* Rounded corners */
-    margin-top: 8px;
-    width: 100%;
+    margin-top: 0;
+    width: auto;
   }
 
   #cancel-edit-button:hover {
@@ -312,8 +486,35 @@
     height: 24px;
   }
 
-  .title a:nth-child(3) {
+  .title-actions {
     margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  /* COMMENT: Expanded-tab close button — shown only when body.is-expanded-tab */
+  .header-close-btn {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border: none;
+    background: transparent;
+    color: var(--primary);
+    font-size: 22px;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0;
+  }
+
+  body.is-expanded-tab .header-close-btn {
+    display: inline-flex;
+  }
+
+  body.is-expanded-tab #open-new-tab-link {
+    display: none;
   }
 
   .dataimpexp {
@@ -327,75 +528,310 @@
     margin-top: 0;
     margin-bottom: 0;
   }
+
+  /* COMMENT: Wrapper groups sidebar + composer; display:contents keeps narrow side panel order */
+  .main-layout {
+    display: contents;
+  }
+
+  /* COMMENT: Sidebar stacks prompts, assistants, and footer links */
+  .sidebar-panel {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    flex: 1 1 auto;
+    min-height: 0;
+    order: 3;
+  }
+
+  .composer-panel {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 10px;
+    order: 1;
+  }
+
+  .sidebar-panel .prompts-container {
+    margin-bottom: 0;
+  }
+
+  #info-banner {
+    order: 2;
+  }
+
+  .composer-panel form#prompt-form {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .form-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .form-actions button.main {
+    width: 100%;
+  }
 }
 
 @media (min-width:1024px) {
   body {
     display: grid;
-    grid-template-columns: minmax(220px, 350px) 1fr; /* Prompts column max 350px, composer takes rest */
-    grid-template-rows: auto 1fr auto; /* Title, main, footer */
+    grid-template-columns: 1fr;
+    grid-template-rows: auto minmax(0, 1fr);
     grid-template-areas:
-      'g-title g-title'
-      'g-prompt-list g-prompt-form'
-      'footer footer';
-    gap: 10px;
-    height: auto; /* Allow grid to grow and scroll instead of shrinking content */
+      'g-title'
+      'g-main';
+    gap: 16px;
+    padding: 16px 20px;
     min-height: 100vh;
+    height: 100vh;
+    overflow: hidden;
+    box-sizing: border-box;
+  }
+
+  /* COMMENT: Flex row split avoids grid overlap between sidebar and composer */
+  .main-layout {
+    display: flex;
+    flex-direction: row;
+    align-items: stretch;
+    grid-area: g-main;
+    gap: 24px;
+    min-width: 0;
+    min-height: 0;
+    width: 100%;
+    overflow: hidden;
+  }
+
+  /* COMMENT: Expanded-tab layout polish — spacing, footer, actions */
+  body.is-expanded-tab {
+    gap: 16px;
+    padding: 16px 24px 32px;
+    height: auto;
+    min-height: 100vh;
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+
+  body.is-expanded-tab .main-layout {
+    min-height: calc(100vh - 100px);
+    height: auto;
+    overflow: visible;
+  }
+
+  body.is-expanded-tab .sidebar-panel,
+  body.is-expanded-tab .composer-panel {
+    min-width: 0;
+    height: auto;
+    min-height: calc(100vh - 120px);
+    max-height: none;
+    order: unset;
+  }
+
+  body.is-expanded-tab #info-banner {
+    order: unset;
+    grid-area: unset;
+    grid-column: unset;
+    grid-row: unset;
   }
 
   .title {
     grid-area: g-title;
     overflow: hidden;
-    margin-bottom: unset;
-  }
-  /* COMMENT: Ensure the footer participates in the grid's footer area on large screens */
-  footer.footer {
-    grid-area: footer;
+    margin-bottom: 0;
+    padding-bottom: 8px;
+    border-bottom: 1px solid rgba(54, 116, 181, 0.1);
   }
 
-  .sidepanel-bottom-dock {
-    grid-column: 1 / -1;
-    grid-row: 3;
-    align-self: end;
-  }
-
-  .sidepanel-bottom-dock footer.footer {
-    grid-area: auto;
+  /* COMMENT: Left sidebar card — fixed width, no grid placement */
+  .sidebar-panel {
+    flex: 0 0 300px;
+    width: 300px;
+    max-width: 300px;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    height: 100%;
+    background: #fff;
+    border: 1px solid rgba(54, 116, 181, 0.12);
+    border-radius: 12px;
+    padding: 14px;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+    overflow: hidden;
   }
 
   .prompts-container {
-    grid-area: g-prompt-list;
-    min-width: 220px;
-    max-width: 350px;
-    width: 100%;
-    height: 100%;
+    flex: 1 1 auto;
+    min-height: 0;
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    flex: 0 0 auto; /* prevent shrink when sections expand */
+    margin-bottom: 0;
+    max-width: none;
+    max-height: none;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    padding: 0;
   }
 
   .prompts-section {
-    flex: 0 0 auto; /* prevent shrink */
-    min-height: 50px;
-    max-height: 60vh; /* Limit prompt area to 60% of viewport */
-    overflow-y: auto; /* Scroll inside the prompt list area when exceeding 60vh */
-    position: static; /* Allow page to expand below */
+    flex: 1 1 auto;
+    min-height: 0;
+    max-height: none;
+    overflow-y: auto;
+    margin-top: 0;
+    padding-right: 2px;
   }
 
-  form#prompt-form {
-    grid-area: g-prompt-form;
+  .prompt-list-controls {
+    margin-bottom: 10px;
+    gap: 10px;
+  }
+
+  .prompt-search-input {
+    border-color: #cbd5e0;
+    background: #f8fafc;
+  }
+
+  .prompt-search-input:focus {
+    background: #fff;
+  }
+
+  .spm-tags-filter-bar {
+    padding-bottom: 4px;
+  }
+
+  #prompt-list li {
+    border: 1px solid transparent;
+    border-radius: 8px;
+    margin-bottom: 4px;
+    padding: 8px 10px;
+    transition: background-color 0.15s ease, border-color 0.15s ease;
+  }
+
+  #prompt-list li:hover {
+    background-color: #f8fafc;
+    border-color: rgba(54, 116, 181, 0.15);
+  }
+
+  .sidepanel-bottom-dock {
+    flex-shrink: 0;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid rgba(54, 116, 181, 0.1);
     width: 100%;
-    align-content: stretch;
-    align-self: start;
+  }
+
+  .sidepanel-bottom-dock .llms-section {
+    margin-top: 0;
+  }
+
+  .sidepanel-bottom-dock footer.footer {
+    background: transparent;
+    padding: 10px 0 0;
+    position: static;
+    margin-top: 8px;
+  }
+
+  .sidebar-panel .footer-icons {
+    justify-content: center;
+    flex-wrap: wrap;
+    width: 100%;
+  }
+
+  body.is-expanded-tab .sidebar-panel footer.footer {
+    justify-content: flex-start;
+    padding-bottom: 4px;
+  }
+
+  body.is-expanded-tab .sidebar-panel .footer-icons {
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+
+  body.is-expanded-tab .sidepanel-bottom-dock {
+    padding-bottom: 4px;
+  }
+
+  /* COMMENT: Composer card fills remaining horizontal space */
+  .composer-panel {
+    flex: 1 1 auto;
+    min-width: 0;
     display: flex;
     flex-direction: column;
     height: 100%;
+    min-height: 0;
+    max-height: none;
+    margin-bottom: 0;
+    background: #fff;
+    border: 1px solid rgba(54, 116, 181, 0.12);
+    border-radius: 12px;
+    padding: 16px;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
     overflow: hidden;
   }
 
+  form#prompt-form {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    margin-bottom: 0;
+    overflow: hidden;
+    width: 100%;
+    gap: 8px;
+  }
+
+  form#prompt-form .opm-textarea-field {
+    flex: 1 1 auto;
+    min-height: 120px;
+    resize: vertical;
+    margin-bottom: 4px;
+  }
+
+  .form-actions {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: auto;
+    padding-top: 12px;
+    border-top: 1px solid rgba(54, 116, 181, 0.08);
+  }
+
+  body.is-expanded-tab .form-actions {
+    justify-content: flex-start;
+  }
+
+  body.is-expanded-tab .form-actions #cancel-edit-button {
+    order: 0;
+    margin-right: 0;
+  }
+
+  .form-actions button.main {
+    width: auto;
+    min-width: 148px;
+    height: 40px;
+    padding: 0 20px;
+    margin: 0;
+  }
+
+  .form-actions #cancel-edit-button {
+    order: -1;
+    margin-right: auto;
+  }
+
+  #info-banner {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    align-self: start;
+    z-index: 2;
+  }
+
   table.footer-table {
-    grid-area: footer;
     overflow: hidden;
     flex-shrink: 0;
     margin-top: 0;
@@ -420,29 +856,8 @@
     height: 20px;
   }
 
-  button#submit-button.main {
-    height: 44px;
-    padding: 16px 20px;
-  }
-
-  button#import-btn.main {
-    height: 44px;
-  }
-
-  button#export-btn.main {
-    height: 44px;
-  }
-
   div.dataimpexp {
     overflow: hidden;
-  }
-
-  #settings-icon {
-    display: none;
-  }
-
-  img#open-new-tab {
-    display: none;
   }
 
   #export-btn,
@@ -587,12 +1002,77 @@ footer.footer {
     color: #3674B5;
   }
 
-  /* Input & textarea fields */
-  input[type="text"], textarea {
+  /* Input & textarea fields — exclude in-page-style prompt form fields */
+  input[type="text"]:not(.opm-input-field),
+  textarea:not(.opm-textarea-field) {
     background-color: #144272;
     color: #E2E8F0;
     border-color: #4A5568;
   }
+
+  #prompt-form .opm-input-field,
+  #prompt-form .opm-textarea-field,
+  #prompt-form .spm-tag-row {
+    border: var(--input-dark-border);
+    background-color: var(--input-dark-bg);
+    color: var(--input-dark-text);
+  }
+
+  #prompt-form .opm-input-field:focus,
+  #prompt-form .opm-textarea-field:focus,
+  #prompt-form .spm-tag-row:focus-within {
+    border: var(--input-dark-border);
+    box-shadow: none;
+  }
+
+  #prompt-form .spm-tag-row input[type="text"] {
+    background-color: transparent;
+    color: #E2E8F0;
+    border: none;
+  }
+
+  .spm-tag-pill {
+    background: #205295;
+    border-color: #4A5568;
+    color: #CBD5E0;
+  }
+
+  @media (min-width: 1024px) {
+    .sidebar-panel,
+    .composer-panel {
+      background: #144272;
+      border-color: rgba(255, 255, 255, 0.08);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    }
+
+    .title {
+      border-bottom-color: rgba(255, 255, 255, 0.08);
+    }
+
+    .sidepanel-bottom-dock {
+      border-top-color: rgba(255, 255, 255, 0.08);
+    }
+
+    .prompt-search-input {
+      background: #0f3460;
+      border-color: #4A5568;
+      color: #E2E8F0;
+    }
+
+    .prompt-search-input:focus {
+      background: #144272;
+    }
+
+    #prompt-list li:hover {
+      background-color: #0f3460;
+      border-color: rgba(255, 255, 255, 0.1);
+    }
+
+    .form-actions {
+      border-top-color: rgba(255, 255, 255, 0.08);
+    }
+  }
+
   /* Placeholder in dark */
   ::placeholder { color: #A0AEC0; opacity: 1; }
 
@@ -704,6 +1184,13 @@ footer.footer {
   --primary: #3674b5;
   --hover-primary: #4b93e0;
   --light-bg: #F7FAFC;
+  /* COMMENT: Match in-page panel input tokens from content.styles.js */
+  --input-light-border: 1px solid #CBD5E0;
+  --input-light-bg: #FFFFFF;
+  --input-light-text: #2D3748;
+  --input-dark-border: 1px solid #4A5568;
+  --input-dark-bg: #2D3748;
+  --input-dark-text: #E2E8F0;
 }
 
 /* Headings adopt primary colour */
@@ -711,13 +1198,23 @@ h2, h3 {
   color: var(--primary);
 }
 
-/* Inputs & textareas */
-input[type="text"], textarea {
+/* Inputs & textareas — exclude prompt form fields (styled like in-page panel) */
+input[type="text"]:not(.opm-input-field),
+textarea:not(.opm-textarea-field) {
   border-color: var(--primary);
 }
-input[type="text"]:focus, textarea:focus {
+input[type="text"]:not(.opm-input-field):focus,
+textarea:not(.opm-textarea-field):focus {
   border-color: var(--primary);
   box-shadow: 0 0 0 2px rgba(54, 116, 181, 0.25);
+}
+
+#prompt-form .spm-tag-row {
+  border: var(--input-light-border);
+}
+#prompt-form .spm-tag-row:focus-within {
+  border: var(--input-light-border);
+  box-shadow: none;
 }
 
 /* Main buttons */

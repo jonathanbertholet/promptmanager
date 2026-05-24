@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog],
 and this project adheres to [Semantic Versioning].
 
+## [2.7] - 2026-05-23
+
+### Added
+
+- Side panel search and tag filter bar, synced with the in-page prompt panel.
+- Tag input with suggestions on create/edit forms in the side panel.
+- Expanded prompt lab tab with a close button and layout polish.
+
+### Changed
+
+- Smooth animated panel resizing when switching between list, create, variable, and edit views.
+- List panel height is based on total prompt count so tag filtering no longer causes layout jumps.
+- Variable and edit forms keep the bottom menu visible with improved label/input layout.
+- Edit prompt flow routes through the panel router for consistent transitions.
+- Hovering the launcher button reopens the panel after auto-close and preserves in-progress forms.
+
+### Fixed
+
+- Expanded-tab close now uses the sender tab for reliable dismissal.
+- Script re-injection guard improvements for SPA navigations.
+
 ## [2.2.1]
 
 ### Added

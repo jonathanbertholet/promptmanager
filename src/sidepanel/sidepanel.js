@@ -238,6 +238,370 @@ async function hasAnyGrantedProviderPermission() {
 // COMMENT: Track folded state of the "Available" group (collapsed by default)
 let llmsAvailableCollapsed = true;
 
+// COMMENT: Shared storage keys with the in-page panel so search/tag filters stay in sync
+const TAG_STORAGE = {
+  enableTags: 'enableTags',
+  activeTagFilter: 'activeTagFilter',
+  tagsOrder: 'tagsOrder',
+};
+
+let allPromptsCache = [];
+let activeTagFilter = 'all';
+let searchTerm = '';
+let formTagInput = null;
+
+async function getLocalSetting(key, defaultValue) {
+  try {
+    const data = await chrome.storage.local.get([key]);
+    return data[key] !== undefined ? data[key] : defaultValue;
+  } catch (_) {
+    return defaultValue;
+  }
+}
+
+async function setLocalSetting(key, value) {
+  try {
+    await chrome.storage.local.set({ [key]: value });
+  } catch (_) {
+    // Ignore storage errors
+  }
+}
+
+function computeTagCounts(prompts = []) {
+  const counts = new Map();
+  prompts.forEach(p => {
+    (Array.isArray(p.tags) ? p.tags : []).forEach(t => {
+      const key = String(t).trim();
+      if (!key) return;
+      counts.set(key, (counts.get(key) || 0) + 1);
+    });
+  });
+  return counts;
+}
+
+async function getOrderedTags(counts) {
+  const order = await getLocalSetting(TAG_STORAGE.tagsOrder, []);
+  const tags = Array.from(counts.keys());
+  const missing = tags.filter(t => !order.includes(t)).sort((a, b) => a.localeCompare(b));
+  return [...order.filter(t => counts.has(t)), ...missing];
+}
+
+async function getTagSuggestions({ term = '', exclude = new Set() } = {}) {
+  const prompts = allPromptsCache.length ? allPromptsCache : await PromptStorage.getPrompts();
+  const counts = computeTagCounts(prompts);
+  const ordered = await getOrderedTags(counts);
+  const lcTerm = term.trim().toLowerCase();
+  return ordered.filter(t => !exclude.has(t) && (lcTerm === '' || String(t).toLowerCase().includes(lcTerm)));
+}
+
+function promptMatchesFilters(prompt) {
+  const value = (searchTerm || '').toLowerCase();
+  const activeTag = (activeTagFilter || 'all').toLowerCase();
+  const title = (prompt.title || '').toLowerCase();
+  const content = (prompt.content || '').toLowerCase();
+  const tagsFlat = Array.isArray(prompt.tags) ? prompt.tags.map(t => String(t).toLowerCase()).join(' ') : '';
+
+  const matchesSearch = value === '' || title.includes(value) || content.includes(value) || tagsFlat.includes(value);
+
+  let matchesTag = true;
+  if (activeTag !== 'all') {
+    const tagList = Array.isArray(prompt.tags) ? prompt.tags.map(t => String(t).toLowerCase()) : [];
+    matchesTag = tagList.includes(activeTag);
+  }
+  return matchesSearch && matchesTag;
+}
+
+/** COMMENT: Tag input row for create/edit — mirrors in-page TagUI.createTagInput */
+function createSidepanelTagInput({ initialTags = [] } = {}) {
+  const tagsSet = new Set(Array.isArray(initialTags) ? initialTags : []);
+  const row = document.createElement('div');
+  row.className = 'spm-tag-row';
+
+  const pills = document.createElement('div');
+  pills.className = 'spm-tags-container';
+
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.placeholder = 'Enter tags here.';
+  input.className = 'spm-tag-input';
+  input.autocomplete = 'off';
+
+  const suggestions = document.createElement('div');
+  suggestions.className = 'spm-tag-suggestions';
+  suggestions.hidden = true;
+
+  let activeIndex = -1;
+  let options = [];
+
+  const renderPills = () => {
+    pills.innerHTML = '';
+    Array.from(tagsSet).forEach(tag => {
+      const pill = document.createElement('span');
+      pill.className = 'spm-tag-pill';
+      pill.textContent = String(tag);
+
+      const removeBtn = document.createElement('button');
+      removeBtn.type = 'button';
+      removeBtn.className = 'spm-tag-remove';
+      removeBtn.textContent = '×';
+      removeBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        tagsSet.delete(tag);
+        renderPills();
+      });
+      pill.appendChild(removeBtn);
+      pills.appendChild(pill);
+    });
+  };
+
+  const positionSuggestions = () => {
+    const rect = row.getBoundingClientRect();
+    suggestions.style.position = 'fixed';
+    suggestions.style.zIndex = '10000';
+    suggestions.style.left = `${Math.max(0, rect.left)}px`;
+    const spaceAbove = rect.top;
+    const desiredHeight = Math.min(160, window.innerHeight * 0.4);
+    if (spaceAbove > desiredHeight + 8) {
+      suggestions.style.top = `${rect.top}px`;
+      suggestions.style.transform = 'translateY(-100%)';
+    } else {
+      suggestions.style.top = `${rect.bottom}px`;
+      suggestions.style.transform = 'translateY(2px)';
+    }
+    suggestions.style.minWidth = `${Math.max(180, rect.width - 12)}px`;
+  };
+
+  const addTag = (val) => {
+    const tag = (val || '').trim();
+    if (!tag || tagsSet.has(tag)) return;
+    tagsSet.add(tag);
+    renderPills();
+    activeIndex = -1;
+    suggestions.hidden = true;
+  };
+
+  const refreshSuggestions = async () => {
+    options = await getTagSuggestions({ term: input.value, exclude: tagsSet });
+    suggestions.innerHTML = '';
+    options.forEach((t, idx) => {
+      const item = document.createElement('div');
+      item.className = 'spm-tag-suggestion-item';
+      if (idx === activeIndex) item.classList.add('active');
+      item.textContent = t;
+      item.addEventListener('mousedown', e => {
+        e.preventDefault();
+        e.stopPropagation();
+        addTag(t);
+        input.value = '';
+        suggestions.hidden = true;
+      });
+      item.addEventListener('click', e => e.stopPropagation());
+      suggestions.appendChild(item);
+    });
+    if (options.length > 0) {
+      if (!document.body.contains(suggestions)) {
+        document.body.appendChild(suggestions);
+      }
+      positionSuggestions();
+      suggestions.hidden = false;
+    } else {
+      suggestions.hidden = true;
+    }
+  };
+
+  input.addEventListener('input', () => {
+    activeIndex = -1;
+    const term = input.value.trim();
+    if (term.length === 0) {
+      suggestions.hidden = true;
+      options = [];
+      return;
+    }
+    refreshSuggestions();
+  });
+
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      e.stopPropagation();
+      if (activeIndex >= 0 && activeIndex < options.length) {
+        addTag(options[activeIndex]);
+        input.value = '';
+      } else {
+        addTag(input.value);
+        input.value = '';
+      }
+      suggestions.hidden = true;
+    }
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      e.stopPropagation();
+      activeIndex = Math.min(activeIndex + 1, options.length - 1);
+      refreshSuggestions();
+    }
+    if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      e.stopPropagation();
+      activeIndex = Math.max(activeIndex - 1, -1);
+      refreshSuggestions();
+    }
+    if (e.key === 'Escape') {
+      e.stopPropagation();
+      suggestions.hidden = true;
+    }
+  });
+
+  input.addEventListener('blur', () => { suggestions.hidden = true; });
+  document.addEventListener('click', (evt) => {
+    if (!suggestions.contains(evt.target) && evt.target !== input) {
+      suggestions.hidden = true;
+    }
+  });
+  window.addEventListener('resize', positionSuggestions);
+  window.addEventListener('scroll', positionSuggestions, true);
+
+  renderPills();
+  row.append(pills, input);
+
+  return {
+    element: row,
+    getTags: () => Array.from(tagsSet),
+    setTags: (tags) => {
+      tagsSet.clear();
+      (Array.isArray(tags) ? tags : []).forEach(t => {
+        const key = String(t).trim();
+        if (key) tagsSet.add(key);
+      });
+      renderPills();
+    },
+    destroy: () => {
+      if (suggestions.parentElement) suggestions.parentElement.removeChild(suggestions);
+    },
+  };
+}
+
+async function renderTagsFilterBar(prompts) {
+  const barHost = document.getElementById('prompt-tags-filter');
+  if (!barHost) return;
+
+  const enableTags = await getLocalSetting(TAG_STORAGE.enableTags, false);
+  if (!enableTags) {
+    barHost.hidden = true;
+    barHost.innerHTML = '';
+    return;
+  }
+
+  const counts = computeTagCounts(prompts);
+  if (counts.size === 0) {
+    barHost.hidden = true;
+    barHost.innerHTML = '';
+    return;
+  }
+
+  const orderedTags = await getOrderedTags(counts);
+  barHost.hidden = false;
+  barHost.innerHTML = '';
+
+  const bar = document.createElement('div');
+  bar.className = 'spm-tags-filter-bar';
+
+  const makePill = (label, tag, isSelected) => {
+    const pill = document.createElement('button');
+    pill.type = 'button';
+    pill.className = 'spm-tag-pill-filter';
+    pill.textContent = label;
+    pill.dataset.tag = tag;
+    pill.setAttribute('aria-pressed', String(!!isSelected));
+    pill.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      activeTagFilter = tag;
+      await setLocalSetting(TAG_STORAGE.activeTagFilter, tag);
+      refreshPromptListView();
+    });
+    return pill;
+  };
+
+  const selected = (activeTagFilter || 'all').toLowerCase();
+  bar.appendChild(makePill('All', 'all', selected === 'all'));
+  orderedTags.forEach(tag => {
+    const isSelected = selected === String(tag).toLowerCase();
+    bar.appendChild(makePill(String(tag), tag, isSelected));
+  });
+
+  barHost.appendChild(bar);
+}
+
+async function renderPromptListControls(prompts) {
+  const controls = document.getElementById('prompt-list-controls');
+  if (!controls) return;
+
+  const allowed = await hasAnyGrantedProviderPermission();
+  controls.hidden = !allowed;
+
+  if (allowed) {
+    await renderTagsFilterBar(prompts);
+  }
+}
+
+async function initFormTags() {
+  const host = document.getElementById('prompt-tags-host');
+  if (!host) return;
+
+  const enabled = await getLocalSetting(TAG_STORAGE.enableTags, false);
+  if (formTagInput?.destroy) {
+    formTagInput.destroy();
+    formTagInput = null;
+  }
+
+  if (!enabled) {
+    host.hidden = true;
+    host.innerHTML = '';
+    return;
+  }
+
+  host.hidden = false;
+  host.innerHTML = '';
+  formTagInput = createSidepanelTagInput();
+  host.appendChild(formTagInput.element);
+}
+
+const debouncedSearchRefresh = debounceSidepanel(() => {
+  refreshPromptListView();
+}, 120);
+
+/** COMMENT: Detect the full-tab expanded view (?expanded=1) vs the Chrome side panel */
+function isExpandedTabView() {
+  return new URLSearchParams(window.location.search).get('expanded') === '1';
+}
+
+/** COMMENT: Close the expanded tab via the service worker (sender.tab.id) */
+async function closeExpandedView() {
+  const closedViaWorker = await new Promise(resolve => {
+    chrome.runtime.sendMessage({ type: 'OPM_CLOSE_EXPANDED_TAB' }, (response) => {
+      if (chrome.runtime.lastError) {
+        resolve(false);
+        return;
+      }
+      resolve(Boolean(response?.ok));
+    });
+  });
+  if (closedViaWorker) return;
+
+  // COMMENT: Fallback — getCurrent uses callbacks in MV3, not bare await
+  const tab = await new Promise(resolve => {
+    try {
+      chrome.tabs.getCurrent(currentTab => resolve(currentTab || null));
+    } catch (_) {
+      resolve(null);
+    }
+  });
+  if (tab?.id) {
+    await chrome.tabs.remove(tab.id);
+    return;
+  }
+  window.close();
+}
+
 // COMMENT: Smoothly open/close a collapsible element without auto-scrolling the view
 function setCollapsibleOpen(collapsibleEl, open) {
   if (!collapsibleEl) return;
@@ -474,6 +838,7 @@ async function renderLLMsSection() {
 async function renderPermissionsGate() {
   const shortcut = document.getElementById('permissions-shortcut');
   const promptList = document.getElementById('prompt-list');
+  const listControls = document.getElementById('prompt-list-controls');
   const emptyState = document.getElementById('empty-state');
   if (!shortcut || !promptList) return;
   const allowed = await hasAnyGrantedProviderPermission();
@@ -481,19 +846,23 @@ async function renderPermissionsGate() {
     // Hide shortcut, show list normally
     shortcut.style.display = 'none';
     promptList.style.display = 'block';
+    if (listControls) listControls.hidden = false;
+    await renderPromptListControls(allPromptsCache);
     if (emptyState && promptList.children.length === 0) {
-      emptyState.style.display = 'block';
+      const hasAnyPrompts = allPromptsCache.length > 0;
+      emptyState.style.display = hasAnyPrompts ? 'none' : 'block';
     }
   } else {
     // Show shortcut, hide list and empty state
     shortcut.style.display = 'block';
     promptList.style.display = 'none';
+    if (listControls) listControls.hidden = true;
     if (emptyState) emptyState.style.display = 'none';
   }
 }
 
 // COMMENT: Render the list of prompts in the sidepanel UI
-function displayPrompts(prompts) {
+function displayPrompts(prompts, totalCount = prompts.length) {
   const promptList = document.getElementById('prompt-list');
   const emptyState = document.getElementById('empty-state');
   const shortcut = document.getElementById('permissions-shortcut');
@@ -501,7 +870,8 @@ function displayPrompts(prompts) {
   if (!Array.isArray(prompts) || prompts.length === 0) {
     // If permissions shortcut is visible, prefer it over empty-state
     const shortcutVisible = shortcut && shortcut.style.display !== 'none';
-    if (emptyState) emptyState.style.display = shortcutVisible ? 'none' : 'block';
+    // COMMENT: Hide empty-state when filters exclude all items but prompts still exist
+    if (emptyState) emptyState.style.display = (shortcutVisible || totalCount > 0) ? 'none' : 'block';
     return;
   }
   if (emptyState) emptyState.style.display = 'none';
@@ -550,6 +920,7 @@ function displayPrompts(prompts) {
       document.getElementById('prompt-title').value = prompt.title;
       document.getElementById('prompt-content').value = prompt.content;
       document.getElementById('prompt-uuid').value = prompt.uuid;
+      if (formTagInput) formTagInput.setTags(prompt.tags || []);
       document.getElementById('submit-button').textContent = 'Update';
       document.getElementById('cancel-edit-button').style.display = 'inline';
     });
@@ -589,13 +960,15 @@ function displayPrompts(prompts) {
   });
 }
 
-// COMMENT: Load prompts from storage and render them
-async function loadPrompts() {
-  const prompts = await PromptStorage.getPrompts();
-  displayPrompts(prompts);
+// COMMENT: Load prompts from storage, apply search/tag filters, and render
+async function refreshPromptListView() {
+  allPromptsCache = await PromptStorage.getPrompts();
+  await renderPromptListControls(allPromptsCache);
+  const filtered = allPromptsCache.filter(promptMatchesFilters);
+  displayPrompts(filtered, allPromptsCache.length);
 }
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
   const form = document.getElementById('prompt-form');
   const titleInput = document.getElementById('prompt-title');
   const contentInput = document.getElementById('prompt-content');
@@ -605,13 +978,36 @@ document.addEventListener('DOMContentLoaded', () => {
   // COMMENT: Info banner elements for close/dismiss behavior
   const infoBanner = document.getElementById('info-banner');
   const infoBannerClose = document.getElementById('info-banner-close');
+  const searchInput = document.getElementById('prompt-search-input');
+  const closeExpandedBtn = document.getElementById('close-expanded-view');
+
+  // COMMENT: Mark expanded tab view so the header close button is shown
+  if (isExpandedTabView()) {
+    document.body.classList.add('is-expanded-tab');
+  }
+  if (closeExpandedBtn) {
+    closeExpandedBtn.addEventListener('click', () => {
+      closeExpandedView().catch(console.error);
+    });
+  }
+
+  // COMMENT: Restore shared tag filter + form tag row from storage
+  activeTagFilter = await getLocalSetting(TAG_STORAGE.activeTagFilter, 'all');
+  await initFormTags();
 
   // Load prompts and display
-  loadPrompts();
+  refreshPromptListView();
   // COMMENT: Evaluate permissions gate on load
   renderPermissionsGate();
   // COMMENT: Render LLMs section on load
   renderLLMsSection();
+
+  if (searchInput) {
+    searchInput.addEventListener('input', (e) => {
+      searchTerm = e.target.value || '';
+      debouncedSearchRefresh();
+    });
+  }
 
   try {
     chrome.tabs.onActivated.addListener(() => {
@@ -626,6 +1022,15 @@ document.addEventListener('DOMContentLoaded', () => {
       if (area === 'local' && changes.pinned_inputs_v1) {
         renderPermissionsGate();
         renderLLMsSection();
+      }
+      if (area === 'local') {
+        if (changes.activeTagFilter?.newValue !== undefined) {
+          activeTagFilter = changes.activeTagFilter.newValue || 'all';
+        }
+        if (changes.enableTags || changes.activeTagFilter || changes.tagsOrder) {
+          initFormTags();
+          refreshPromptListView();
+        }
       }
     });
   } catch (_) {
@@ -653,7 +1058,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // COMMENT: Refresh UI whenever prompts change in storage
-  PromptStorage.onPromptsChanged(loadPrompts);
+  PromptStorage.onPromptsChanged(refreshPromptListView);
 
   // COMMENT: React to permissions updates live (permissions page writes aiProvidersMap)
   try {
@@ -713,19 +1118,21 @@ document.addEventListener('DOMContentLoaded', () => {
     event.preventDefault();
     const title = titleInput.value.trim();
     const content = contentInput.value;
+    const tags = formTagInput ? formTagInput.getTags() : [];
 
     if (promptUuidInput.value === '') {
       // COMMENT: Add new prompt via unified manager
-      PromptStorage.savePrompt({ title, content }).catch(console.error);
+      PromptStorage.savePrompt({ title, content, tags }).catch(console.error);
     } else {
       // COMMENT: Update existing prompt by uuid via unified manager
-      PromptStorage.updatePrompt(promptUuidInput.value, { title, content }).catch(console.error);
+      PromptStorage.updatePrompt(promptUuidInput.value, { title, content, tags }).catch(console.error);
     }
 
     // Reset form
     titleInput.value = '';
     contentInput.value = '';
     promptUuidInput.value = '';
+    if (formTagInput) formTagInput.setTags([]);
     submitButton.textContent = 'Save prompt';
     cancelEditButton.style.display = 'none';
   });
@@ -736,6 +1143,7 @@ document.addEventListener('DOMContentLoaded', () => {
     titleInput.value = '';
     contentInput.value = '';
     promptUuidInput.value = '';
+    if (formTagInput) formTagInput.setTags([]);
     submitButton.textContent = 'Add Prompt';
     cancelEditButton.style.display = 'none';
   });

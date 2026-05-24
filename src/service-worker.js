@@ -202,8 +202,21 @@ async function runPinInputAction(tabId, action) {
 
 /**
  * COMMENT: Side panel pin/unpin requests arrive here so we can inject scripts when needed.
+ * Expanded-tab close uses sender.tab because getCurrent() is unreliable from extension pages.
  */
-chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message?.type === 'OPM_CLOSE_EXPANDED_TAB') {
+    const tabId = sender.tab?.id;
+    if (!tabId) {
+      sendResponse({ ok: false, error: 'no_tab' });
+      return true;
+    }
+    chrome.tabs.remove(tabId)
+      .then(() => sendResponse({ ok: true }))
+      .catch((error) => sendResponse({ ok: false, error: error?.message || 'close_failed' }));
+    return true;
+  }
+
   if (message?.type !== 'OPM_PIN_INPUT') return undefined;
 
   (async () => {
