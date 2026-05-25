@@ -9,9 +9,11 @@ A lightweight, open-source Chrome extension for saving, organizing, and insertin
 ### Prompt library
 
 - Save, edit, reorder, and delete prompts from the **side panel** or an **in-page panel** on assistant sites
-- **Tags** with search and filter — synced between the side panel and in-page list
+- **Tags** with search and filter — synced between the side panel and in-page list; tag suggestions on create/edit forms
+- Drag to reorder tags in Settings → **Tag management**
 - **Variables** with `#variable#` syntax — fill in values before inserting
 - **Import / export** full v2 backups (prompts, folders, tag order) as JSON
+- **Copy to clipboard** from the side panel or context menu — handy on unsupported sites
 - Save selected text to your library via the **context menu**
 
 ### On assistant sites
@@ -32,7 +34,7 @@ Browse community prompts on the [Open Prompt Database](https://open-prompt-datab
 
 ### Settings & permissions
 
-Unified settings page (side panel): launcher mode, preferences, tag management, import/export, and a **permissions editor** for controlling which sites the extension can access.
+Unified settings in the **side panel** and on **assistant pages** (same storage keys): launcher mode, preferences, tag management, import/export, custom open shortcut, and a **permissions editor** for controlling which sites the extension can access.
 
 ## Supported platforms
 
