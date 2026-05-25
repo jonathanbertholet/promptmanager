@@ -5,6 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog],
 and this project adheres to [Semantic Versioning].
 
+## [2.8] - 2026-05-25
+
+### Added
+
+- Unified settings page in the side panel: launcher mode, preferences, tag management, import/export, permissions editor, and custom open shortcut.
+- Custom keyboard shortcut recorder for opening/closing the in-page prompt panel.
+- Full v2 backup export (prompts, folders, and tag metadata).
+- Support & links section in settings (GitHub, Chrome Web Store review, Buy Me a Coffee).
+
+### Changed
+
+- Settings available in both the in-page panel and the side panel settings page, synced via the same storage keys.
+- In-page settings restored with shortcut recording, unified export/import, and sidebar-matching community link icons.
+- Settings page layout: scrollable page and tighter section spacing.
+
+### Fixed
+
+- Tag management section empty on the settings page when tags were enabled.
+- Export/import now handles full v2 backup objects (not prompts-only arrays).
+
 ## [2.7] - 2026-05-23
 
 ### Added

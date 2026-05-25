@@ -262,19 +262,63 @@ export async function setTagsForPrompt(promptUuid, tags = []) {
 }
 
 // ---------- import / export helpers ----------
+
+/** COMMENT: Build a portable backup payload (prompts, folders, tag metadata). */
+export async function buildExportPayload() {
+  const store = await readRawStorage();
+  const settings = await storageGet(['tagsOrder', 'activeTagFilter', 'enableTags']);
+  return {
+    version: PROMPT_STORAGE_VERSION,
+    prompts: store.prompts,
+    folders: store.folders,
+    meta: {
+      tagsOrder: Array.isArray(settings.tagsOrder) ? settings.tagsOrder : [],
+      activeTagFilter: typeof settings.activeTagFilter === 'string' ? settings.activeTagFilter : 'all',
+      enableTags: !!settings.enableTags,
+    },
+  };
+}
+
+/** COMMENT: Trigger a JSON download of the full v2 backup bundle. */
 export async function exportPrompts() {
-  const json = JSON.stringify(await getPrompts(), null, 2);
+  const payload = await buildExportPayload();
+  const json = JSON.stringify(payload, null, 2);
   const blob = new Blob([json], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `prompts-${new Date().toISOString().split('T')[0]}.json`;
+  a.download = `opm-backup-${new Date().toISOString().split('T')[0]}.json`;
   document.body.appendChild(a);
   a.click();
   setTimeout(() => {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
   }, 0);
+}
+
+/** COMMENT: Merge optional tag metadata from an imported backup object. */
+async function mergeImportMeta(meta = {}) {
+  if (!meta || typeof meta !== 'object') return;
+  const patch = {};
+  if (Array.isArray(meta.tagsOrder)) {
+    const current = await storageGet(['tagsOrder']);
+    const existing = Array.isArray(current.tagsOrder) ? current.tagsOrder : [];
+    const merged = [...existing];
+    meta.tagsOrder.forEach((tag) => {
+      const clean = typeof tag === 'string' ? tag.trim() : '';
+      if (clean && !merged.includes(clean)) merged.push(clean);
+    });
+    patch.tagsOrder = merged;
+  }
+  if (typeof meta.enableTags === 'boolean') {
+    patch.enableTags = meta.enableTags;
+  }
+  if (typeof meta.activeTagFilter === 'string' && meta.activeTagFilter.trim()) {
+    patch.activeTagFilter = meta.activeTagFilter.trim();
+  }
+  if (Object.keys(patch).length > 0) {
+    await storageSet(patch);
+  }
 }
 
 export async function importPrompts(source) {
@@ -290,18 +334,22 @@ export async function importPrompts(source) {
   } else {
     throw new Error('Unsupported import source');
   }
-  // COMMENT: Accept both legacy array and new store-object with folders
+  // COMMENT: Legacy array export — prompts only
   if (Array.isArray(imported)) {
     return await mergePrompts(imported);
   }
   if (imported && typeof imported === 'object') {
-    const { prompts = [], folders = [] } = imported;
+    const prompts = Array.isArray(imported.prompts) ? imported.prompts : [];
+    const folders = Array.isArray(imported.folders) ? imported.folders : [];
     const mergedPrompts = await mergePrompts(prompts);
-    // Merge folders by id
-    const currentFolders = await getFolders();
-    const map = new Map(currentFolders.map(f => [f.id, f]));
-    normaliseFolderArray(folders).forEach(f => { map.set(f.id, f); });
-    await setFolders(Array.from(map.values()));
+    // COMMENT: Merge folders by id when present in the backup
+    if (folders.length > 0) {
+      const currentFolders = await getFolders();
+      const map = new Map(currentFolders.map(f => [f.id, f]));
+      normaliseFolderArray(folders).forEach(f => { map.set(f.id, f); });
+      await setFolders(Array.from(map.values()));
+    }
+    await mergeImportMeta(imported.meta);
     return mergedPrompts;
   }
   throw new Error('Invalid JSON format – expected an array or store object');

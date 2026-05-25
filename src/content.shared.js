@@ -664,6 +664,73 @@
           const title = createEl('div', { styles: { fontWeight: 'bold', fontSize: '16px', marginBottom: '10px' }, innerHTML: 'Settings' });
           const settings = createEl('div', { styles: { display: 'flex', flexDirection: 'column', gap: '12px' } });
 
+          // COMMENT: Format stored shortcut for display in the in-page settings panel
+          const formatKeyboardShortcut = (shortcut) => {
+            const isMac = navigator.platform.toUpperCase().includes('MAC');
+            const parts = [];
+            if (shortcut.modifier === 'metaKey') parts.push(isMac ? '⌘' : 'Meta');
+            else if (shortcut.modifier === 'ctrlKey') parts.push(isMac ? '⌃' : 'Ctrl');
+            else if (shortcut.modifier === 'altKey') parts.push(isMac ? '⌥' : 'Alt');
+            if (shortcut.requiresShift) parts.push(isMac ? '⇧' : 'Shift');
+            parts.push(String(shortcut.key || '').toUpperCase());
+            return parts.join(' + ');
+          };
+
+          const shortcutTitle = createEl('div', { styles: { fontWeight: 'bold', fontSize: '14px', marginTop: '2px' }, innerHTML: 'Open / close shortcut' });
+          const shortcutRow = createEl('div', { styles: { display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px' } });
+          const shortcutDisplay = createEl('span', {
+            className: `opm-${getMode()}`,
+            styles: { fontSize: '13px', fontWeight: '600', opacity: '0.9' },
+            innerHTML: '…'
+          });
+          const recordShortcutBtn = createEl('button', { innerHTML: 'Record', className: `opm-button opm-${getMode()}` });
+          let recordingHandler = null;
+
+          const refreshShortcutDisplay = async () => {
+            const shortcut = await window.PromptStorageManager.getKeyboardShortcut();
+            shortcutDisplay.innerHTML = formatKeyboardShortcut(shortcut);
+          };
+
+          recordShortcutBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (recordingHandler) {
+              document.removeEventListener('keydown', recordingHandler, true);
+              recordingHandler = null;
+              recordShortcutBtn.innerHTML = 'Record';
+              refreshShortcutDisplay().catch(() => {});
+              return;
+            }
+            recordShortcutBtn.innerHTML = 'Press keys…';
+            shortcutDisplay.innerHTML = 'Listening…';
+            recordingHandler = async (event) => {
+              event.preventDefault();
+              event.stopPropagation();
+              if (event.key === 'Escape') {
+                document.removeEventListener('keydown', recordingHandler, true);
+                recordingHandler = null;
+                recordShortcutBtn.innerHTML = 'Record';
+                refreshShortcutDisplay().catch(() => {});
+                return;
+              }
+              if (['Control', 'Meta', 'Alt', 'Shift'].includes(event.key)) return;
+              let modifier = 'ctrlKey';
+              if (event.metaKey) modifier = 'metaKey';
+              else if (event.altKey) modifier = 'altKey';
+              await window.PromptStorageManager.saveKeyboardShortcut({
+                modifier,
+                requiresShift: event.shiftKey,
+                key: event.key.length === 1 ? event.key.toLowerCase() : event.key.toLowerCase()
+              });
+              document.removeEventListener('keydown', recordingHandler, true);
+              recordingHandler = null;
+              recordShortcutBtn.innerHTML = 'Record';
+              refreshShortcutDisplay().catch(() => {});
+            };
+            document.addEventListener('keydown', recordingHandler, true);
+          });
+          shortcutRow.append(recordShortcutBtn, shortcutDisplay);
+          refreshShortcutDisplay().catch(() => {});
+
           settings.appendChild(Elements.createToggleRow({
             labelText: 'Hot Corner Mode',
             getValue: async () => (await window.PromptStorageManager.getDisplayMode()) === 'hotCorner',
@@ -680,10 +747,22 @@
             onToggle: async (active) => { await window.PromptStorageManager.saveDisableOverwrite(active); }
           }));
 
+          const tagMgmtTitle = createEl('div', { styles: { fontWeight: 'bold', fontSize: '14px', marginTop: '12px', display: 'none' }, innerHTML: 'Tag management' });
+          const tagMgmtContainer = createEl('div', { styles: { display: 'none', flexDirection: 'column', gap: '6px' } });
+
+          const syncTagManagementVisibility = async (enabled) => {
+            tagMgmtTitle.style.display = enabled ? '' : 'none';
+            tagMgmtContainer.style.display = enabled ? 'flex' : 'none';
+          };
+
           settings.appendChild(Elements.createToggleRow({
             labelText: 'Enable tags',
             getValue: async () => await window.PromptStorageManager.getEnableTags(),
-            onToggle: async (active) => { await window.PromptStorageManager.saveEnableTags(active); }
+            onToggle: async (active) => {
+              await window.PromptStorageManager.saveEnableTags(active);
+              // COMMENT: Remount settings so tag management UI initializes when tags are turned on
+              window.PanelRouter.mount(window.PanelView.SETTINGS);
+            }
           }));
 
           settings.appendChild(Elements.createToggleRow({
@@ -706,15 +785,7 @@
           exportBtn.addEventListener('click', async e => {
             e.stopPropagation();
             try {
-              const prompts = await window.PromptStorageManager.getPrompts();
-              const json = JSON.stringify(prompts, null, 2);
-              const blob = new Blob([json], { type: 'application/json' });
-              const url = URL.createObjectURL(blob);
-              const a = createEl('a', { attributes: { href: url, download: `prompts-${new Date().toISOString().split('T')[0]}.json` } });
-              document.body.appendChild(a);
-              a.click();
-              document.body.removeChild(a);
-              URL.revokeObjectURL(url);
+              await window.PromptStorageManager.exportPrompts();
             } catch (err) {
               alert('Export failed.');
             }
@@ -727,14 +798,7 @@
               const file = event.target.files[0];
               if (file) {
                 try {
-                  const text = await file.text();
-                  const parsed = JSON.parse(text);
-                  // COMMENT: Accept legacy arrays and v2 store objects (prompts + folders)
-                  const imported = Array.isArray(parsed)
-                    ? parsed
-                    : (parsed && Array.isArray(parsed.prompts) ? parsed.prompts : null);
-                  if (!imported) throw new Error('Invalid format');
-                  const merged = await window.PromptStorageManager.mergeImportedPrompts(imported);
+                  const merged = await window.PromptStorageManager.mergeImportedPrompts(file);
                   window.PromptUIManager.refreshPromptList(merged);
                   importBtn.textContent = 'Import successful!';
                   setTimeout(() => importBtn.textContent = 'Import', window.IMPORT_SUCCESS_RESET_MS || 2000);
@@ -761,14 +825,12 @@
               alert('Failed to delete prompts.');
             }
           });
-          const tagMgmtTitle = createEl('div', { styles: { fontWeight: 'bold', fontSize: '14px', marginTop: '12px', display: 'none' }, innerHTML: 'Tag management' });
-          const tagMgmtContainer = createEl('div', { styles: { display: 'none', flexDirection: 'column', gap: '6px' } });
+
           (async () => {
             try {
               const enableTags = await window.PromptStorageManager.getEnableTags();
-              if (!enableTags) { tagMgmtTitle.style.display = 'none'; tagMgmtContainer.style.display = 'none'; return; }
-              tagMgmtTitle.style.display = '';
-              tagMgmtContainer.style.display = '';
+              await syncTagManagementVisibility(enableTags);
+              if (!enableTags) return;
 
               let counts = await TagService.getCounts();
               const row = createEl('div', { className: 'opm-tags-mgmt-container' });
@@ -908,7 +970,7 @@
             } catch (_) { /* ignore */ }
           })();
 
-          // COMMENT: Prepare shared styles so the external link tiles match the active theme.
+          // COMMENT: Community links — same SVG icon style as the side panel footer
           const isDarkTheme = getMode() === 'dark';
           const linkTileStyles = {
             display: 'flex',
@@ -924,47 +986,51 @@
             color: isDarkTheme ? THEME_COLORS.inputDarkText : THEME_COLORS.inputLightText,
             transition: 'background-color 0.2s ease, border-color 0.2s ease'
           };
-
-          // COMMENT: Builder keeps GitHub + review links consistent (icon + label + spacing).
-          const createCommunityLink = ({ label, href, icon, alt }) => {
+          const iconWrapStyles = {
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: '32px',
+            height: '32px',
+            borderRadius: '999px',
+            color: '#3674B5',
+            flexShrink: '0'
+          };
+          const createCommunityLink = ({ label, href, svgPath }) => {
             const link = createEl('a', {
               attributes: { href, target: '_blank', rel: 'noopener noreferrer' },
               styles: { ...linkTileStyles }
             });
-            const iconImg = createEl('img', {
-              attributes: { src: chrome.runtime.getURL(icon), alt, width: '20', height: '20' },
-              styles: { filter: iconFilter() }
+            const iconWrap = createEl('span', {
+              styles: { ...iconWrapStyles },
+              innerHTML: `<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="${svgPath}"/></svg>`
             });
             const text = createEl('span', { innerHTML: label });
-            link.append(iconImg, text);
+            link.append(iconWrap, text);
             return link;
           };
-
-          // COMMENT: Highlight community call-to-actions so users can find GitHub + reviews fast.
           const communityTitle = createEl('div', { styles: { fontWeight: 'bold', fontSize: '13px', marginTop: '10px', opacity: 0.85 }, innerHTML: 'Support & Links' });
           const communityLinks = createEl('div', { styles: { display: 'flex', flexDirection: 'column', gap: '6px' } });
           communityLinks.append(
             createCommunityLink({
               label: 'Visit the GitHub Repository',
               href: 'https://github.com/jonathanbertholet/promptmanager',
-              icon: 'icons/github-icon.png',
-              alt: 'GitHub icon'
+              svgPath: 'M12 2C6.48 2 2 6.48 2 12c0 4.42 2.87 8.17 6.84 9.49.5.09.68-.22.68-.48 0-.24-.01-.87-.01-1.7-2.78.62-3.37-1.37-3.37-1.37-.45-1.16-1.11-1.47-1.11-1.47-.91-.64.07-.63.07-.63 1 .07 1.53 1.05 1.53 1.05.89 1.52 2.34 1.08 2.91.83.09-.64.35-1.08.63-1.33-2.22-.26-4.56-1.14-4.56-5.07 0-1.12.39-2.03 1.03-2.75-.1-.26-.45-1.3.1-2.71 0 0 .84-.27 2.75 1.05A9.2 9.2 0 0 1 12 6.84c.85.004 1.71.12 2.51.34 1.91-1.32 2.75-1.05 2.75-1.05.55 1.41.2 2.45.1 2.71.64.72 1.03 1.63 1.03 2.75 0 3.94-2.34 4.81-4.57 5.07.36.32.68.94.68 1.9 0 1.37-.01 2.47-.01 2.8 0 .27.18.58.69.48A10.01 10.01 0 0 0 22 12c0-5.52-4.48-10-10-10z'
             }),
             createCommunityLink({
               label: 'Leave a Review',
               href: 'https://chromewebstore.google.com/detail/open-prompt-manager/gmhaghdbihgenofhnmdbglbkbplolain',
-              icon: 'icons/review-icon.png',
-              alt: 'Review icon'
+              svgPath: 'M12 17.27 18.18 21l-1.64-7.03L22 9.24l-7.19-.62L12 2 9.19 8.62 2 9.24l5.46 4.73L5.82 21 12 17.27z'
             }),
             createCommunityLink({
               label: 'Buy me a Coffee',
               href: 'https://buymeacoffee.com/jonathanbertholet',
-              icon: 'icons/coffee.svg',
-              alt: 'Coffee icon'
+              svgPath: 'M20 3H4v10c0 2.21 1.79 4 4 4h6c2.21 0 4-1.79 4-4v-3h2c1.11 0 2-.9 2-2V5c0-1.11-.9-2-2-2zm0 5h-2V5h2v3zM4 19h16v2H4v-2z'
             })
           );
 
-          form.append(title, settings, dataSectionTitle, dataActions, deleteAllBtn, tagMgmtTitle, tagMgmtContainer, communityTitle, communityLinks);
+          form.append(title, shortcutTitle, shortcutRow, settings, dataSectionTitle, dataActions, deleteAllBtn, tagMgmtTitle, tagMgmtContainer, communityTitle, communityLinks);
+          form.addEventListener('click', e => e.stopPropagation());
           return form;
         },
         async createEditView() {

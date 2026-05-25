@@ -34,15 +34,30 @@
 
 <div class="opm-changelog" style="display: flex; flex-direction: column; gap: 16px;">
 
+    <div style="font-weight: bold; margin-bottom: 4px;">Version 2.9</div>
+    <div>
+    <ul>
+      <li><strong>Open Prompt Database import</strong>: add community prompts from the catalog site into your library via “Add to Open Prompt Manager” (stable <code>opd:</code> ids — re-import updates the same prompt when the catalog changes).</li>
+      <li>Duplicate detection: if the prompt is already in your library, the site shows “Already in library” instead of adding a second copy.</li>
+      <li>Settings link to browse the community catalog; content-script bridge on the database site for reliable imports (dev and Chrome Web Store builds).</li>
+    </ul>
+  </div>
+
+    <div style="font-weight: bold; margin-bottom: 4px;">Version 2.8</div>
+    <div>
+    <ul>
+      <li>Unified settings page: launcher mode, preferences, tag management, import/export, permissions editor, and custom open shortcut.</li>
+      <li>Custom keyboard shortcut recorder for the in-page prompt panel.</li>
+      <li>Full v2 backup export (prompts, folders, tag order) with improved import merge.</li>
+    </ul>
+  </div>
+
     <div style="font-weight: bold; margin-bottom: 4px;">Version 2.7</div>
     <div>
     <ul>
       <li>Side panel search and tag filters, synced with the in-page prompt panel.</li>
       <li>Tag input with suggestions on create/edit forms in the side panel.</li>
       <li>Smooth animated panel resizing when switching list, create, variable, and edit views.</li>
-      <li>Stable list height based on total prompt count — tag filtering no longer jumps the panel.</li>
-      <li>Variable and edit forms keep the bottom menu visible with improved label/input layout.</li>
-      <li>Hovering the launcher button reopens the panel after auto-close and preserves in-progress forms.</li>
       <li>Expanded prompt lab tab: close button, layout polish, and more reliable tab dismissal.</li>
     </ul>
   </div>
@@ -50,13 +65,11 @@
     <div style="font-weight: bold; margin-bottom: 4px;">Version 2.6.0</div>
     <div>
     <ul>
-      <li>Custom websites — pick any site's chat input from the sidebar (<em>+ Custom website</em> under Assistants).</li>
+      <li>Custom websites: pick any site's chat input from the sidebar (<em>+ Custom website</em> under Assistants).</li>
       <li>Launcher mode picker on install: hover button (default) or hot corner.</li>
-      <li>Settings page: keyboard shortcuts, launcher mode, prompt export/import, and per-site permission removal.</li>
       <li>Side panel layout: Assistants section pinned above the footer.</li>
       <li>Performance improvements on LLM pages (input detection cache, lighter DOM observers).</li>
       <li>Reliability fixes: keyboard shortcut opens the panel correctly, permissions stay in sync when revoked, and injection recovery on SPA navigations.</li>
-      <li>Removed the in-panel Navigation &amp; Features help view.</li>
     </ul>
   </div>
 

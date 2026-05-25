@@ -1,5 +1,5 @@
 import { exportPrompts, importPrompts } from './importExport.js';
-import { setPrompts } from './storage/promptStorage.js';
+import { getPrompts, setPrompts } from './storage/promptStorage.js';
 import { getAllPinnedInputs, removePinnedForHostname } from './storage/pinnedInputStorage.js';
 import {
   resolveProviderIconUrl,
@@ -7,10 +7,52 @@ import {
   getFaviconFallbackForUrl,
 } from './utils/providerIcons.js';
 
-// COMMENT: Storage key shared with the install page and content-script launcher preference
+// COMMENT: Storage keys shared with the in-page panel and side panel
 const DISPLAY_MODE_KEY = 'displayMode';
 const DEFAULT_DISPLAY_MODE = 'standard';
 const ALLOWED_DISPLAY_MODES = new Set(['standard', 'hotCorner']);
+const KEYBOARD_SHORTCUT_KEY = 'keyboardShortcut';
+const APPEND_MODE_KEY = 'disableOverwrite';
+const ENABLE_TAGS_KEY = 'enableTags';
+const FORCE_DARK_KEY = 'forceDarkMode';
+const TAGS_ORDER_KEY = 'tagsOrder';
+
+/** COMMENT: Default open-panel shortcut per platform (matches content.js KeyboardManager). */
+function getDefaultKeyboardShortcut() {
+  const isMac = navigator.platform.toUpperCase().includes('MAC');
+  return {
+    key: isMac ? 'p' : 'm',
+    modifier: isMac ? 'metaKey' : 'ctrlKey',
+    requiresShift: isMac,
+  };
+}
+
+/** COMMENT: Human-readable label for a stored shortcut object. */
+function formatKeyboardShortcut(shortcut) {
+  const isMac = navigator.platform.toUpperCase().includes('MAC');
+  const parts = [];
+  if (shortcut.modifier === 'metaKey') parts.push(isMac ? '⌘' : 'Meta');
+  else if (shortcut.modifier === 'ctrlKey') parts.push(isMac ? '⌃' : 'Ctrl');
+  else if (shortcut.modifier === 'altKey') parts.push(isMac ? '⌥' : 'Alt');
+  if (shortcut.requiresShift) parts.push(isMac ? '⇧' : 'Shift');
+  parts.push(String(shortcut.key || '').toUpperCase());
+  return parts.join(' + ');
+}
+
+function storageGet(keys) {
+  return new Promise(resolve => chrome.storage.local.get(keys, resolve));
+}
+
+function storageSet(obj) {
+  return new Promise(resolve => chrome.storage.local.set(obj, resolve));
+}
+
+function setImportExportStatus(message, isError = false) {
+  const el = document.getElementById('import-export-status');
+  if (!el) return;
+  el.textContent = message || '';
+  el.classList.toggle('settings-status-error', isError);
+}
 
 /**
  * COMMENT: Wire launcher mode radios on the dedicated settings page.
@@ -45,6 +87,267 @@ function initDisplayModePicker() {
       updateSelectedUI(radio.value);
     });
   });
+}
+
+/** COMMENT: Sync checkbox toggles with chrome.storage.local preference keys. */
+function initPreferenceToggles() {
+  const appendToggle = document.getElementById('toggle-append-mode');
+  const tagsToggle = document.getElementById('toggle-enable-tags');
+  const darkToggle = document.getElementById('toggle-force-dark');
+  if (!appendToggle || !tagsToggle || !darkToggle) return;
+
+  storageGet([APPEND_MODE_KEY, ENABLE_TAGS_KEY, FORCE_DARK_KEY]).then((result) => {
+    appendToggle.checked = !!result[APPEND_MODE_KEY];
+    tagsToggle.checked = !!result[ENABLE_TAGS_KEY];
+    darkToggle.checked = !!result[FORCE_DARK_KEY];
+    updateTagManagementVisibility(tagsToggle.checked);
+    // COMMENT: Render after toggles load — checkbox defaults are false before storage resolves
+    renderTagManagement().catch(console.error);
+  });
+
+  appendToggle.addEventListener('change', () => {
+    storageSet({ [APPEND_MODE_KEY]: appendToggle.checked });
+  });
+
+  tagsToggle.addEventListener('change', () => {
+    storageSet({ [ENABLE_TAGS_KEY]: tagsToggle.checked });
+    updateTagManagementVisibility(tagsToggle.checked);
+    renderTagManagement().catch(console.error);
+  });
+
+  darkToggle.addEventListener('change', () => {
+    storageSet({ [FORCE_DARK_KEY]: darkToggle.checked });
+  });
+}
+
+function updateTagManagementVisibility(enabled) {
+  const section = document.getElementById('tag-management-section');
+  if (section) section.hidden = !enabled;
+}
+
+/** COMMENT: Load and display the current open-panel keyboard shortcut. */
+async function refreshShortcutDisplay() {
+  const display = document.getElementById('open-shortcut-display');
+  if (!display) return;
+  const stored = await storageGet([KEYBOARD_SHORTCUT_KEY]);
+  const shortcut = stored[KEYBOARD_SHORTCUT_KEY] || getDefaultKeyboardShortcut();
+  display.textContent = formatKeyboardShortcut(shortcut);
+}
+
+/** COMMENT: Capture the next keydown as the custom open-panel shortcut. */
+function initKeyboardShortcutRecorder() {
+  const recordBtn = document.getElementById('open-shortcut-record');
+  const display = document.getElementById('open-shortcut-display');
+  if (!recordBtn || !display) return;
+
+  let recording = false;
+  let handler = null;
+
+  const stopRecording = () => {
+    recording = false;
+    recordBtn.textContent = 'Record shortcut';
+    recordBtn.classList.remove('is-recording');
+    if (handler) {
+      document.removeEventListener('keydown', handler, true);
+      handler = null;
+    }
+  };
+
+  recordBtn.addEventListener('click', () => {
+    if (recording) {
+      stopRecording();
+      return;
+    }
+
+    recording = true;
+    recordBtn.textContent = 'Press keys… (Esc to cancel)';
+    recordBtn.classList.add('is-recording');
+    display.textContent = 'Listening…';
+
+    handler = async (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+
+      if (event.key === 'Escape') {
+        stopRecording();
+        await refreshShortcutDisplay();
+        return;
+      }
+
+      // COMMENT: Ignore lone modifier keys — wait for a real key combo
+      if (['Control', 'Meta', 'Alt', 'Shift'].includes(event.key)) return;
+
+      let modifier = 'ctrlKey';
+      if (event.metaKey) modifier = 'metaKey';
+      else if (event.altKey) modifier = 'altKey';
+
+      const key = event.key.length === 1 ? event.key.toLowerCase() : event.key.toLowerCase();
+      const shortcut = {
+        modifier,
+        requiresShift: event.shiftKey,
+        key,
+      };
+
+      await storageSet({ [KEYBOARD_SHORTCUT_KEY]: shortcut });
+      stopRecording();
+      display.textContent = formatKeyboardShortcut(shortcut);
+    };
+
+    document.addEventListener('keydown', handler, true);
+  });
+}
+
+/** COMMENT: Count tag usage across all prompts for management UI labels. */
+function computeTagCounts(prompts = []) {
+  const counts = new Map();
+  prompts.forEach((prompt) => {
+    (Array.isArray(prompt.tags) ? prompt.tags : []).forEach((tag) => {
+      const key = String(tag).trim();
+      if (!key) return;
+      counts.set(key, (counts.get(key) || 0) + 1);
+    });
+  });
+  return counts;
+}
+
+/** COMMENT: Merge stored tag order with tags found on prompts. */
+async function getOrderedTags(counts) {
+  const stored = await storageGet([TAGS_ORDER_KEY]);
+  const order = Array.isArray(stored[TAGS_ORDER_KEY]) ? stored[TAGS_ORDER_KEY] : [];
+  const tags = Array.from(counts.keys());
+  const missing = tags.filter(t => !order.includes(t)).sort((a, b) => a.localeCompare(b));
+  return [...order.filter(t => counts.has(t)), ...missing];
+}
+
+// COMMENT: Shared drag state so one-time list listeners always target the latest render
+let tagManagementDragReady = false;
+let tagMgmtState = null;
+
+/** COMMENT: Render draggable tag pills with remove actions (mirrors in-page tag management). */
+async function renderTagManagement() {
+  const listEl = document.getElementById('tag-management-list');
+  const emptyEl = document.getElementById('tag-management-empty');
+  if (!listEl || !emptyEl) return;
+
+  const stored = await storageGet([ENABLE_TAGS_KEY]);
+  const enabled = !!stored[ENABLE_TAGS_KEY];
+  updateTagManagementVisibility(enabled);
+  if (!enabled) {
+    listEl.innerHTML = '';
+    emptyEl.hidden = true;
+    tagMgmtState = null;
+    return;
+  }
+
+  const prompts = await getPrompts();
+  let counts = computeTagCounts(prompts);
+  let finalOrder = await getOrderedTags(counts);
+  listEl.innerHTML = '';
+
+  const hasTags = finalOrder.length > 0;
+  emptyEl.hidden = hasTags;
+
+  let dragFromIndex = null;
+
+  const persistOrder = async () => {
+    await storageSet({ [TAGS_ORDER_KEY]: finalOrder });
+  };
+
+  const render = () => {
+    listEl.innerHTML = '';
+    finalOrder.forEach((tag, idx) => {
+      const count = counts.get(tag) || 0;
+      const pill = document.createElement('div');
+      pill.className = 'settings-tag-pill';
+      pill.dataset.tag = tag;
+
+      const handle = document.createElement('button');
+      handle.type = 'button';
+      handle.className = 'settings-tag-drag';
+      handle.setAttribute('draggable', 'true');
+      handle.setAttribute('aria-label', `Reorder tag ${tag}`);
+      handle.innerHTML = `<img src="${chrome.runtime.getURL('icons/drag_indicator.svg')}" width="14" height="14" alt="">`;
+
+      handle.addEventListener('dragstart', (event) => {
+        event.dataTransfer.effectAllowed = 'move';
+        event.dataTransfer.setData('text/plain', String(idx));
+        dragFromIndex = idx;
+        if (tagMgmtState) tagMgmtState.dragFromIndex = idx;
+        pill.classList.add('is-dragging');
+      });
+      handle.addEventListener('dragend', () => {
+        dragFromIndex = null;
+        if (tagMgmtState) tagMgmtState.dragFromIndex = null;
+        pill.classList.remove('is-dragging');
+      });
+
+      const label = document.createElement('span');
+      label.className = 'settings-tag-label';
+      label.textContent = `${tag} (${count})`;
+
+      const removeBtn = document.createElement('button');
+      removeBtn.type = 'button';
+      removeBtn.className = 'settings-tag-remove';
+      removeBtn.setAttribute('aria-label', `Remove tag ${tag} from all prompts`);
+      removeBtn.textContent = '×';
+      removeBtn.addEventListener('click', async () => {
+        if (!confirm(`Remove tag "${tag}" from all prompts?`)) return;
+        const currentPrompts = await getPrompts();
+        const nextPrompts = currentPrompts.map((prompt) => ({
+          ...prompt,
+          tags: Array.isArray(prompt.tags) ? prompt.tags.filter(t => t !== tag) : [],
+        }));
+        await setPrompts(nextPrompts);
+        counts = computeTagCounts(nextPrompts);
+        finalOrder = finalOrder.filter(t => t !== tag);
+        if (tagMgmtState) {
+          tagMgmtState.counts = counts;
+          tagMgmtState.finalOrder = finalOrder;
+        }
+        await persistOrder();
+        render();
+        emptyEl.hidden = finalOrder.length > 0;
+      });
+
+      pill.append(handle, label, removeBtn);
+      listEl.appendChild(pill);
+    });
+  };
+
+  tagMgmtState = {
+    counts,
+    finalOrder,
+    dragFromIndex,
+    persistOrder,
+    render,
+  };
+
+  if (!tagManagementDragReady) {
+    tagManagementDragReady = true;
+    listEl.addEventListener('dragover', (event) => {
+      event.preventDefault();
+      const state = tagMgmtState;
+      if (!state) return;
+      const target = event.target.closest('.settings-tag-pill');
+      if (!target || state.dragFromIndex === null) return;
+      const targetIndex = state.finalOrder.indexOf(target.dataset.tag);
+      if (targetIndex === -1 || targetIndex === state.dragFromIndex) return;
+      const moved = state.finalOrder.splice(state.dragFromIndex, 1)[0];
+      state.finalOrder.splice(targetIndex, 0, moved);
+      state.dragFromIndex = targetIndex;
+      state.render();
+    });
+
+    listEl.addEventListener('drop', async (event) => {
+      event.preventDefault();
+      const state = tagMgmtState;
+      if (!state) return;
+      state.dragFromIndex = null;
+      await state.persistOrder();
+    });
+  }
+
+  render();
 }
 
 /**
@@ -244,9 +547,7 @@ async function renderWebsitePermissions() {
   });
 }
 
-/**
- * COMMENT: Wire website permission removal controls on the settings page.
- */
+/** COMMENT: Wire website permission removal controls on the settings page. */
 function initWebsitePermissions() {
   renderWebsitePermissions().catch(console.error);
 
@@ -255,18 +556,37 @@ function initWebsitePermissions() {
     if (changes.aiProvidersMap || changes.pinned_inputs_v1) {
       renderWebsitePermissions().catch(console.error);
     }
+    if (changes.prompts_storage || changes.prompts || changes.tagsOrder || changes.enableTags) {
+      renderTagManagement().catch(console.error);
+    }
   });
 }
 
-// COMMENT: Guard optional controls — settings.html may not include every legacy button id
+async function deleteAllPrompts() {
+  if (confirm('Are you sure you want to delete all prompts? This action cannot be undone.')) {
+    await setPrompts([]);
+    setImportExportStatus('All prompts deleted.');
+    renderTagManagement().catch(console.error);
+  }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   initDisplayModePicker();
+  initPreferenceToggles();
+  initKeyboardShortcutRecorder();
   initWebsitePermissions();
+  refreshShortcutDisplay().catch(console.error);
 
   const exportButton = document.getElementById('export-btn');
   if (exportButton) {
-    exportButton.addEventListener('click', () => {
-      exportPrompts();
+    exportButton.addEventListener('click', async () => {
+      try {
+        await exportPrompts();
+        setImportExportStatus('Export started — check your downloads folder.');
+      } catch (err) {
+        console.error(err);
+        setImportExportStatus('Export failed.', true);
+      }
     });
   }
 
@@ -274,29 +594,25 @@ document.addEventListener('DOMContentLoaded', () => {
   const importFile = document.getElementById('import-file');
   if (importButton && importFile) {
     importButton.addEventListener('click', () => importFile.click());
-    importFile.addEventListener('change', (event) => {
+    importFile.addEventListener('change', async (event) => {
       const file = event.target.files?.[0];
-      if (file) importPrompts(file);
-    });
-  }
-
-  const exportSyncButton = document.getElementById('export-sync-prompts');
-  if (exportSyncButton) {
-    exportSyncButton.addEventListener('click', () => {
-      exportPrompts();
+      importFile.value = '';
+      if (!file) return;
+      try {
+        await importPrompts(file);
+        setImportExportStatus('Import successful — prompts merged.');
+        renderTagManagement().catch(console.error);
+      } catch (err) {
+        console.error(err);
+        setImportExportStatus(err?.message || 'Import failed — invalid JSON file.', true);
+      }
     });
   }
 
   const deleteAllButton = document.getElementById('delete-all-prompts');
   if (deleteAllButton) {
-    deleteAllButton.addEventListener('click', deleteAllPrompts);
+    deleteAllButton.addEventListener('click', () => {
+      deleteAllPrompts().catch(console.error);
+    });
   }
 });
-
-async function deleteAllPrompts() {
-  // COMMENT: Use unified prompt storage to clear all prompts (canonical + legacy mirrored)
-  if (confirm('Are you sure you want to delete all prompts? This action cannot be undone.')) {
-    await setPrompts([]);
-    alert('All prompts have been deleted');
-  }
-}

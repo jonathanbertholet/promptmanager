@@ -10,7 +10,7 @@ export async function exportPrompts() {
 }
 
 // Import prompts from a JSON file and merge with local prompts
-export function importPrompts(file) {
+export async function importPrompts(file) {
   // COMMENT: Delegate to unified manager; callers should re-render via onPromptsChanged
-  PromptStorage.importPrompts(file).catch(err => console.error('Import failed:', err));
+  return PromptStorage.importPrompts(file);
 }

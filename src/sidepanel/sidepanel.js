@@ -20,6 +20,8 @@ function debounceSidepanel(fn, wait = 250) {
 
 let llmsSectionRenderInFlight = null;
 let cachedProvidersMap = null;
+// COMMENT: Cache permission gate result so init does not repeat storage reads
+let cachedPermissionAllowed = null;
 
 /**
  * COMMENT: Update only the custom-website button when the active tab changes.
@@ -207,37 +209,6 @@ function createCustomWebsiteButton() {
   return button;
 }
 
-// COMMENT: Helper to check if any provider permissions are granted
-async function hasAnyGrantedProviderPermission() {
-  return new Promise(resolve => {
-    try {
-      chrome.storage.local.get(['aiProvidersMap'], async result => {
-        if (result?.aiProvidersMap) {
-          const providersMap = result.aiProvidersMap;
-          const anyGranted = Object.values(providersMap).some(p => p && p.hasPermission === 'Yes');
-          if (anyGranted) {
-            resolve(true);
-            return;
-          }
-        }
-
-        // COMMENT: Custom pinned websites also unlock the prompt list
-        try {
-          const pinned = await getAllPinnedInputs();
-          resolve(Object.keys(pinned).length > 0);
-        } catch (_) {
-          resolve(false);
-        }
-      });
-    } catch (err) {
-      resolve(false);
-    }
-  });
-}
-
-// COMMENT: Track folded state of the "Available" group (collapsed by default)
-let llmsAvailableCollapsed = true;
-
 // COMMENT: Shared storage keys with the in-page panel so search/tag filters stay in sync
 const TAG_STORAGE = {
   enableTags: 'enableTags',
@@ -245,10 +216,123 @@ const TAG_STORAGE = {
   tagsOrder: 'tagsOrder',
 };
 
+// COMMENT: Derive permission gate from already-loaded storage data
+function computePermissionFromData(providersMap, pinnedInputs) {
+  if (providersMap && typeof providersMap === 'object') {
+    const anyGranted = Object.values(providersMap).some(p => p && p.hasPermission === 'Yes');
+    if (anyGranted) return true;
+  }
+  return Object.keys(pinnedInputs || {}).length > 0;
+}
+
+// COMMENT: Helper to check if any provider permissions are granted
+async function hasAnyGrantedProviderPermission() {
+  if (cachedPermissionAllowed !== null) {
+    return cachedPermissionAllowed;
+  }
+
+  try {
+    const [stored, pinnedInputs] = await Promise.all([
+      new Promise(resolve => {
+        try {
+          chrome.storage.local.get(['aiProvidersMap'], resolve);
+        } catch (_) {
+          resolve({});
+        }
+      }),
+      getAllPinnedInputs().catch(() => ({})),
+    ]);
+
+    if (stored?.aiProvidersMap) {
+      cachedProvidersMap = stored.aiProvidersMap;
+    }
+    cachedPermissionAllowed = computePermissionFromData(stored?.aiProvidersMap, pinnedInputs);
+    return cachedPermissionAllowed;
+  } catch (_) {
+    cachedPermissionAllowed = false;
+    return false;
+  }
+}
+
+// COMMENT: Load prompts, provider map, pinned inputs, and tag settings in one parallel pass
+async function loadInitSnapshot() {
+  const settingsKeys = [
+    'aiProvidersMap',
+    TAG_STORAGE.activeTagFilter,
+    TAG_STORAGE.enableTags,
+    TAG_STORAGE.tagsOrder,
+  ];
+  const [prompts, storageData, pinnedInputs] = await Promise.all([
+    PromptStorage.getPrompts(),
+    new Promise(resolve => {
+      try {
+        chrome.storage.local.get(settingsKeys, resolve);
+      } catch (_) {
+        resolve({});
+      }
+    }),
+    getAllPinnedInputs().catch(() => ({})),
+  ]);
+
+  return {
+    prompts,
+    providersMap: storageData?.aiProvidersMap || null,
+    pinnedInputs,
+    activeTagFilter: storageData?.[TAG_STORAGE.activeTagFilter] ?? 'all',
+    enableTags: Boolean(storageData?.[TAG_STORAGE.enableTags]),
+    tagsOrder: Array.isArray(storageData?.[TAG_STORAGE.tagsOrder])
+      ? storageData[TAG_STORAGE.tagsOrder]
+      : [],
+  };
+}
+
+// COMMENT: Coordinated first paint — prompt list first, tag bar and Assistants deferred
+async function initSidepanelContent() {
+  const snapshot = await loadInitSnapshot();
+  allPromptsCache = snapshot.prompts;
+  activeTagFilter = snapshot.activeTagFilter || 'all';
+  cachedEnableTags = snapshot.enableTags;
+  cachedTagsOrder = snapshot.tagsOrder;
+
+  if (snapshot.providersMap) {
+    cachedProvidersMap = snapshot.providersMap;
+  }
+  cachedPermissionAllowed = computePermissionFromData(cachedProvidersMap, snapshot.pinnedInputs);
+
+  // COMMENT: Paint the prompt list before tag filters or Assistants build
+  displayPrompts(
+    allPromptsCache.filter(promptMatchesFilters),
+    allPromptsCache.length
+  );
+  await renderPermissionsGate(cachedPermissionAllowed, { skipControls: true });
+
+  const controls = document.getElementById('prompt-list-controls');
+  if (controls && cachedPermissionAllowed) {
+    controls.hidden = false;
+  }
+
+  const renderSecondaryUi = () => {
+    renderPromptListControls(allPromptsCache, cachedPermissionAllowed).catch(console.error);
+    initFormTags(cachedEnableTags).catch(console.error);
+    renderLLMsSection({ pinnedInputs: snapshot.pinnedInputs }).catch(console.error);
+  };
+  if (typeof requestIdleCallback === 'function') {
+    requestIdleCallback(renderSecondaryUi, { timeout: 300 });
+  } else {
+    setTimeout(renderSecondaryUi, 0);
+  }
+}
+
+// COMMENT: Track folded state of the "Available" group (collapsed by default)
+let llmsAvailableCollapsed = true;
+
 let allPromptsCache = [];
 let activeTagFilter = 'all';
 let searchTerm = '';
 let formTagInput = null;
+// COMMENT: Cached tag settings from the init snapshot to avoid repeat storage reads
+let cachedEnableTags = false;
+let cachedTagsOrder = [];
 
 async function getLocalSetting(key, defaultValue) {
   try {
@@ -279,8 +363,10 @@ function computeTagCounts(prompts = []) {
   return counts;
 }
 
-async function getOrderedTags(counts) {
-  const order = await getLocalSetting(TAG_STORAGE.tagsOrder, []);
+async function getOrderedTags(counts, orderOverride) {
+  const order = Array.isArray(orderOverride)
+    ? orderOverride
+    : (cachedTagsOrder.length ? cachedTagsOrder : await getLocalSetting(TAG_STORAGE.tagsOrder, []));
   const tags = Array.from(counts.keys());
   const missing = tags.filter(t => !order.includes(t)).sort((a, b) => a.localeCompare(b));
   return [...order.filter(t => counts.has(t)), ...missing];
@@ -480,11 +566,13 @@ function createSidepanelTagInput({ initialTags = [] } = {}) {
   };
 }
 
-async function renderTagsFilterBar(prompts) {
+async function renderTagsFilterBar(prompts, enableTagsOverride) {
   const barHost = document.getElementById('prompt-tags-filter');
   if (!barHost) return;
 
-  const enableTags = await getLocalSetting(TAG_STORAGE.enableTags, false);
+  const enableTags = enableTagsOverride !== undefined
+    ? enableTagsOverride
+    : await getLocalSetting(TAG_STORAGE.enableTags, false);
   if (!enableTags) {
     barHost.hidden = true;
     barHost.innerHTML = '';
@@ -498,7 +586,7 @@ async function renderTagsFilterBar(prompts) {
     return;
   }
 
-  const orderedTags = await getOrderedTags(counts);
+  const orderedTags = await getOrderedTags(counts, cachedTagsOrder);
   barHost.hidden = false;
   barHost.innerHTML = '';
 
@@ -531,23 +619,28 @@ async function renderTagsFilterBar(prompts) {
   barHost.appendChild(bar);
 }
 
-async function renderPromptListControls(prompts) {
+async function renderPromptListControls(prompts, allowedOverride) {
   const controls = document.getElementById('prompt-list-controls');
   if (!controls) return;
 
-  const allowed = await hasAnyGrantedProviderPermission();
+  const allowed = allowedOverride !== undefined
+    ? allowedOverride
+    : await hasAnyGrantedProviderPermission();
   controls.hidden = !allowed;
 
   if (allowed) {
-    await renderTagsFilterBar(prompts);
+    await renderTagsFilterBar(prompts, cachedEnableTags);
   }
 }
 
-async function initFormTags() {
+async function initFormTags(enableTagsOverride) {
   const host = document.getElementById('prompt-tags-host');
   if (!host) return;
 
-  const enabled = await getLocalSetting(TAG_STORAGE.enableTags, false);
+  const enabled = enableTagsOverride !== undefined
+    ? enableTagsOverride
+    : await getLocalSetting(TAG_STORAGE.enableTags, false);
+  cachedEnableTags = enabled;
   if (formTagInput?.destroy) {
     formTagInput.destroy();
     formTagInput = null;
@@ -603,8 +696,18 @@ async function closeExpandedView() {
 }
 
 // COMMENT: Smoothly open/close a collapsible element without auto-scrolling the view
-function setCollapsibleOpen(collapsibleEl, open) {
+function setCollapsibleOpen(collapsibleEl, open, { animate = true } = {}) {
   if (!collapsibleEl) return;
+  if (!animate) {
+    if (open) {
+      collapsibleEl.classList.add('open');
+      collapsibleEl.style.maxHeight = 'none';
+    } else {
+      collapsibleEl.classList.remove('open');
+      collapsibleEl.style.maxHeight = '0px';
+    }
+    return;
+  }
   const scrollEl = document.scrollingElement || document.documentElement || document.body;
   const prevScrollTop = scrollEl.scrollTop;
   const targetHeight = collapsibleEl.scrollHeight;
@@ -689,7 +792,7 @@ async function getProvidersMapOrFallback() {
 }
 
 // COMMENT: Render the LLMs section with "Activated" and "Available" pills, reflecting storage status and permissions behavior
-async function renderLLMsSectionBody() {
+async function renderLLMsSectionBody({ pinnedInputs: pinnedInputsOverride } = {}) {
   const section = document.getElementById('llms-section');
   const activeWrap = document.getElementById('llms-activated');
   const availableWrap = document.getElementById('llms-available');
@@ -704,7 +807,7 @@ async function renderLLMsSectionBody() {
   availableWrap.innerHTML = '';
 
   const providersMap = await getProvidersMapOrFallback();
-  const pinnedInputs = await getAllPinnedInputs();
+  const pinnedInputs = pinnedInputsOverride ?? await getAllPinnedInputs();
   const customSites = Object.keys(pinnedInputs).sort();
 
   // Split into active vs available
@@ -810,23 +913,23 @@ async function renderLLMsSectionBody() {
   if (!hasKnownActive) {
     if (availableGroup) availableGroup.style.display = '';
     llmsAvailableCollapsed = false;
-    setCollapsibleOpen(availableWrap, true);
+    setCollapsibleOpen(availableWrap, true, { animate: false });
     if (availableToggle) availableToggle.setAttribute('aria-expanded', 'true');
   } else {
     if (availableGroup) availableGroup.style.display = '';
-    setCollapsibleOpen(availableWrap, !llmsAvailableCollapsed);
+    setCollapsibleOpen(availableWrap, !llmsAvailableCollapsed, { animate: false });
     if (availableToggle) {
       availableToggle.setAttribute('aria-expanded', llmsAvailableCollapsed ? 'false' : 'true');
     }
   }
 }
 
-async function renderLLMsSection() {
+async function renderLLMsSection(options = {}) {
   if (llmsSectionRenderInFlight) {
     return llmsSectionRenderInFlight;
   }
 
-  llmsSectionRenderInFlight = renderLLMsSectionBody();
+  llmsSectionRenderInFlight = renderLLMsSectionBody(options);
   try {
     await llmsSectionRenderInFlight;
   } finally {
@@ -835,19 +938,23 @@ async function renderLLMsSection() {
 }
 
 // COMMENT: Toggle visibility between permissions shortcut and prompt list based on granted permissions
-async function renderPermissionsGate() {
+async function renderPermissionsGate(allowedOverride, { skipControls = false } = {}) {
   const shortcut = document.getElementById('permissions-shortcut');
   const promptList = document.getElementById('prompt-list');
   const listControls = document.getElementById('prompt-list-controls');
   const emptyState = document.getElementById('empty-state');
   if (!shortcut || !promptList) return;
-  const allowed = await hasAnyGrantedProviderPermission();
+  const allowed = allowedOverride !== undefined
+    ? allowedOverride
+    : await hasAnyGrantedProviderPermission();
   if (allowed) {
     // Hide shortcut, show list normally
     shortcut.style.display = 'none';
     promptList.style.display = 'block';
     if (listControls) listControls.hidden = false;
-    await renderPromptListControls(allPromptsCache);
+    if (!skipControls) {
+      await renderPromptListControls(allPromptsCache, allowed);
+    }
     if (emptyState && promptList.children.length === 0) {
       const hasAnyPrompts = allPromptsCache.length > 0;
       emptyState.style.display = hasAnyPrompts ? 'none' : 'block';
@@ -875,6 +982,7 @@ function displayPrompts(prompts, totalCount = prompts.length) {
     return;
   }
   if (emptyState) emptyState.style.display = 'none';
+  const fragment = document.createDocumentFragment();
   prompts.forEach((prompt) => {
     const li = document.createElement('li');
     li.dataset.uuid = prompt.uuid;
@@ -956,8 +1064,9 @@ function displayPrompts(prompts, totalCount = prompts.length) {
       delBtn.style.display = 'none';
     });
 
-    document.getElementById('prompt-list').appendChild(li);
+    fragment.appendChild(li);
   });
+  promptList.appendChild(fragment);
 }
 
 // COMMENT: Load prompts from storage, apply search/tag filters, and render
@@ -991,16 +1100,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   }
 
-  // COMMENT: Restore shared tag filter + form tag row from storage
-  activeTagFilter = await getLocalSetting(TAG_STORAGE.activeTagFilter, 'all');
-  await initFormTags();
-
-  // Load prompts and display
-  refreshPromptListView();
-  // COMMENT: Evaluate permissions gate on load
-  renderPermissionsGate();
-  // COMMENT: Render LLMs section on load
-  renderLLMsSection();
+  // COMMENT: Single coordinated init — prompt list paints before form tags / filters
+  await initSidepanelContent();
 
   if (searchInput) {
     searchInput.addEventListener('input', (e) => {
@@ -1020,6 +1121,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
     chrome.storage.onChanged.addListener((changes, area) => {
       if (area === 'local' && changes.pinned_inputs_v1) {
+        cachedPermissionAllowed = null;
         renderPermissionsGate();
         renderLLMsSection();
       }
@@ -1028,6 +1130,14 @@ document.addEventListener('DOMContentLoaded', async () => {
           activeTagFilter = changes.activeTagFilter.newValue || 'all';
         }
         if (changes.enableTags || changes.activeTagFilter || changes.tagsOrder) {
+          if (changes.enableTags?.newValue !== undefined) {
+            cachedEnableTags = Boolean(changes.enableTags.newValue);
+          }
+          if (changes.tagsOrder?.newValue !== undefined) {
+            cachedTagsOrder = Array.isArray(changes.tagsOrder.newValue)
+              ? changes.tagsOrder.newValue
+              : [];
+          }
           initFormTags();
           refreshPromptListView();
         }
@@ -1052,9 +1162,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     };
     availableToggle.addEventListener('click', toggle);
     availableToggle.addEventListener('keydown', toggle);
-    // Ensure default collapsed state reflected in DOM
-    setCollapsibleOpen(availableWrap, false);
-    availableToggle.setAttribute('aria-expanded', 'false');
   }
 
   // COMMENT: Refresh UI whenever prompts change in storage
@@ -1065,6 +1172,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     chrome.storage.onChanged.addListener((changes, area) => {
       if (area === 'local' && changes.aiProvidersMap) {
         cachedProvidersMap = changes.aiProvidersMap.newValue || null;
+        cachedPermissionAllowed = null;
         renderPermissionsGate();
         // COMMENT: Also refresh the LLMs section so pills reflect new activation status
         renderLLMsSection();

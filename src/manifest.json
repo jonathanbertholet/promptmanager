@@ -1,7 +1,7 @@
 {
     "manifest_version": 3,
     "name": "Open Prompt Manager",
-    "version": "2.7",
+    "version": "2.9",
     "description": "Open Source Prompt Manager for ChatGPT, Claude, Gemini, Grok and more.",
     "permissions": [
         "sidePanel",
@@ -31,10 +31,28 @@
         "service_worker": "service-worker.js",
         "type": "module"
     },
+    "content_scripts": [
+        {
+            "matches": [
+                "https://open-prompt-database.jonathanbertholet.workers.dev/*",
+                "http://localhost:8787/*",
+                "http://127.0.0.1:8787/*"
+            ],
+            "js": ["opd/opd-bridge.js"],
+            "run_at": "document_start"
+        }
+    ],
     "host_permissions": [],
     "optional_host_permissions": [
         "<all_urls>"
     ],
+    "externally_connectable": {
+        "matches": [
+            "https://open-prompt-database.jonathanbertholet.workers.dev/*",
+            "http://localhost:8787/*",
+            "http://127.0.0.1:8787/*"
+        ]
+    },
     "web_accessible_resources": [
         {
             "resources": [

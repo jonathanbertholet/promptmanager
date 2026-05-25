@@ -1,4 +1,5 @@
 import { getProviders } from './llm_providers.js';
+import { importCatalogPrompt } from './opd/opdImport.js';
 import { getPrompts, onPromptsChanged, savePrompt } from './storage/promptStorage.js';
 import { removePinnedForHostname } from './storage/pinnedInputStorage.js';
 import { resolveProviderIconUrl } from './utils/providerIcons.js';
@@ -201,10 +202,35 @@ async function runPinInputAction(tabId, action) {
 }
 
 /**
- * COMMENT: Side panel pin/unpin requests arrive here so we can inject scripts when needed.
- * Expanded-tab close uses sender.tab because getCurrent() is unreliable from extension pages.
+ * COMMENT: OPD catalog import — shared by content-script bridge and external webpage messages.
+ * @param {object} message
+ * @param {function} sendResponse
  */
+function handleOpdImportPrompt(message, sendResponse) {
+  (async () => {
+    try {
+      const result = await importCatalogPrompt(message.prompt);
+      sendResponse(result);
+    } catch (error) {
+      sendResponse({ ok: false, error: error?.message || 'import_failed' });
+    }
+  })();
+}
+
+chrome.runtime.onMessageExternal.addListener((message, _sender, sendResponse) => {
+  if (message?.type !== 'OPD_IMPORT_PROMPT') {
+    return undefined;
+  }
+  handleOpdImportPrompt(message, sendResponse);
+  return true;
+});
+
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message?.type === 'OPD_IMPORT_PROMPT') {
+    handleOpdImportPrompt(message, sendResponse);
+    return true;
+  }
+
   if (message?.type === 'OPM_CLOSE_EXPANDED_TAB') {
     const tabId = sender.tab?.id;
     if (!tabId) {

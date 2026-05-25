@@ -569,7 +569,11 @@ class KeyboardManager {
   static async _onKeyDown(e) {
     const shortcut = KeyboardManager.shortcutCache || await PromptStorageManager.getKeyboardShortcut();
     if (!KeyboardManager.shortcutCache && shortcut) KeyboardManager.shortcutCache = shortcut;
-    if (e[shortcut.modifier] && (shortcut.requiresShift ? e.shiftKey : true) && e.key.toLowerCase() === shortcut.key.toLowerCase()) {
+    // COMMENT: Match the configured modifier + optional shift + key for open/close toggle
+    const modifierMatches = Boolean(shortcut?.modifier && e[shortcut.modifier]);
+    const shiftMatches = shortcut?.requiresShift ? e.shiftKey : true;
+    const keyMatches = shortcut?.key && e.key.toLowerCase() === String(shortcut.key).toLowerCase();
+    if (modifierMatches && shiftMatches && keyMatches) {
       e.preventDefault();
       KeyboardManager._togglePromptList();
       return;
@@ -674,7 +678,8 @@ class PromptStorageManager {
       savePrompt: mod.savePrompt,
       updatePrompt: mod.updatePrompt,
       deletePrompt: mod.deletePrompt,
-      importPrompts: mod.importPrompts
+      importPrompts: mod.importPrompts,
+      exportPrompts: mod.exportPrompts
     };
     return this.__ps;
   }
@@ -697,8 +702,13 @@ class PromptStorageManager {
 
   static async mergeImportedPrompts(imported) {
     const ps = await this._ps();
-    // imported may be array or JSON string
+    // COMMENT: Accept File, legacy array, or full v2 backup object
     return await ps.importPrompts(imported);
+  }
+
+  static async exportPrompts() {
+    const ps = await this._ps();
+    return await ps.exportPrompts();
   }
   
   static async getButtonPosition() { return await PromptStorageManager.getData('buttonPosition', { x: 75, y: 100 }); }
@@ -2113,10 +2123,16 @@ const PromptMediator = (() => {
   const setupDisplayModeWatcher = () => {
     if (!chrome?.storage?.onChanged) return;
     chrome.storage.onChanged.addListener((changes, area) => {
-      if (area !== 'local' || !changes.displayMode) return;
-      PromptUIManager.refreshDisplayMode().catch((err) => {
-        console.error('Failed to refresh display mode after storage change:', err);
-      });
+      if (area !== 'local') return;
+      if (changes.displayMode) {
+        PromptUIManager.refreshDisplayMode().catch((err) => {
+          console.error('Failed to refresh display mode after storage change:', err);
+        });
+      }
+      if (changes.forceDarkMode) {
+        window.isDarkModeForced = !!changes.forceDarkMode.newValue;
+        PromptUIManager.updateThemeForUI();
+      }
     });
   };
 
