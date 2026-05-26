@@ -2,7 +2,9 @@
 
 Living notes for the community prompt catalog: publish from the extension, browse on the web, import back into Open Prompt Manager. Last drafted **May 2026** (targets **OPM v2.8+**).
 
-**Related:** `plan.md` (core extension debt), `src/storage/promptStorage.js` (import/export), `src/sidepanel/styles.css` (visual system).
+**Website repo (private):** [github.com/jonathanbertholet/open-prompt-database](https://github.com/jonathanbertholet/open-prompt-database) — Cloudflare Worker + D1; not part of the public `promptmanager` repo.
+
+**Related:** `plan.md` (core extension debt), `src/storage/promptStorage.js` (import/export), `src/sidepanel/styles.css` (visual system), `src/opd/` (extension client for catalog import/publish).
 
 **Explicitly not:** private cloud sync, per-website libraries, or changes to LLM API keys / provider endpoints.
 
@@ -91,7 +93,7 @@ flowchart TB
 |-----------|------|----------------|
 | `opd-api` | Cloudflare Worker | REST: list, get, publish, report |
 | `opd-db` | D1 | `prompts`, `reports` tables |
-| `opd-web` | Pages (or Worker static) | Browse UI, detail, legal pages |
+| `open-prompt-database` (private repo) | Pages (Worker static) | Browse UI, detail, legal pages |
 | `src/opd/` (new) | Extension modules | Client, settings, UI hooks |
 | `service-worker.js` | Existing | `externally_connectable`, message router |
 | `promptStorage.js` | Existing | `importPublicPrompt()` wrapper |

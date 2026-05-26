@@ -34,4 +34,7 @@ coverage/
 
 # Temporary files
 *.tmp
-*.temp 
+*.temp
+
+# Open Prompt Database website (private repo — clone separately)
+opd/ 
