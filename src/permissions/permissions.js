@@ -5,7 +5,7 @@ document.addEventListener('DOMContentLoaded', function () {
   // COMMENT: Storage key shared with content-script display mode preference
   const DISPLAY_MODE_KEY = 'displayMode';
   const DEFAULT_DISPLAY_MODE = 'standard';
-  const ALLOWED_DISPLAY_MODES = new Set(['standard', 'hotCorner']);
+  const ALLOWED_DISPLAY_MODES = new Set(['standard', 'hotCorner', 'invisible']);
 
   /**
    * COMMENT: Wire the install-page launcher choice (hover button vs hot corner).

@@ -6,11 +6,12 @@ import {
   attachProviderIconFallback,
   getFaviconFallbackForUrl,
 } from './utils/providerIcons.js';
+import { mountSidepanelFooter } from './sidepanel/sidepanelFooter.js';
 
 // COMMENT: Storage keys shared with the in-page panel and side panel
 const DISPLAY_MODE_KEY = 'displayMode';
 const DEFAULT_DISPLAY_MODE = 'standard';
-const ALLOWED_DISPLAY_MODES = new Set(['standard', 'hotCorner']);
+const ALLOWED_DISPLAY_MODES = new Set(['standard', 'hotCorner', 'invisible']);
 const KEYBOARD_SHORTCUT_KEY = 'keyboardShortcut';
 const APPEND_MODE_KEY = 'disableOverwrite';
 const ENABLE_TAGS_KEY = 'enableTags';
@@ -571,6 +572,9 @@ async function deleteAllPrompts() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+  const shell = document.querySelector('.settings-page-shell');
+  mountSidepanelFooter({ active: 'settings', root: shell || document.body });
+
   initDisplayModePicker();
   initPreferenceToggles();
   initKeyboardShortcutRecorder();

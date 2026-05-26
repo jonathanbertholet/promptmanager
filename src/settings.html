@@ -8,10 +8,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
 <body class="settings-page">
-  <div class="title">
-    <img class="icon" src="icons/icon128.png" alt="Extension Icon" style="width: 22px; height: 22px;">
-    <h2>Settings</h2>
-  </div>
+  <div class="settings-page-shell">
+  <div class="settings-page-scroll">
+  <header class="subpage-header">
+    <a href="sidepanel/index.html" class="subpage-back" aria-label="Back to side panel" title="Back">
+      <svg class="footer-md-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+    </a>
+    <h2 class="subpage-title">Settings</h2>
+  </header>
 
   <section class="settings-section settings-section-first">
     <h3 class="settings-heading">Keyboard shortcuts</h3>
@@ -46,7 +50,7 @@
 
   <section class="settings-section">
     <h3 class="settings-heading">Launcher mode</h3>
-    <p class="pm-subtitle">Choose how prompts open on assistant pages.</p>
+    <p class="pm-subtitle">Choose how prompts open on assistant pages. Invisible mode uses your keyboard shortcut only.</p>
     <div id="display-mode-section" class="settings-mode-options" role="radiogroup" aria-label="Launcher mode">
       <label class="settings-mode-option">
         <input type="radio" name="displayMode" value="standard">
@@ -55,6 +59,10 @@
       <label class="settings-mode-option">
         <input type="radio" name="displayMode" value="hotCorner">
         <span>Hot corner</span>
+      </label>
+      <label class="settings-mode-option">
+        <input type="radio" name="displayMode" value="invisible">
+        <span>Invisible</span>
       </label>
     </div>
   </section>
@@ -90,7 +98,6 @@
 
   <section class="settings-section">
     <h3 class="settings-heading">Prompt management</h3>
-    <p class="pm-subtitle">Export includes prompts, folders, and tag order. Import merges with your existing library.</p>
     <div class="pm-row">
       <button class="main" id="export-btn" type="button">Export</button>
       <button class="main" id="import-btn" type="button">Import</button>
@@ -106,46 +113,8 @@
     <p id="permissions-empty" class="pm-subtitle settings-permissions-empty">No website access granted yet.</p>
     <ul id="permissions-list" class="settings-permissions-list" aria-live="polite"></ul>
   </section>
-
-  <!-- COMMENT: Community catalog + support links -->
-  <section class="settings-section">
-    <h3 class="settings-heading">Open Prompt Database</h3>
-    <p class="pm-subtitle">Browse community prompts on the web and add them with one click. Imports are stored in this extension’s prompt library.</p>
-    <div class="settings-community-links">
-      <a class="settings-community-link" href="https://open-prompt-database.jonathanbertholet.workers.dev/" target="_blank" rel="noopener noreferrer">
-        <span class="settings-community-icon" aria-hidden="true">
-          <svg class="footer-md-icon" viewBox="0 0 24 24"><path fill="currentColor" d="M4 8h4V4H4v4zm6 12h4v-4h-4v4zm-6 0h4v-4H4v4zm0-6h4v-4H4v4zm6 0h4v-4h-4v4zm6-10v4h4V4h-4zm0 6h4v-4h-4v4zm0 6h4v-4h-4v4z"/></svg>
-        </span>
-        <span>Browse the community catalog</span>
-      </a>
-    </div>
-  </section>
-
-  <section class="settings-section">
-    <h3 class="settings-heading">Support &amp; links</h3>
-    <div class="settings-community-links">
-      <a class="settings-community-link" href="https://github.com/jonathanbertholet/promptmanager" target="_blank" rel="noopener noreferrer">
-        <span class="settings-community-icon" aria-hidden="true">
-          <svg class="footer-md-icon" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12c0 4.42 2.87 8.17 6.84 9.49.5.09.68-.22.68-.48 0-.24-.01-.87-.01-1.7-2.78.62-3.37-1.37-3.37-1.37-.45-1.16-1.11-1.47-1.11-1.47-.91-.64.07-.63.07-.63 1 .07 1.53 1.05 1.53 1.05.89 1.52 2.34 1.08 2.91.83.09-.64.35-1.08.63-1.33-2.22-.26-4.56-1.14-4.56-5.07 0-1.12.39-2.03 1.03-2.75-.1-.26-.45-1.3.1-2.71 0 0 .84-.27 2.75 1.05A9.2 9.2 0 0 1 12 6.84c.85.004 1.71.12 2.51.34 1.91-1.32 2.75-1.05 2.75-1.05.55 1.41.2 2.45.1 2.71.64.72 1.03 1.63 1.03 2.75 0 3.94-2.34 4.81-4.57 5.07.36.32.68.94.68 1.9 0 1.37-.01 2.47-.01 2.8 0 .27.18.58.69.48A10.01 10.01 0 0 0 22 12c0-5.52-4.48-10-10-10z"/></svg>
-        </span>
-        <span>Visit the GitHub repository</span>
-      </a>
-      <a class="settings-community-link" href="https://chromewebstore.google.com/detail/open-prompt-manager/gmhaghdbihgenofhnmdbglbkbplolain" target="_blank" rel="noopener noreferrer">
-        <span class="settings-community-icon" aria-hidden="true">
-          <svg class="footer-md-icon" viewBox="0 0 24 24"><path fill="currentColor" d="M12 17.27 18.18 21l-1.64-7.03L22 9.24l-7.19-.62L12 2 9.19 8.62 2 9.24l5.46 4.73L5.82 21 12 17.27z"/></svg>
-        </span>
-        <span>Leave a review</span>
-      </a>
-      <a class="settings-community-link" href="https://buymeacoffee.com/jonathanbertholet" target="_blank" rel="noopener noreferrer">
-        <span class="settings-community-icon" aria-hidden="true">
-          <svg class="footer-md-icon" viewBox="0 0 24 24"><path fill="currentColor" d="M20 3H4v10c0 2.21 1.79 4 4 4h6c2.21 0 4-1.79 4-4v-3h2c1.11 0 2-.9 2-2V5c0-1.11-.9-2-2-2zm0 5h-2V5h2v3zM4 19h16v2H4v-2z"/></svg>
-        </span>
-        <span>Buy me a coffee</span>
-      </a>
-    </div>
-  </section>
-
-  <a href="sidepanel/index.html"><button class="main settings-back-btn" type="button">Back to side panel</button></a>
+  </div>
+  </div>
 
   <script type="module" src="settings.js"></script>
 </body>

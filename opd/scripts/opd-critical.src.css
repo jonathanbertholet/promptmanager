@@ -1,0 +1,313 @@
+/**
+ * Above-the-fold CSS (inlined in build as opd-critical.css).
+ * Full layout/components load deferred via opd.bundle.css.
+ */
+
+:root {
+  --primary: #3674b5;
+  --hover-primary: #4b93e0;
+  --light-bg: #f7fafc;
+  --opd-nav-bar-height: 68px;
+  --opd-content-gap-below-nav: 28px;
+  --opd-layout-max: 1140px;
+  --opd-layout-padding-x: 20px;
+}
+
+@media (min-width: 286px) {
+  body.opd-site {
+    font-family: Helvetica, Verdana, Geneva, Tahoma, sans-serif;
+    background-color: var(--light-bg);
+    color: #2d3748;
+    margin: 0 auto;
+    width: 100%;
+    max-width: var(--opd-layout-max);
+    min-height: 100vh;
+    padding: 0 var(--opd-layout-padding-x) 40px;
+    box-sizing: border-box;
+  }
+
+  .opd-main {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding-top: 4px;
+  }
+
+  .opd-main-wide {
+    max-width: 100%;
+  }
+
+  h2,
+  h3,
+  .settings-heading {
+    margin-top: 0;
+    margin-bottom: 12px;
+    color: var(--primary);
+  }
+
+  .settings-heading {
+    margin-bottom: 4px;
+    font-size: 1rem;
+    font-weight: 600;
+  }
+
+  .pm-subtitle {
+    margin: 6px 0 0;
+    font-size: 12px;
+    color: #4a5568;
+    line-height: 1.45;
+  }
+
+  .opd-nav-bar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 100;
+    min-height: 68px;
+    border-bottom: 1px solid rgba(203, 213, 224, 0.65);
+    background: rgba(247, 250, 252, 0.97);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  }
+
+  .opd-nav-spacer {
+    height: calc(var(--opd-nav-bar-height) + var(--opd-content-gap-below-nav));
+  }
+
+  .opd-nav-bar-inner {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-height: 68px;
+    max-width: var(--opd-layout-max);
+    margin: 0 auto;
+    padding: 8px var(--opd-layout-padding-x);
+    box-sizing: border-box;
+  }
+
+  .opd-nav-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-decoration: none;
+    min-width: 0;
+  }
+
+  .opd-nav-brand-title {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--primary);
+  }
+
+  .opd-nav-brand-sub {
+    font-size: 0.7rem;
+    color: #718096;
+  }
+
+  .opd-nav-menu {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex: 1;
+    justify-content: center;
+  }
+
+  .opd-nav-end {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-left: auto;
+  }
+
+  @media (max-width: 900px) {
+    :root {
+      --opd-layout-max: 100%;
+      --opd-layout-padding-x: 16px;
+      --opd-content-gap-below-nav: 16px;
+    }
+
+    body.opd-site {
+      max-width: none;
+    }
+
+    .opd-nav-bar-inner {
+      max-width: none;
+    }
+
+    .opd-nav-toggle {
+      display: inline-flex !important;
+    }
+
+    .opd-nav-brand {
+      max-width: none;
+      flex: 1 1 auto;
+      min-width: 0;
+    }
+
+    .opd-nav-brand-title {
+      overflow: visible;
+      text-overflow: unset;
+      white-space: nowrap;
+    }
+
+    .opd-nav-brand-sub {
+      display: none;
+    }
+
+    .opd-nav-actions--bar [data-opd-theme-toggle],
+    .opd-nav-actions--bar > .opd-chrome-cta {
+      display: none !important;
+    }
+  }
+
+  .opd-prompt-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  @media (min-width: 640px) {
+    .opd-prompt-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+
+  .opd-prompt-card,
+  .opd-skeleton-card {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 12px 14px;
+    background: #fff;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 8px;
+    position: relative;
+    min-height: 118px;
+    box-sizing: border-box;
+  }
+
+  .opd-chrome-cta {
+    min-height: 38px;
+    box-sizing: border-box;
+  }
+
+  .opd-mega-panel[hidden] {
+    display: none !important;
+  }
+
+  .opd-prompt-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--primary);
+    margin: 0;
+    line-height: 1.35;
+  }
+
+  .opd-prompt-meta {
+    font-size: 12px;
+    color: #718096;
+    margin: 0;
+  }
+
+  .opd-prompt-snippet {
+    font-size: 13px;
+    color: #4a5568;
+    margin: 0;
+    line-height: 1.45;
+  }
+
+  .opd-filter-pill {
+    border: 1px solid #cbd5e0;
+    border-radius: 999px;
+    background: #fff;
+    color: #494949;
+    font-size: 13px;
+    padding: 6px 14px;
+    cursor: pointer;
+    font-family: inherit;
+  }
+
+  .opd-filter-pill[aria-pressed='true'] {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: #fff;
+  }
+
+  .opd-popular-filter-bar {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 8px;
+    overflow-x: auto;
+    padding-bottom: 6px;
+  }
+
+  .opd-section-grid-host {
+    min-height: 48px;
+  }
+
+  .opd-empty {
+    padding: 24px 16px;
+    text-align: center;
+    color: #718096;
+    font-size: 14px;
+  }
+
+  @keyframes opd-shimmer {
+    0% {
+      background-position: 200% 0;
+    }
+    100% {
+      background-position: -200% 0;
+    }
+  }
+
+  .opd-skeleton-line {
+    display: block;
+    height: 12px;
+    border-radius: 4px;
+    background: linear-gradient(90deg, #e2e8f0 0%, #edf2f7 50%, #e2e8f0 100%);
+    background-size: 200% 100%;
+    animation: opd-shimmer 1.2s ease-in-out infinite;
+  }
+}
+
+/* Dark theme — first paint matches deferred bundle */
+html[data-opd-theme='dark'] body.opd-site,
+body.opd-site.opd-theme-dark {
+  background-color: #1a202c;
+  color: #cbd5e0;
+}
+
+html[data-opd-theme='dark'] body.opd-site .settings-heading,
+html[data-opd-theme='dark'] body.opd-site .opd-prompt-title,
+html[data-opd-theme='dark'] body.opd-site .opd-nav-brand-title,
+body.opd-site.opd-theme-dark .settings-heading,
+body.opd-site.opd-theme-dark .opd-prompt-title,
+body.opd-site.opd-theme-dark .opd-nav-brand-title {
+  color: #f1f5f9;
+}
+
+html[data-opd-theme='dark'] body.opd-site .pm-subtitle,
+html[data-opd-theme='dark'] body.opd-site .opd-prompt-meta,
+html[data-opd-theme='dark'] body.opd-site .opd-prompt-snippet,
+body.opd-site.opd-theme-dark .pm-subtitle,
+body.opd-site.opd-theme-dark .opd-prompt-meta,
+body.opd-site.opd-theme-dark .opd-prompt-snippet {
+  color: #cbd5e0;
+}
+
+body.opd-site.opd-theme-dark .opd-nav-bar {
+  background: rgba(26, 32, 44, 0.97);
+  border-bottom-color: #4a5568;
+}
+
+body.opd-site.opd-theme-dark .opd-prompt-card {
+  background: #2d3748;
+  border-color: #4a5568;
+}
+
+body.opd-site.opd-theme-dark .opd-filter-pill {
+  background: #2d3748;
+  border-color: #4a5568;
+  color: #e2e8f0;
+}

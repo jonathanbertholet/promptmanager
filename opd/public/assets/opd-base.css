@@ -1,0 +1,112 @@
+/* Minimal extension tokens + shared UI primitives for the OPD site (not full sidepanel CSS). */
+
+:root {
+  --primary: #3674b5;
+  --hover-primary: #4b93e0;
+  --light-bg: #f7fafc;
+  --input-light-border: 1px solid #cbd5e0;
+  --input-light-bg: #ffffff;
+  --input-light-text: #2d3748;
+}
+
+@media (min-width: 286px) {
+  body.opd-site {
+    font-family: Helvetica, Verdana, Geneva, Tahoma, sans-serif;
+    background-color: var(--light-bg);
+    color: #2d3748;
+    margin: 0;
+  }
+
+  h2,
+  h3 {
+    margin-top: 0;
+    color: var(--primary);
+    margin-bottom: 12px;
+  }
+
+  button.main {
+    background-color: var(--primary);
+    color: #fff;
+    border: none;
+    padding: 10px 20px;
+    font-size: 13px;
+    margin: 0;
+    cursor: pointer;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transition: background-color 0.2s ease, box-shadow 0.2s ease;
+    width: 100%;
+    font-family: inherit;
+  }
+
+  button.main:hover {
+    background-color: var(--hover-primary);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  }
+
+  button.main:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+
+  .pm-subtitle {
+    margin-top: 6px;
+    margin-bottom: 0;
+    font-size: 12px;
+    color: #4a5568;
+    line-height: 1.45;
+  }
+
+  .settings-section {
+    margin: 1.25rem 0 1.5rem;
+    padding-top: 1rem;
+    border-top: 1px solid rgba(0, 0, 0, 0.08);
+  }
+
+  .settings-section-first {
+    margin-top: 0;
+    padding-top: 0;
+    border-top: none;
+  }
+
+  .settings-heading {
+    margin: 0 0 0.35rem 0;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--primary);
+  }
+
+  .info-banner {
+    margin: 8px 0 10px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    background-color: rgba(54, 116, 181, 0.08);
+    border: 1px solid rgba(54, 116, 181, 0.35);
+    color: #1f2937;
+  }
+}
+
+/* Dark theme — readable light text on shared primitives */
+html[data-opd-theme="dark"] body.opd-site h2,
+html[data-opd-theme="dark"] body.opd-site h3,
+body.opd-site.opd-theme-dark h2,
+body.opd-site.opd-theme-dark h3 {
+  color: #f1f5f9;
+}
+
+html[data-opd-theme="dark"] body.opd-site .settings-heading,
+body.opd-site.opd-theme-dark .settings-heading {
+  color: #f1f5f9;
+}
+
+html[data-opd-theme="dark"] body.opd-site .pm-subtitle,
+body.opd-site.opd-theme-dark .pm-subtitle {
+  color: #cbd5e0;
+}
+
+html[data-opd-theme="dark"] body.opd-site .info-banner,
+body.opd-site.opd-theme-dark .info-banner {
+  color: #e2e8f0;
+  background-color: rgba(99, 179, 237, 0.12);
+  border-color: rgba(99, 179, 237, 0.35);
+}

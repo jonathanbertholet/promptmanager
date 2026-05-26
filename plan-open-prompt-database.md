@@ -139,7 +139,7 @@ Only fields safe to expose. **Never** upload full v2 backup (`folders`, `meta.ta
 
 ## API Sketch (v1)
 
-Base: `https://api.openpromptdatabase.example/v1` (exact domain TBD).
+Base: `https://openpromptdatabase.com/v1`.
 
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
@@ -208,10 +208,10 @@ File: `src/service-worker.js`
 
 ```json
 "externally_connectable": {
-  "matches": ["https://openpromptdatabase.example/*"]
+  "matches": ["https://openpromptdatabase.com/*"]
 },
 "optional_host_permissions": [
-  "https://api.openpromptdatabase.example/*"
+  "https://openpromptdatabase.com/*"
 ]
 ```
 
@@ -233,7 +233,7 @@ src/
 
 ## Website UX Plan (OPD)
 
-Host: `https://openpromptdatabase.example` (Pages). **Reuse** `sidepanel/styles.css` (copy or symlink into `opd-web/assets/`).
+Host: `https://openpromptdatabase.com` (Cloudflare Worker + static assets). **Reuse** `sidepanel/styles.css` (copy or symlink into `opd/public/assets/`).
 
 ### Pages
 

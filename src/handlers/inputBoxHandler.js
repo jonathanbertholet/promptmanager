@@ -639,8 +639,8 @@ class InputBoxHandler {
   }
 
   /**
-   * COMMENT: Enter click-to-pin mode on the active page tab.
-   * @returns {Promise<object>}
+   * COMMENT: Enter click-to-pin mode with a mouse-following spotlight that snaps to inputs.
+   * @returns {object}
    */
   static startPinPickerMode() {
     if (window.__OPM_PIN_PICKER_ACTIVE__) {
@@ -648,7 +648,44 @@ class InputBoxHandler {
     }
 
     window.__OPM_PIN_PICKER_ACTIVE__ = true;
-    InputBoxHandler._showPinToast('Click the chat/input field to use on this website');
+
+    const EXAMPLE_PROMPT = 'Example Prompt';
+    const INPUT_PAD = 6;
+    const MOUSE_SPOT_SIZE = 56;
+    let highlighted = null;
+    let dismissed = false;
+    let cleanedUp = false;
+    let lastPointer = {
+      x: Math.round(window.innerWidth / 2),
+      y: Math.round(window.innerHeight / 2),
+    };
+
+    const root = document.createElement('div');
+    root.id = 'opm-pin-picker-root';
+    root.setAttribute('data-opm-ui', 'pin-picker');
+
+    const spotlight = document.createElement('div');
+    spotlight.className = 'opm-pin-picker-spotlight';
+
+    const pill = document.createElement('div');
+    pill.className = 'opm-pin-picker-pill';
+    pill.setAttribute('role', 'status');
+
+    const pillText = document.createElement('span');
+    pillText.className = 'opm-pin-picker-pill-text';
+    pillText.textContent = 'Choose an input field to load prompts into';
+
+    const closeBtn = document.createElement('button');
+    closeBtn.type = 'button';
+    closeBtn.className = 'opm-pin-picker-close';
+    closeBtn.setAttribute('aria-label', 'Cancel input picker');
+    closeBtn.innerHTML = '&times;';
+
+    pill.appendChild(pillText);
+    pill.appendChild(closeBtn);
+    root.appendChild(spotlight);
+    root.appendChild(pill);
+    document.documentElement.appendChild(root);
 
     const styleId = 'opm-pin-picker-style';
     let style = document.getElementById(styleId);
@@ -658,44 +695,188 @@ class InputBoxHandler {
       document.head.appendChild(style);
     }
     style.textContent = `
-      .opm-pin-picker-target {
-        outline: 2px solid #3674B5 !important;
-        outline-offset: 2px !important;
+      .opm-pin-picker-spotlight {
+        position: fixed;
+        top: 0;
+        left: 0;
+        z-index: 2147483646;
+        border: 2px solid #3674B5;
+        border-radius: 50%;
+        box-shadow: 0 0 0 9999px rgba(15, 23, 42, 0.58);
+        pointer-events: none;
+        opacity: 1;
+        will-change: transform, width, height;
+        transition: opacity 280ms ease, box-shadow 280ms ease;
+      }
+      .opm-pin-picker-spotlight.is-on-input {
+        border-radius: 12px;
+        transition: opacity 280ms ease, box-shadow 280ms ease,
+          transform 90ms ease, width 90ms ease, height 90ms ease;
+      }
+      .opm-pin-picker-pill {
+        position: fixed;
+        left: 50%;
+        bottom: 24px;
+        transform: translateX(-50%);
+        z-index: 2147483647;
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        max-width: min(92vw, 520px);
+        padding: 10px 10px 10px 16px;
+        border-radius: 999px;
+        background: #1f2937;
+        color: #fff;
+        font: 500 13px/1.4 system-ui, -apple-system, sans-serif;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
+        pointer-events: auto;
+        opacity: 1;
+        transition: opacity 280ms ease, transform 280ms ease;
+      }
+      .opm-pin-picker-pill-text {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .opm-pin-picker-close {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 28px;
+        height: 28px;
+        border: none;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.12);
+        color: #fff;
+        font-size: 18px;
+        line-height: 1;
+        cursor: pointer;
+        flex-shrink: 0;
+      }
+      .opm-pin-picker-close:hover {
+        background: rgba(255, 255, 255, 0.2);
+      }
+      html.opm-pin-picker-active,
+      html.opm-pin-picker-active * {
         cursor: crosshair !important;
       }
-      html.opm-pin-picker-active, html.opm-pin-picker-active * {
-        cursor: crosshair !important;
+      html.opm-pin-picker-active .opm-pin-picker-pill,
+      html.opm-pin-picker-active .opm-pin-picker-close {
+        cursor: default !important;
       }
     `;
 
     document.documentElement.classList.add('opm-pin-picker-active');
-    let highlighted = null;
 
-    const setHighlight = (element) => {
-      if (highlighted === element) return;
-      if (highlighted) highlighted.classList.remove('opm-pin-picker-target');
-      highlighted = element;
-      if (highlighted) highlighted.classList.add('opm-pin-picker-target');
+    const setSpotlightRect = ({ top, left, width, height, round = false }) => {
+      const sizeW = Math.max(width, 8);
+      const sizeH = Math.max(height, 8);
+      spotlight.style.width = `${sizeW}px`;
+      spotlight.style.height = `${sizeH}px`;
+      spotlight.style.transform = `translate3d(${left}px, ${top}px, 0)`;
+      spotlight.classList.toggle('is-on-input', !round);
+      spotlight.style.opacity = '1';
+    };
+
+    const setSpotlightAtPointer = (x, y) => {
+      const half = MOUSE_SPOT_SIZE / 2;
+      setSpotlightRect({
+        top: y - half,
+        left: x - half,
+        width: MOUSE_SPOT_SIZE,
+        height: MOUSE_SPOT_SIZE,
+        round: true,
+      });
+    };
+
+    const setSpotlightOnElement = (element) => {
+      const rect = element.getBoundingClientRect();
+      setSpotlightRect({
+        top: rect.top - INPUT_PAD,
+        left: rect.left - INPUT_PAD,
+        width: rect.width + INPUT_PAD * 2,
+        height: rect.height + INPUT_PAD * 2,
+        round: false,
+      });
+    };
+
+    const findEditableAtPoint = (x, y) => {
+      const stack = document.elementsFromPoint(x, y);
+      for (const node of stack) {
+        if (!(node instanceof Element)) continue;
+        if (node.closest('#opm-pin-picker-root')) continue;
+        const editable = InputBoxHandler._findEditableFromTarget(node);
+        if (editable) return editable;
+      }
+      return null;
+    };
+
+    const updateSpotlight = (x, y) => {
+      lastPointer = { x, y };
+      const editable = findEditableAtPoint(x, y);
+      highlighted = editable;
+      if (editable) {
+        setSpotlightOnElement(editable);
+        return;
+      }
+      setSpotlightAtPointer(x, y);
+    };
+
+    const removeListeners = () => {
+      document.removeEventListener('pointermove', onPointerMove, true);
+      document.removeEventListener('click', onClick, true);
+      window.removeEventListener('keydown', onKeyDown, true);
+      window.removeEventListener('scroll', refreshSpotlightGeometry, true);
+      window.removeEventListener('resize', refreshSpotlightGeometry, true);
+      closeBtn.removeEventListener('click', onCloseClick);
     };
 
     const cleanup = () => {
+      if (cleanedUp) return;
+      cleanedUp = true;
+      dismissed = true;
       window.__OPM_PIN_PICKER_ACTIVE__ = false;
+      delete window.__OPM_PIN_PICKER_DISMISS__;
       document.documentElement.classList.remove('opm-pin-picker-active');
-      document.removeEventListener('mousemove', onMouseMove, true);
-      document.removeEventListener('click', onClick, true);
-      document.removeEventListener('keydown', onKeyDown, true);
-      if (highlighted) highlighted.classList.remove('opm-pin-picker-target');
+      removeListeners();
+      root.remove();
       style?.remove();
     };
 
-    const onMouseMove = (event) => {
-      const editable = InputBoxHandler._findEditableFromTarget(event.target);
-      setHighlight(editable);
+    const dismissPicker = () => {
+      if (dismissed) return;
+      dismissed = true;
+      spotlight.style.opacity = '0';
+      spotlight.style.boxShadow = 'none';
+      pill.style.opacity = '0';
+      pill.style.transform = 'translateX(-50%) translateY(8px)';
+      window.setTimeout(cleanup, 280);
+    };
+
+    // COMMENT: Allow KeyboardManager and the service worker to cancel an active picker session
+    window.__OPM_PIN_PICKER_DISMISS__ = dismissPicker;
+
+    const refreshSpotlightGeometry = () => {
+      if (dismissed) return;
+      updateSpotlight(lastPointer.x, lastPointer.y);
+    };
+
+    const onPointerMove = (event) => {
+      if (dismissed) return;
+      updateSpotlight(event.clientX, event.clientY);
     };
 
     const onClick = async (event) => {
-      const editable = InputBoxHandler._findEditableFromTarget(event.target);
-      if (!editable) return;
+      if (dismissed) return;
+      if (pill.contains(event.target)) return;
+
+      const editable = findEditableAtPoint(event.clientX, event.clientY);
+      if (!editable) {
+        event.preventDefault();
+        event.stopPropagation();
+        event.stopImmediatePropagation();
+        return;
+      }
 
       event.preventDefault();
       event.stopPropagation();
@@ -706,29 +887,63 @@ class InputBoxHandler {
         const descriptor = InputBoxHandler._buildPinDescriptor(editable);
         await storage.setPinnedForHostname(window.location.hostname, descriptor);
         InputBoxHandler._invalidateInputCache();
-        InputBoxHandler._showPinToast(`Custom website saved for ${window.location.hostname}`);
-        cleanup();
+        InputBoxHandler._rememberInput(editable);
+
+        try {
+          await InputBoxHandler.insertPrompt(editable, EXAMPLE_PROMPT, null);
+        } catch (insertError) {
+          console.error('Failed to insert example prompt after pin:', insertError);
+        }
+
+        dismissPicker();
         return { ok: true, hostname: window.location.hostname, label: descriptor.label };
       } catch (error) {
-        cleanup();
+        dismissPicker();
         InputBoxHandler._showPinToast('Could not pin this input');
         return { ok: false, error: error.message || 'pin_failed' };
       }
     };
 
     const onKeyDown = (event) => {
-      if (event.key === 'Escape') {
-        event.preventDefault();
-        cleanup();
-        InputBoxHandler._showPinToast('Input picker cancelled');
-      }
+      if (dismissed) return;
+      if (event.key !== 'Escape' && event.key !== 'Esc' && event.code !== 'Escape') return;
+      event.preventDefault();
+      event.stopPropagation();
+      event.stopImmediatePropagation();
+      dismissPicker();
     };
 
-    document.addEventListener('mousemove', onMouseMove, true);
+    const onCloseClick = (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      dismissPicker();
+    };
+
+    document.addEventListener('pointermove', onPointerMove, true);
     document.addEventListener('click', onClick, true);
-    document.addEventListener('keydown', onKeyDown, true);
+    window.addEventListener('keydown', onKeyDown, true);
+    window.addEventListener('scroll', refreshSpotlightGeometry, true);
+    window.addEventListener('resize', refreshSpotlightGeometry, true);
+    closeBtn.addEventListener('click', onCloseClick);
+
+    updateSpotlight(lastPointer.x, lastPointer.y);
 
     return { ok: true, picking: true };
+  }
+
+  /**
+   * COMMENT: Cancel an in-progress pin picker from outside the overlay (side panel / keyboard manager).
+   * @returns {object}
+   */
+  static cancelPinPickerMode() {
+    if (!window.__OPM_PIN_PICKER_ACTIVE__) {
+      return { ok: false, error: 'not_active' };
+    }
+    if (typeof window.__OPM_PIN_PICKER_DISMISS__ === 'function') {
+      window.__OPM_PIN_PICKER_DISMISS__();
+      return { ok: true, cancelled: true };
+    }
+    return { ok: false, error: 'not_active' };
   }
 
   /**
@@ -1064,3 +1279,31 @@ class InputBoxHandler {
 
 // COMMENT: Expose globally so dynamically injected script files share the same handler
 window.InputBoxHandler = InputBoxHandler;
+
+// COMMENT: Route pin-picker actions from the service worker through the content-script world
+if (typeof chrome !== 'undefined' && chrome.runtime?.onMessage) {
+  chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+    if (message?.type !== 'OPM_PIN_INPUT_CONTENT') return undefined;
+
+    (async () => {
+      try {
+        if (message.action === 'start') {
+          sendResponse(InputBoxHandler.startPinPickerMode());
+        } else if (message.action === 'cancel') {
+          sendResponse(InputBoxHandler.cancelPinPickerMode());
+        } else if (message.action === 'clear') {
+          sendResponse(await InputBoxHandler.clearPinnedInput());
+        } else if (message.action === 'status') {
+          sendResponse(await InputBoxHandler.getPinnedStatus());
+        } else {
+          sendResponse({ ok: false, error: 'unknown_action' });
+        }
+      } catch (error) {
+        sendResponse({ ok: false, error: error?.message || 'pin_action_failed' });
+      }
+    })();
+
+    return true;
+  });
+}
+

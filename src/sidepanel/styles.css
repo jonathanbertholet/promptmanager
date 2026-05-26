@@ -1,10 +1,15 @@
 /* styles.css */
+html {
+  height: 100%;
+}
+
 @media (min-width:286px) {
   body {
     font-family: Helvetica, Verdana, Geneva, Tahoma, sans-serif;
     width: auto;
     /* COMMENT: Lock to viewport so the sidebar footer stays visible */
-    height: 100vh;
+    height: 100%;
+    min-height: 100vh;
     overflow: hidden;
     padding: 10px;
     padding-bottom: 0px;
@@ -35,60 +40,6 @@
     flex-direction: column;
     box-sizing: border-box;
     gap: 8px;
-  }
-
-  /* Info banner block placed after the form, above the prompt list */
-  .info-banner {
-    position: relative;
-    margin: 8px 0 10px 0;
-    padding: 10px 12px;
-    border-radius: 8px;
-    background-color: #E6F0FF; /* light theme base (will be overridden by theme vars below) */
-    color: #1F2937;
-    border: 1px solid #BBD3FF;
-  }
-
-  .info-banner-title {
-    margin: 0 24px 4px 0; /* leave room for the close button */
-    font-size: 14px;
-    font-weight: 600;
-    color: var(--primary);
-  }
-
-  .info-banner-text {
-    margin: 0;
-    font-size: 13px;
-    line-height: 1.4;
-  }
-
-  /* Bulleted list inside info banner - consistent spacing and markers */
-  .info-banner-list {
-    margin: 6px 0 0 18px; /* indent bullets a bit */
-    padding: 0;
-    list-style: disc; /* default disc bullets */
-  }
-  .info-banner-list li {
-    margin: 4px 0;
-    padding: 0;
-  }
-
-  .info-banner-close {
-    position: absolute;
-    top: 8px;
-    right: 8px;
-    width: 22px;
-    height: 22px;
-    border-radius: 6px;
-    background: transparent;
-    color: inherit;
-    border: none;
-    font-size: 16px;
-    line-height: 1;
-    cursor: pointer;
-  }
-
-  .info-banner-close:hover {
-    background-color: rgba(0,0,0,0.06);
   }
 
   /* COMMENT: Prompt form fields mirror in-page opm-input-field / opm-textarea-field styling */
@@ -263,6 +214,109 @@
     cursor: pointer;
   }
 
+  /* COMMENT: Sidebar prompt row actions — copy/share on hover; edit/delete in overflow menu */
+  .spm-prompt-actions {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    margin-left: auto;
+    flex-shrink: 0;
+  }
+
+  .spm-prompt-actions-primary,
+  .spm-prompt-actions-menu {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.15s ease, visibility 0.15s ease;
+  }
+
+  #prompt-list li:hover .spm-prompt-actions-primary,
+  #prompt-list li:hover .spm-prompt-actions-menu,
+  #prompt-list li.spm-actions-menu-open .spm-prompt-actions-menu {
+    opacity: 1;
+    visibility: visible;
+  }
+
+  #prompt-list li.spm-actions-menu-open .spm-prompt-actions-primary {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+  }
+
+  /* COMMENT: Keep row actions visible while copy/share success feedback plays */
+  #prompt-list li.spm-action-feedback-visible .spm-prompt-actions-primary,
+  #prompt-list li.spm-action-feedback-visible .spm-prompt-actions-menu {
+    opacity: 1;
+    visibility: visible;
+  }
+
+  .spm-prompt-actions-overflow {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    overflow: hidden;
+    max-width: 0;
+    opacity: 0;
+    transform: translateX(8px);
+    pointer-events: none;
+    transition: max-width 0.2s ease, opacity 0.15s ease, transform 0.2s ease;
+  }
+
+  #prompt-list li.spm-actions-menu-open .spm-prompt-actions-overflow {
+    max-width: 56px;
+    opacity: 1;
+    transform: translateX(0);
+    pointer-events: auto;
+  }
+
+  .spm-prompt-action-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    margin: 0;
+    padding: 0;
+    border: none;
+    border-radius: 50px;
+    background: transparent;
+    color: var(--primary);
+    flex-shrink: 0;
+  }
+
+  .spm-prompt-action-btn img,
+  .spm-prompt-action-icon {
+    width: 14px;
+    height: 14px;
+    display: block;
+    pointer-events: none;
+    transition: opacity 0.2s ease, transform 0.2s ease, color 0.2s ease;
+  }
+
+  /* COMMENT: Material-style tray+arrow share icon — same primary tint as in-page panel icons */
+  .spm-prompt-action-btn .spm-prompt-action-icon {
+    width: 16px;
+    height: 16px;
+    color: var(--primary);
+  }
+
+  .spm-prompt-action-btn.spm-prompt-action-success .spm-prompt-action-icon-success {
+    color: #38a169;
+  }
+
+  .spm-prompt-action-btn:has(img[width="18"]) img {
+    width: 18px;
+    height: 18px;
+  }
+
+  .spm-prompt-action-btn:hover {
+    background-color: #f0f0f0;
+    cursor: pointer;
+  }
+
   /* COMMENT: Search + tag filter controls (mirrors in-page panel list view) */
   .prompt-list-controls {
     display: flex;
@@ -290,9 +344,10 @@
   .spm-tags-filter-bar {
     display: flex;
     flex-wrap: nowrap;
-    gap: 6px;
+    gap: 8px;
     overflow-x: auto;
-    padding-bottom: 2px;
+    overflow-y: hidden;
+    padding-bottom: 10px;
     scrollbar-width: thin;
   }
 
@@ -418,6 +473,10 @@
     flex-shrink: 0;
   }
 
+  .title {
+    flex-shrink: 0;
+  }
+
   .title h2 {
     margin: 0;
     padding: 0;
@@ -528,7 +587,7 @@
     margin-bottom: 0;
   }
 
-  /* COMMENT: Flex column stacks composer, banner, then scrollable sidebar + pinned dock */
+  /* COMMENT: Flex column — scrollable sidebar + pinned dock */
   .main-layout {
     display: flex;
     flex-direction: column;
@@ -538,47 +597,183 @@
     width: 100%;
   }
 
-  /* COMMENT: Sidebar fills leftover height; bottom dock never scrolls away */
+  /* COMMENT: Sidebar fills leftover height; footer row stays pinned at the bottom */
   .sidebar-panel {
-    display: flex;
-    flex-direction: column;
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr) auto auto;
     width: 100%;
     flex: 1 1 auto;
     min-height: 0;
     overflow: hidden;
-    order: 3;
   }
 
-  .composer-panel {
+  /* COMMENT: Top slot — either action buttons or inline create/edit form */
+  .sidebar-top-slot {
+    min-height: 0;
+  }
+
+  .sidebar-composer {
+    padding-bottom: 8px;
+    margin-bottom: 4px;
+    border-bottom: 1px solid rgba(54, 116, 181, 0.1);
+  }
+
+  .sidebar-composer form#prompt-form {
     display: flex;
     flex-direction: column;
+    gap: 8px;
+    margin-bottom: 0;
+  }
+
+  .sidebar-composer .opm-textarea-field {
+    min-height: 96px;
+    max-height: 180px;
+    resize: vertical;
+    margin-bottom: 0;
+  }
+
+  .sidebar-composer .form-actions {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 8px;
+    align-items: stretch;
+  }
+
+  .sidebar-composer .form-actions button.main {
+    width: 100%;
+  }
+
+  /* COMMENT: Side-by-side Create / Community CTAs at top of sidebar */
+  .sidebar-action-bar {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    padding-bottom: 8px;
+    margin-bottom: 4px;
+    border-bottom: 1px solid rgba(54, 116, 181, 0.1);
+  }
+
+  .sidebar-action-bar[hidden],
+  .sidebar-composer[hidden] {
+    display: none !important;
+  }
+
+  .sidebar-action-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-height: 38px;
+    padding: 8px 10px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.2;
+    text-decoration: none;
+    cursor: pointer;
+    box-sizing: border-box;
+    border: 1px solid transparent;
+    font-family: inherit;
+  }
+
+  .sidebar-action-btn-icon {
+    width: 16px;
+    height: 16px;
     flex-shrink: 0;
-    margin-bottom: 10px;
-    order: 1;
+  }
+
+  .sidebar-action-btn-primary {
+    background: var(--primary, #3674B5);
+    color: #fff;
+    border-color: var(--primary, #3674B5);
+  }
+
+  .sidebar-action-btn-primary:hover {
+    background: var(--hover-primary, #4b93e0);
+  }
+
+  .sidebar-action-btn-secondary {
+    background: #ebf8ff;
+    color: #2c5282;
+    border-color: rgba(54, 116, 181, 0.2);
+  }
+
+  .sidebar-action-btn-secondary:hover,
+  .sidebar-action-btn-secondary:focus-visible {
+    background: #dbeafe;
+    color: #1a365d;
   }
 
   .sidebar-panel .prompts-container {
     margin-bottom: 0;
   }
 
-  #info-banner {
-    order: 2;
-    flex-shrink: 0;
-  }
-
-  .composer-panel form#prompt-form {
-    display: flex;
-    flex-direction: column;
-  }
-
-  .form-actions {
+  .opd-handle-edit-row {
     display: flex;
     flex-direction: column;
     gap: 8px;
+    margin-top: 0.35rem;
   }
 
-  .form-actions button.main {
+  .opd-handle-input-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .opd-handle-prefix {
+    font-weight: 600;
+    color: var(--primary, #3674B5);
+    flex-shrink: 0;
+  }
+
+  .opd-handle-input {
+    flex: 1 1 auto;
+    min-width: 0;
+    margin-bottom: 0 !important;
+  }
+
+  .opd-handle-suggest {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    flex-shrink: 0;
+    border: 1px solid #cbd5e0;
+    border-radius: 6px;
+    background: #fff;
+    color: var(--primary, #3674B5);
+    cursor: pointer;
+    padding: 0;
+  }
+
+  .opd-handle-suggest:hover {
+    background: rgba(54, 116, 181, 0.08);
+  }
+
+  .opd-handle-confirm {
     width: 100%;
+  }
+
+  #cancel-edit-button {
+    flex: 0 0 auto;
+    min-width: 72px;
+    border: 1px solid #cbd5e0;
+    background: #fff;
+    color: var(--primary, #3674B5);
+    border-radius: 6px;
+    padding: 8px 12px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 14px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  #cancel-edit-button:hover {
+    background: rgba(54, 116, 181, 0.08);
   }
 }
 
@@ -598,7 +793,7 @@
     box-sizing: border-box;
   }
 
-  /* COMMENT: Flex row split avoids grid overlap between sidebar and composer */
+  /* COMMENT: Single sidebar column on wide layouts */
   .main-layout {
     display: flex;
     flex-direction: row;
@@ -627,25 +822,19 @@
     overflow: visible;
   }
 
-  body.is-expanded-tab .sidebar-panel,
-  body.is-expanded-tab .composer-panel {
+  body.is-expanded-tab .sidebar-panel {
+    flex: 0 0 300px;
+    width: 300px;
+    max-width: 300px;
     min-width: 0;
     height: auto;
-    order: unset;
-  }
-
-  /* COMMENT: Expanded tab sidebar still pins Assistants/footer with internal scroll */
-  body.is-expanded-tab .sidebar-panel {
     max-height: calc(100vh - 120px);
     min-height: 280px;
     overflow: hidden;
   }
 
-  body.is-expanded-tab #info-banner {
-    order: unset;
-    grid-area: unset;
-    grid-column: unset;
-    grid-row: unset;
+  body.is-expanded-tab .sidebar-top-slot {
+    display: none !important;
   }
 
   .title {
@@ -656,13 +845,13 @@
     border-bottom: 1px solid rgba(54, 116, 181, 0.1);
   }
 
-  /* COMMENT: Left sidebar card — fixed width, no grid placement */
+  /* COMMENT: Sidebar card fills the main area */
   .sidebar-panel {
-    flex: 0 0 300px;
-    width: 300px;
-    max-width: 300px;
-    display: flex;
-    flex-direction: column;
+    flex: 1 1 auto;
+    width: auto;
+    max-width: none;
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr) auto auto;
     min-height: 0;
     height: 100%;
     background: #fff;
@@ -711,10 +900,6 @@
     background: #fff;
   }
 
-  .spm-tags-filter-bar {
-    padding-bottom: 4px;
-  }
-
   #prompt-list li {
     border: 1px solid transparent;
     border-radius: 8px;
@@ -729,7 +914,9 @@
   }
 
   .sidepanel-bottom-dock {
-    flex-shrink: 0;
+    min-height: 0;
+    max-height: min(220px, 34vh);
+    overflow-y: auto;
     margin-top: 12px;
     padding-top: 12px;
     border-top: 1px solid rgba(54, 116, 181, 0.1);
@@ -741,11 +928,12 @@
     margin-top: 0;
   }
 
-  .sidepanel-bottom-dock footer.footer {
+  .sidebar-panel > footer.footer {
     background: transparent;
-    padding: 10px 0 0;
+    padding: 10px 0 4px;
     position: static;
-    margin-top: 8px;
+    margin-top: 0;
+    border-top: 1px solid rgba(54, 116, 181, 0.1);
   }
 
   .sidebar-panel .footer-icons {
@@ -754,7 +942,7 @@
     width: 100%;
   }
 
-  body.is-expanded-tab .sidebar-panel footer.footer {
+  body.is-expanded-tab .sidebar-panel > footer.footer {
     justify-content: flex-start;
     padding-bottom: 4px;
   }
@@ -765,10 +953,10 @@
   }
 
   body.is-expanded-tab .sidepanel-bottom-dock {
-    padding-bottom: 4px;
+    padding-bottom: 0;
   }
 
-  /* COMMENT: Composer card fills remaining horizontal space */
+  /* COMMENT: Right-hand composer card in expanded tab — fills remaining width beside the sidebar */
   .composer-panel {
     flex: 1 1 auto;
     min-width: 0;
@@ -786,7 +974,11 @@
     overflow: hidden;
   }
 
-  form#prompt-form {
+  body.is-expanded-tab .composer-panel {
+    max-height: calc(100vh - 120px);
+  }
+
+  .composer-panel form#prompt-form {
     flex: 1 1 auto;
     display: flex;
     flex-direction: column;
@@ -797,51 +989,27 @@
     gap: 8px;
   }
 
-  form#prompt-form .opm-textarea-field {
+  .composer-panel .opm-textarea-field {
     flex: 1 1 auto;
     min-height: 120px;
     resize: vertical;
     margin-bottom: 4px;
   }
 
-  .form-actions {
+  .composer-panel .form-actions {
     display: flex;
     flex-direction: row;
     align-items: center;
-    justify-content: flex-end;
+    justify-content: flex-start;
     gap: 10px;
     margin-top: auto;
     padding-top: 12px;
     border-top: 1px solid rgba(54, 116, 181, 0.08);
   }
 
-  body.is-expanded-tab .form-actions {
-    justify-content: flex-start;
-  }
-
-  body.is-expanded-tab .form-actions #cancel-edit-button {
-    order: 0;
-    margin-right: 0;
-  }
-
-  .form-actions button.main {
-    width: auto;
+  body.is-expanded-tab .composer-panel .form-actions button.main {
     min-width: 148px;
     height: 40px;
-    padding: 0 20px;
-    margin: 0;
-  }
-
-  .form-actions #cancel-edit-button {
-    order: -1;
-    margin-right: auto;
-  }
-
-  #info-banner {
-    grid-column: 1 / -1;
-    grid-row: 2;
-    align-self: start;
-    z-index: 2;
   }
 
   table.footer-table {
@@ -900,10 +1068,11 @@ div.dataimpexp {
   transition: transform 0.18s ease-out, opacity 0.18s ease-out; /* Smooth transition for release */
 }
 
-/* COMMENT: Keep Assistants pinned above the footer icon row */
+/* COMMENT: Assistants dock scrolls when expanded; footer icons stay in their own row */
 .sidepanel-bottom-dock {
-  flex-shrink: 0;
-  margin-top: auto;
+  min-height: 0;
+  max-height: min(220px, 34vh);
+  overflow-y: auto;
   width: 100%;
   display: flex;
   flex-direction: column;
@@ -918,12 +1087,20 @@ div.dataimpexp {
   padding-bottom: 4px;
 }
 
-.sidepanel-bottom-dock footer.footer {
-  margin-top: 0;
+.sidebar-panel > footer.footer {
+  flex-shrink: 0;
   position: static;
+  background: var(--light-bg);
+  padding: 8px 0 4px;
+  margin-top: 0;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border-top: 1px solid rgba(54, 116, 181, 0.1);
 }
 
-/* COMMENT: Footer icon row sits inside the pinned bottom dock */
+/* COMMENT: Footer icon row — always visible at the bottom of the sidebar */
 footer.footer {
   flex-shrink: 0;
   position: static;
@@ -957,6 +1134,11 @@ footer.footer {
 
 .footer-icon-link:hover {
   background: rgba(54, 116, 181, 0.12);
+}
+
+.footer-icon-link-active {
+  background: rgba(54, 116, 181, 0.16);
+  box-shadow: inset 0 0 0 1px rgba(54, 116, 181, 0.35);
 }
 
 .footer-md-icon {
@@ -1052,12 +1234,44 @@ footer.footer {
     color: #CBD5E0;
   }
 
+  .sidebar-action-btn-secondary {
+    background: rgba(54, 116, 181, 0.14);
+    color: #CBD5E0;
+    border-color: rgba(255, 255, 255, 0.12);
+  }
+
+  .sidebar-action-btn-secondary:hover,
+  .sidebar-action-btn-secondary:focus-visible {
+    background: rgba(54, 116, 181, 0.24);
+    color: #E2E8F0;
+  }
+
+  #cancel-edit-button {
+    background: #144272;
+    border-color: #4A5568;
+    color: #E2E8F0;
+  }
+
+  body.settings-page .settings-page-shell > footer.footer {
+    background: #0A2647;
+    border-top-color: rgba(255, 255, 255, 0.08);
+  }
+
+  .footer-icon-link-active {
+    background: rgba(54, 116, 181, 0.28);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+  }
+
   @media (min-width: 1024px) {
     .sidebar-panel,
     .composer-panel {
       background: #144272;
       border-color: rgba(255, 255, 255, 0.08);
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    }
+
+    .composer-panel .form-actions {
+      border-top-color: rgba(255, 255, 255, 0.08);
     }
 
     .title {
@@ -1083,10 +1297,6 @@ footer.footer {
       background-color: #0f3460;
       border-color: rgba(255, 255, 255, 0.1);
     }
-
-    .form-actions {
-      border-top-color: rgba(255, 255, 255, 0.08);
-    }
   }
 
   /* Placeholder in dark */
@@ -1110,16 +1320,6 @@ footer.footer {
     background-color: #434C5E;
   }
 
-    /* Info banner unified dark theme */
-    .info-banner {
-      background-color: #2E3A4E;
-      border-color: #3E4C66;
-      color: #E2E8F0;
-    }
-    .info-banner-list {
-      list-style: disc;
-    }
-
   /* Prompt list item hover (lift) */
   #prompt-list li:hover {
     background-color: #434C5E; /* hover-dark background */
@@ -1137,20 +1337,26 @@ footer.footer {
     filter: invert(100%) sepia(0%) saturate(0%) hue-rotate(213deg) brightness(130%) contrast(87%);
   }
 
+  .spm-prompt-action-btn {
+    color: #CBD5E0;
+  }
+
+  .spm-prompt-action-btn .spm-prompt-action-icon {
+    color: #CBD5E0;
+  }
+
+  .spm-prompt-action-btn:hover {
+    background-color: rgba(255, 255, 255, 0.08);
+  }
+
+  .spm-prompt-action-btn.spm-prompt-action-success .spm-prompt-action-icon-success {
+    color: #68d391;
+  }
+
   .footer-icon-link {
     color: #CBD5E0;
   }
 
-  /* Info banner links: force readable white in dark mode (override UA visited purple) */
-  .info-banner a,
-  .info-banner a:visited {
-    color: #FFFFFF;
-  }
-  .info-banner a:hover,
-  .info-banner a:focus {
-    color: #FFFFFF;
-    text-decoration: underline;
-  }
   /* LLMs section dark overrides */
   .llms-subheading {
     color: #A0AEC0;
@@ -1248,21 +1454,6 @@ button.main:hover {
 #prompt-list li {
   transition: background-color 0.3s ease, transform 0.3s ease;
 }
-
-  /* Info banner light theme polish */
-  .info-banner {
-    background-color: rgba(54, 116, 181, 0.08);
-    border-color: rgba(54, 116, 181, 0.35);
-  }
-  .info-banner-close:hover {
-    background-color: rgba(54,116,181,0.12);
-  }
-
-  /* Ensure bullet color/spacing consistent in light theme */
-  .info-banner-list {
-    list-style: disc;
-    font-size: 13px;
-  }
 
   /* ------------------------------------------------------------
      LLMs section (pills for activated/available providers)
@@ -1505,14 +1696,179 @@ button.main:hover {
 
 /* COMMENT: Dedicated settings page blocks (settings.html) */
 body.settings-page {
-  display: block;
-  height: auto;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
   min-height: 100vh;
   max-height: none;
+  overflow: hidden;
+  padding-bottom: 0;
+  box-sizing: border-box;
+}
+
+.settings-page-shell {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+}
+
+.settings-page-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
   overflow-x: hidden;
   overflow-y: auto;
-  padding-bottom: 16px;
+  padding-bottom: 8px;
+}
+
+body.settings-page .settings-page-shell > footer.footer {
+  flex-shrink: 0;
+  border-top: 1px solid rgba(54, 116, 181, 0.1);
+  background: var(--light-bg, #fff);
+  padding: 8px 0 6px;
+}
+
+/* COMMENT: Settings / OPD subpages — back arrow + title (opens from side panel footer) */
+.subpage-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(54, 116, 181, 0.1);
+}
+
+.subpage-back {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  color: var(--primary, #3674B5);
+  text-decoration: none;
+  flex-shrink: 0;
+}
+
+.subpage-back:hover {
+  background: rgba(54, 116, 181, 0.12);
+}
+
+.subpage-title {
+  margin: 0;
+  font-size: 1.15rem;
+  color: var(--primary);
+  flex: 1;
+  min-width: 0;
+}
+
+/* COMMENT: OPD settings page — handle card, import badge, browse button */
+body.settings-page .opd-handle-edit-row[hidden] {
+  display: none !important;
+}
+
+body.settings-page .opd-handle-card {
+  margin-top: 0.35rem;
+}
+
+body.settings-page .opd-handle-card-link {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid #cbd5e0;
+  border-radius: 8px;
+  background: #fff;
+  text-decoration: none;
+  color: inherit;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+body.settings-page .opd-handle-card-link:hover {
+  border-color: var(--primary);
+  background: rgba(54, 116, 181, 0.06);
+}
+
+body.settings-page .opd-handle-card-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  background: rgba(54, 116, 181, 0.12);
+  color: var(--primary);
+  flex-shrink: 0;
+}
+
+body.settings-page .opd-handle-card-text {
+  flex: 1;
+  min-width: 0;
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: var(--primary);
+}
+
+body.settings-page .opd-handle-card-open {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  opacity: 0.55;
+  color: var(--primary);
+}
+
+body.settings-page .opd-import-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin: 0.35rem 0 0;
+  padding: 0.4rem 0.65rem;
+  border-radius: 6px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: #2d6a4f;
+  background: rgba(45, 106, 79, 0.1);
+  border: 1px solid rgba(45, 106, 79, 0.2);
+}
+
+body.settings-page .opd-import-badge[hidden],
+body.settings-page #opd-catalog-access-btn[hidden] {
+  display: none !important;
+}
+
+body.settings-page a.opd-browse-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  width: 100%;
+  margin-top: 0.65rem;
+  padding: 10px 16px;
   box-sizing: border-box;
+  border: none;
+  border-radius: 8px;
+  background-color: var(--primary);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.25;
+  text-decoration: none;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(54, 116, 181, 0.25);
+  transition: background-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+body.settings-page a.opd-browse-btn:hover {
+  background-color: var(--hover-primary);
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(54, 116, 181, 0.3);
+}
+
+body.settings-page .opd-browse-btn-icon {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
 }
 
 @media (min-width: 1024px) {
@@ -1544,9 +1900,15 @@ body.settings-page {
 
 .settings-mode-options {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0.5rem;
   margin-top: 0.5rem;
+}
+
+@media (max-width: 720px) {
+  .settings-mode-options {
+    grid-template-columns: 1fr;
+  }
 }
 
 .settings-mode-option {
@@ -1899,5 +2261,32 @@ body.settings-page .shortcut-container p {
 
   .settings-community-link:hover {
     background: rgba(54, 116, 181, 0.15);
+  }
+
+  body.settings-page .opd-import-badge {
+    color: #9ae6b4;
+    background: rgba(72, 187, 120, 0.12);
+    border-color: rgba(72, 187, 120, 0.25);
+  }
+
+  body.settings-page .opd-handle-card-link {
+    background: rgba(255, 255, 255, 0.04);
+    border-color: rgba(255, 255, 255, 0.12);
+    color: #e2e8f0;
+  }
+
+  body.settings-page .opd-handle-card-link:hover {
+    background: rgba(54, 116, 181, 0.15);
+    border-color: rgba(99, 179, 237, 0.4);
+  }
+
+  body.settings-page .opd-handle-card-text,
+  body.settings-page .opd-handle-card-icon,
+  body.settings-page .opd-handle-card-open {
+    color: #90cdf4;
+  }
+
+  body.settings-page .opd-handle-card-icon {
+    background: rgba(54, 116, 181, 0.2);
   }
 }

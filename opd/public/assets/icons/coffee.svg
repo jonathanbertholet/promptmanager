@@ -1,0 +1,5 @@
+<!-- Buy me a coffee / support icon (visible on light mega-menu backgrounds) -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true">
+  <path fill="#FF813F" d="M18 8h1a4 4 0 0 1 0 8h-1v2a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v2zm-2 0V6H6v12h10V8zm2 0v8h1a2 2 0 0 0 0-8h-1z"/>
+  <path fill="#6F4E37" d="M4 20h14v2H4z"/>
+</svg>

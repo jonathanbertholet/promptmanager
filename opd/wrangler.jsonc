@@ -1,0 +1,36 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "open-prompt-database",
+  "main": "src/worker.js",
+  "compatibility_date": "2025-05-01",
+  // Fallback URL while custom domain propagates (openpromptdatabase.com)
+  "workers_dev": true,
+  "dev": {
+    "port": 8787
+  },
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS",
+    "run_worker_first": ["/p/*", "/og/*", "/t/*", "/browse", "/browse/*", "/u/*", "/tags", "/tags/*", "/about", "/about/*", "/robots.txt", "/sitemap.xml", "/v1/*"]
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "opd-db",
+      "database_id": "a6be2ab7-8a5d-4f27-9f44-ebba12e5523d"
+    }
+  ],
+  "vars": {
+    "OPD_SITE_NAME": "Open Prompt Database"
+  },
+  // Custom domains — requires openpromptdatabase.com as an active zone in this account.
+  // After GoDaddy nameservers point to Cloudflare, run: npm run deploy
+  "routes": [
+    {
+      "pattern": "openpromptdatabase.com",
+      "custom_domain": true,
+      "zone_name": "openpromptdatabase.com"
+    }
+    // www: manage via Cloudflare Redirect Rule (www → apex) if DNS records exist
+  ]
+}

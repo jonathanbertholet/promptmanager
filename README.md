@@ -2,7 +2,7 @@
 
 A lightweight, open-source Chrome extension for saving, organizing, and inserting prompts across AI chatbots — ChatGPT, Claude, Gemini, Grok, and [17+ more platforms](#supported-platforms).
 
-**Current version:** 2.9 · [Chrome Web Store](https://chromewebstore.google.com/detail/open-prompt-manager/gmhaghdbihgenofhnmdbglbkbplolain) · [Open Prompt Database](https://open-prompt-database.jonathanbertholet.workers.dev/)
+**Current version:** 2.9 · [Chrome Web Store](https://chromewebstore.google.com/detail/open-prompt-manager/gmhaghdbihgenofhnmdbglbkbplolain) · [Open Prompt Database](https://openpromptdatabase.com/)
 
 ## Features
 
@@ -26,7 +26,7 @@ A lightweight, open-source Chrome extension for saving, organizing, and insertin
 
 ### Open Prompt Database
 
-Browse community prompts on the [Open Prompt Database](https://open-prompt-database.jonathanbertholet.workers.dev/) and add them to your library with one click.
+Browse community prompts on the [Open Prompt Database](https://openpromptdatabase.com/) and add them to your library with one click.
 
 - Stable `opd:` ids — re-import updates the same prompt when the catalog entry changes
 - Duplicate detection — already in your library? The site shows “Already in library”
@@ -77,7 +77,7 @@ Automated tests use **Puppeteer** and **Jest**. See the [Testing Guide](TESTING.
 ## Privacy
 
 - Your prompt library is stored **locally** in the browser (`chrome.storage.local`)
-- Nothing is sent to external servers unless **you** choose to import from the [Open Prompt Database](https://open-prompt-database.jonathanbertholet.workers.dev/) — that flow only pulls the prompt you selected into your local library
+- Nothing is sent to external servers unless **you** choose to import from the [Open Prompt Database](https://openpromptdatabase.com/) — that flow only pulls the prompt you selected into your local library
 - No analytics or tracking
 
 ## License

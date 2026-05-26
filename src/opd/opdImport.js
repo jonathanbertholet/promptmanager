@@ -67,6 +67,7 @@ export function catalogPromptToLocal(catalog) {
 
   return {
     uuid: catalogLocalUuid(id),
+    opdPublicId: id,
     title,
     content,
     tags,

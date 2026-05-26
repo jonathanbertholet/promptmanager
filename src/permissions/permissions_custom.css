@@ -321,11 +321,17 @@ body {
 
 .custom-display-mode-options {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 1rem;
-  max-width: 680px;
+  max-width: 960px;
   margin: 0 auto;
   text-align: left;
+}
+
+@media (max-width: 900px) {
+  .custom-display-mode-options {
+    grid-template-columns: 1fr;
+  }
 }
 
 .custom-display-mode-option {
@@ -412,6 +418,25 @@ body {
   border-width: 0 0 22px 22px;
   border-color: transparent transparent var(--primary-blue) transparent;
   opacity: 0.9;
+}
+
+.custom-display-mode-preview-invisible {
+  justify-content: center;
+  align-items: center;
+}
+
+.custom-display-mode-preview-shortcut {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 72px;
+  padding: 0.35rem 0.65rem;
+  border-radius: 0.45rem;
+  background: rgba(54, 116, 181, 0.12);
+  color: var(--primary-blue);
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
 }
 
 .custom-display-mode-name {

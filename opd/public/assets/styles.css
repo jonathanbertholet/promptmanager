@@ -1,0 +1,1872 @@
+/* styles.css */
+@media (min-width:286px) {
+  body {
+    font-family: Helvetica, Verdana, Geneva, Tahoma, sans-serif;
+    width: auto;
+    /* COMMENT: Lock to viewport so the sidebar footer stays visible */
+    height: 100vh;
+    overflow: hidden;
+    padding: 10px;
+    padding-bottom: 0px;
+    margin-bottom: 0;
+    background-color: var(--light-bg);
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    min-width: 286px;
+    box-sizing: border-box;
+  }
+
+  h2,
+  h3 {
+    margin-top: 0;
+    color: var(--primary);
+    margin-bottom: 12px;
+    padding-bottom: 0px;
+  }
+
+  .promptslistheader {
+    margin-bottom: 10px;
+  }
+
+  form {
+    margin-bottom: 15px;
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+    gap: 8px;
+  }
+
+  /* Info banner block placed after the form, above the prompt list */
+  .info-banner {
+    position: relative;
+    margin: 8px 0 10px 0;
+    padding: 10px 12px;
+    border-radius: 8px;
+    background-color: #E6F0FF; /* light theme base (will be overridden by theme vars below) */
+    color: #1F2937;
+    border: 1px solid #BBD3FF;
+  }
+
+  .info-banner-title {
+    margin: 0 24px 4px 0; /* leave room for the close button */
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--primary);
+  }
+
+  .info-banner-text {
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.4;
+  }
+
+  /* Bulleted list inside info banner - consistent spacing and markers */
+  .info-banner-list {
+    margin: 6px 0 0 18px; /* indent bullets a bit */
+    padding: 0;
+    list-style: disc; /* default disc bullets */
+  }
+  .info-banner-list li {
+    margin: 4px 0;
+    padding: 0;
+  }
+
+  .info-banner-close {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 22px;
+    height: 22px;
+    border-radius: 6px;
+    background: transparent;
+    color: inherit;
+    border: none;
+    font-size: 16px;
+    line-height: 1;
+    cursor: pointer;
+  }
+
+  .info-banner-close:hover {
+    background-color: rgba(0,0,0,0.06);
+  }
+
+  /* COMMENT: Prompt form fields mirror in-page opm-input-field / opm-textarea-field styling */
+  #prompt-form .opm-input-field,
+  #prompt-form .opm-textarea-field {
+    width: 100%;
+    padding: 8px;
+    border-radius: 6px;
+    box-sizing: border-box;
+    font-size: 14px;
+    font-family: Helvetica, Verdana, Geneva, Tahoma, sans-serif;
+    margin-bottom: 4px;
+    outline: none;
+    border: var(--input-light-border);
+    background-color: var(--input-light-bg);
+    color: var(--input-light-text);
+  }
+
+  #prompt-form .opm-textarea-field {
+    min-height: 120px;
+    resize: vertical;
+  }
+
+  #prompt-form .opm-input-field:focus,
+  #prompt-form .opm-textarea-field:focus {
+    border: var(--input-light-border);
+    box-shadow: none;
+    outline: none;
+  }
+
+  #prompt-form .spm-tag-row {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-wrap: wrap;
+    width: 100%;
+    box-sizing: border-box;
+    margin-bottom: 4px;
+    font-family: Helvetica, Verdana, Geneva, Tahoma, sans-serif;
+    border: var(--input-light-border);
+    background-color: var(--input-light-bg);
+    color: var(--input-light-text);
+    border-radius: 6px;
+    padding: 4px 6px;
+    min-height: 34px;
+  }
+
+  #prompt-form .spm-tag-row:focus-within {
+    border: var(--input-light-border);
+    box-shadow: none;
+  }
+
+  .spm-tags-container {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  input[type="text"]:not(.opm-input-field),
+  textarea:not(.opm-textarea-field) {
+    width: 100%;
+    box-sizing: border-box;
+    margin-bottom: 6px;
+    font-family: Helvetica, Verdana, Geneva, Tahoma, sans-serif;
+    background-color: #FFFFFF;
+    color: #2D3748;
+    border-color: #CBD5E0;
+    border-width: 1px;
+    border-style: solid;
+    border-radius: 6px;
+    padding: 6px;
+    outline: none;
+  }
+
+  input[type="text"]:not(.opm-input-field):focus,
+  textarea:not(.opm-textarea-field):focus {
+    border-color: var(--primary);
+  }
+
+  textarea:not(.opm-textarea-field) {
+    resize: vertical;
+    min-height: 70px;
+  }
+
+  ::placeholder {
+    color: #999;
+    opacity: 1;
+  }
+
+  :-ms-input-placeholder {
+    color: #999;
+  }
+
+  ::-ms-input-placeholder {
+    color: #999;
+  }
+
+  button.main {
+    background-color: var(--primary);
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 13px;
+    margin: 0px;
+    cursor: pointer;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transition: background-color 0.3s ease;
+    width: 100%;
+  }
+
+  button.main:hover {
+    background-color: var(--hover-primary);
+
+    /* Darker shade on hover */
+  }
+
+  button.main a {
+    text-decoration: none;
+    color: white;
+  }
+
+  .table {
+    margin: 0px;
+    padding: 0px;
+  }
+
+  /* Adjust list item spacing for left aligned list */
+  #prompt-list {
+    /* list-style-type: none; */
+    padding: 0;
+    margin: 0;
+    margin-bottom: 5px;
+  }
+
+  #prompt-list li {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 5px;
+    background-color: #ffffff;
+    padding-left: 6px;
+    padding-top: 3px;
+    padding-bottom: 3px;
+    padding-right: 6px;
+    border-radius: 4px;
+    color: #494949;
+  }
+
+  #prompt-list li span {
+    flex-grow: 1;
+    text-align: left;
+    margin-right: 10px;
+    font-size: 14px;
+  }
+
+  #prompt-list button {
+    margin-left: 5px;
+    margin-top: 3px;
+    margin-bottom: 3px;
+    border-radius: 50px;
+    border: none;
+  }
+
+  /* to be improved */
+  #prompt-list button:hover {
+    background-color: #f0f0f0;
+    cursor: pointer;
+  }
+
+  /* COMMENT: Search + tag filter controls (mirrors in-page panel list view) */
+  .prompt-list-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+
+  .prompt-search-input {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 8px 10px;
+    border: 1px solid #cbd5e0;
+    border-radius: 6px;
+    font-size: 14px;
+    background: #fff;
+    color: #494949;
+  }
+
+  .prompt-search-input:focus {
+    outline: none;
+    border-color: var(--primary);
+  }
+
+  .spm-tags-filter-bar {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 6px;
+    overflow-x: auto;
+    padding-bottom: 2px;
+    scrollbar-width: thin;
+  }
+
+  .spm-tag-pill-filter {
+    flex-shrink: 0;
+    border: 1px solid #cbd5e0;
+    border-radius: 999px;
+    background: #fff;
+    color: #494949;
+    font-size: 12px;
+    padding: 4px 10px;
+    cursor: pointer;
+  }
+
+  .spm-tag-pill-filter[aria-pressed="true"] {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: #fff;
+  }
+
+  /* COMMENT: Tag input row on create/edit form — one bordered field like title/content */
+  #prompt-tags-host {
+    width: 100%;
+    margin: 0;
+  }
+
+  /* COMMENT: Inner tag input must not pick up the standalone text-field border/padding */
+  #prompt-form .spm-tag-row input[type="text"] {
+    flex: 1;
+    min-width: 80px;
+    width: auto;
+    margin-bottom: 0;
+    border: none;
+    border-radius: 0;
+    padding: 2px 4px;
+    box-shadow: none;
+    background: transparent;
+    outline: none;
+    font-size: inherit;
+    color: inherit;
+  }
+
+  #prompt-form .spm-tag-row input[type="text"]:focus {
+    border: none;
+    box-shadow: none;
+  }
+
+  .spm-tag-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    border: 1px solid #cbd5e0;
+    border-radius: 999px;
+    padding: 2px 6px;
+    font-size: 12px;
+    background: #f7fafc;
+    color: #494949;
+  }
+
+  .spm-tag-remove {
+    border: none;
+    background: transparent;
+    color: #718096;
+    cursor: pointer;
+    font-size: 14px;
+    line-height: 1;
+    padding: 0 2px;
+  }
+
+  .spm-tag-suggestions {
+    max-height: 160px;
+    overflow-y: auto;
+    background: #fff;
+    border: 1px solid #cbd5e0;
+    border-radius: 6px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  }
+
+  .spm-tag-suggestion-item {
+    padding: 8px 10px;
+    font-size: 13px;
+    cursor: pointer;
+    color: #494949;
+  }
+
+  .spm-tag-suggestion-item:hover,
+  .spm-tag-suggestion-item.active {
+    background: #edf2f7;
+  }
+
+  .shortcut-container {
+    margin-bottom: 18px;
+  }
+
+  #cancel-edit-button {
+    background-color: #dfdfdf;
+    color: var(--primary);
+    border: none;
+    padding: 10px 20px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 13px;
+    border-radius: 8px;
+    margin-top: 0;
+    width: auto;
+  }
+
+  #cancel-edit-button:hover {
+    background-color: #c0c0c0;
+    cursor: pointer;
+    border-color: var(--primary);
+  }
+
+  .title {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 15px;
+    grid-area: g-title;
+    width: 100%;
+    flex-direction: row;
+    flex-shrink: 0;
+  }
+
+  .title h2 {
+    margin: 0;
+    padding: 0;
+  }
+
+  /* Dark mode styles are unified below; removing earlier overlapping block */
+
+  /* COMMENT: Prompt list grows in remaining space; footer dock stays below */
+  .prompts-container {
+    position: relative;
+    min-height: 0;
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 0;
+    overflow: hidden;
+  }
+
+  /* COMMENT: Only the prompt list area scrolls — not the Assistants/footer dock */
+  .prompts-section {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--primary) #f0f0f000;
+    position: static;
+    margin-top: 5px;
+  }
+
+  #prompt-list {
+    /* list-style-type: none; */
+    padding-top: 5px;;
+    margin: 0;
+  }
+
+  .link-container a {
+    text-decoration: none;
+    display: inline-block;
+    margin-right: 8px;
+  }
+
+  .link-container a:last-child {
+    margin-right: 0;
+  }
+
+  table.dataimpexp {
+    width: 100%;
+  }
+
+  table.footer-table {
+    width: 100%;
+    overflow: hidden;
+  }
+
+  img {
+    width: 16px;
+    height: 16px;
+    max-width: 24px;
+    max-height: 24px;
+    vertical-align: middle;
+  }
+
+  img#open-new-tab {
+    width: 24px;
+    height: 24px;
+  }
+
+  .title-actions {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  /* COMMENT: Expanded-tab close button — shown only when body.is-expanded-tab */
+  .header-close-btn {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border: none;
+    background: transparent;
+    color: var(--primary);
+    font-size: 22px;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0;
+  }
+
+  body.is-expanded-tab .header-close-btn {
+    display: inline-flex;
+  }
+
+  body.is-expanded-tab #open-new-tab-link {
+    display: none;
+  }
+
+  .dataimpexp {
+    /* Ensure import/export stays at the bottom, not inside scrollable area */
+    flex-shrink: 0;
+  }
+
+  table.footer-table {
+    /* Sticky footer: always visible at the bottom */
+    flex-shrink: 0;
+    margin-top: 0;
+    margin-bottom: 0;
+  }
+
+  /* COMMENT: Flex column stacks composer, banner, then scrollable sidebar + pinned dock */
+  .main-layout {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: hidden;
+    width: 100%;
+  }
+
+  /* COMMENT: Sidebar fills leftover height; bottom dock never scrolls away */
+  .sidebar-panel {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: hidden;
+    order: 3;
+  }
+
+  .composer-panel {
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    margin-bottom: 10px;
+    order: 1;
+  }
+
+  .sidebar-panel .prompts-container {
+    margin-bottom: 0;
+  }
+
+  #info-banner {
+    order: 2;
+    flex-shrink: 0;
+  }
+
+  .composer-panel form#prompt-form {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .form-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .form-actions button.main {
+    width: 100%;
+  }
+}
+
+@media (min-width:1024px) {
+  body {
+    display: grid;
+    grid-template-columns: 1fr;
+    grid-template-rows: auto minmax(0, 1fr);
+    grid-template-areas:
+      'g-title'
+      'g-main';
+    gap: 16px;
+    padding: 16px 20px;
+    min-height: 100vh;
+    height: 100vh;
+    overflow: hidden;
+    box-sizing: border-box;
+  }
+
+  /* COMMENT: Flex row split avoids grid overlap between sidebar and composer */
+  .main-layout {
+    display: flex;
+    flex-direction: row;
+    align-items: stretch;
+    grid-area: g-main;
+    gap: 24px;
+    min-width: 0;
+    min-height: 0;
+    width: 100%;
+    overflow: hidden;
+  }
+
+  /* COMMENT: Expanded-tab layout polish — spacing, footer, actions */
+  body.is-expanded-tab {
+    gap: 16px;
+    padding: 16px 24px 32px;
+    height: auto;
+    min-height: 100vh;
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+
+  body.is-expanded-tab .main-layout {
+    min-height: calc(100vh - 100px);
+    height: auto;
+    overflow: visible;
+  }
+
+  body.is-expanded-tab .sidebar-panel,
+  body.is-expanded-tab .composer-panel {
+    min-width: 0;
+    height: auto;
+    order: unset;
+  }
+
+  /* COMMENT: Expanded tab sidebar still pins Assistants/footer with internal scroll */
+  body.is-expanded-tab .sidebar-panel {
+    max-height: calc(100vh - 120px);
+    min-height: 280px;
+    overflow: hidden;
+  }
+
+  body.is-expanded-tab #info-banner {
+    order: unset;
+    grid-area: unset;
+    grid-column: unset;
+    grid-row: unset;
+  }
+
+  .title {
+    grid-area: g-title;
+    overflow: hidden;
+    margin-bottom: 0;
+    padding-bottom: 8px;
+    border-bottom: 1px solid rgba(54, 116, 181, 0.1);
+  }
+
+  /* COMMENT: Left sidebar card — fixed width, no grid placement */
+  .sidebar-panel {
+    flex: 0 0 300px;
+    width: 300px;
+    max-width: 300px;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    height: 100%;
+    background: #fff;
+    border: 1px solid rgba(54, 116, 181, 0.12);
+    border-radius: 12px;
+    padding: 14px;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+    overflow: hidden;
+  }
+
+  .prompts-container {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    margin-bottom: 0;
+    max-width: none;
+    max-height: none;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    padding: 0;
+  }
+
+  .prompts-section {
+    flex: 1 1 auto;
+    min-height: 0;
+    max-height: none;
+    overflow-y: auto;
+    margin-top: 0;
+    padding-right: 2px;
+  }
+
+  .prompt-list-controls {
+    margin-bottom: 10px;
+    gap: 10px;
+  }
+
+  .prompt-search-input {
+    border-color: #cbd5e0;
+    background: #f8fafc;
+  }
+
+  .prompt-search-input:focus {
+    background: #fff;
+  }
+
+  .spm-tags-filter-bar {
+    padding-bottom: 4px;
+  }
+
+  #prompt-list li {
+    border: 1px solid transparent;
+    border-radius: 8px;
+    margin-bottom: 4px;
+    padding: 8px 10px;
+    transition: background-color 0.15s ease, border-color 0.15s ease;
+  }
+
+  #prompt-list li:hover {
+    background-color: #f8fafc;
+    border-color: rgba(54, 116, 181, 0.15);
+  }
+
+  .sidepanel-bottom-dock {
+    flex-shrink: 0;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid rgba(54, 116, 181, 0.1);
+    width: 100%;
+    background: transparent;
+  }
+
+  .sidepanel-bottom-dock .llms-section {
+    margin-top: 0;
+  }
+
+  .sidepanel-bottom-dock footer.footer {
+    background: transparent;
+    padding: 10px 0 0;
+    position: static;
+    margin-top: 8px;
+  }
+
+  .sidebar-panel .footer-icons {
+    justify-content: center;
+    flex-wrap: wrap;
+    width: 100%;
+  }
+
+  body.is-expanded-tab .sidebar-panel footer.footer {
+    justify-content: flex-start;
+    padding-bottom: 4px;
+  }
+
+  body.is-expanded-tab .sidebar-panel .footer-icons {
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+
+  body.is-expanded-tab .sidepanel-bottom-dock {
+    padding-bottom: 4px;
+  }
+
+  /* COMMENT: Composer card fills remaining horizontal space */
+  .composer-panel {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+    max-height: none;
+    margin-bottom: 0;
+    background: #fff;
+    border: 1px solid rgba(54, 116, 181, 0.12);
+    border-radius: 12px;
+    padding: 16px;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+    overflow: hidden;
+  }
+
+  form#prompt-form {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    margin-bottom: 0;
+    overflow: hidden;
+    width: 100%;
+    gap: 8px;
+  }
+
+  form#prompt-form .opm-textarea-field {
+    flex: 1 1 auto;
+    min-height: 120px;
+    resize: vertical;
+    margin-bottom: 4px;
+  }
+
+  .form-actions {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: auto;
+    padding-top: 12px;
+    border-top: 1px solid rgba(54, 116, 181, 0.08);
+  }
+
+  body.is-expanded-tab .form-actions {
+    justify-content: flex-start;
+  }
+
+  body.is-expanded-tab .form-actions #cancel-edit-button {
+    order: 0;
+    margin-right: 0;
+  }
+
+  .form-actions button.main {
+    width: auto;
+    min-width: 148px;
+    height: 40px;
+    padding: 0 20px;
+    margin: 0;
+  }
+
+  .form-actions #cancel-edit-button {
+    order: -1;
+    margin-right: auto;
+  }
+
+  #info-banner {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    align-self: start;
+    z-index: 2;
+  }
+
+  table.footer-table {
+    overflow: hidden;
+    flex-shrink: 0;
+    margin-top: 0;
+    margin-bottom: 0;
+  }
+
+  img.footer-icons,
+  img.header-icon {
+    width: 24px;
+    height: 24px;
+    max-width: 24px;
+    max-height: 24px;
+  }
+
+  .footer-icon-link {
+    width: 36px;
+    height: 36px;
+  }
+
+  .footer-md-icon {
+    width: 20px;
+    height: 20px;
+  }
+
+  div.dataimpexp {
+    overflow: hidden;
+  }
+
+  #export-btn,
+  #import-btn {
+    z-index: 1;
+    cursor: pointer;
+  }
+}
+
+div.dataimpexp span {
+  margin-left: 5px;
+  margin-right: 5px;
+}
+
+div.dataimpexp {
+  grid-row: 2;
+  grid-column: 1;
+  align-self: stretch;
+  display: flex;
+  vertical-align: baseline;
+  align-items: end;
+}
+
+#prompt-list button.pressed {
+  transform: translateY(2px);
+  opacity: 0.7;
+  transition: transform 0.18s ease-out, opacity 0.18s ease-out; /* Smooth transition for release */
+}
+
+/* COMMENT: Keep Assistants pinned above the footer icon row */
+.sidepanel-bottom-dock {
+  flex-shrink: 0;
+  margin-top: auto;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background: var(--light-bg);
+  padding-top: 8px;
+  border-top: 1px solid rgba(54, 116, 181, 0.1);
+}
+
+.sidepanel-bottom-dock .llms-section {
+  margin-bottom: 0;
+  padding-bottom: 4px;
+}
+
+.sidepanel-bottom-dock footer.footer {
+  margin-top: 0;
+  position: static;
+}
+
+/* COMMENT: Footer icon row sits inside the pinned bottom dock */
+footer.footer {
+  flex-shrink: 0;
+  position: static;
+  background: transparent;
+  padding: 8px 0 4px;
+  margin-top: 0;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.footer-icons {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* COMMENT: Shared footer icon buttons — same size, shape, and hover for every link */
+.footer-icon-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  text-decoration: none;
+  color: var(--primary, #3674B5);
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.footer-icon-link:hover {
+  background: rgba(54, 116, 181, 0.12);
+}
+
+.footer-md-icon {
+  width: 20px;
+  height: 20px;
+  display: block;
+}
+
+.footer-cta-link {
+  display: inline-flex;
+  align-items: center;
+  background-color: var(--primary, #3674B5);
+  color: #fff;
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 500;
+  text-decoration: none;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  transition: background 0.15s ease;
+}
+
+.footer-cta-link:hover {
+  background-color: #2f669f;
+}
+
+@media (prefers-color-scheme: dark) {
+  .sidepanel-bottom-dock {
+    background: #0A2647;
+    border-top-color: rgba(255, 255, 255, 0.08);
+  }
+}
+
+/* Dark mode ring for icon-only pills — removed duplicate block; see unified rules below */
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .custom-col {
+        max-width: 90%; /* Single column on small screens */
+    }
+}
+
+/* ============================================================
+   Unified dark theme overrides (matches content script theme)
+   ============================================================ */
+@media (prefers-color-scheme: dark) {
+  body {
+    background-color: #0A2647;
+    color: #E2E8F0;
+  }
+  /* COMMENT: Subtle divider color in dark mode for Prompt Management section */
+  #pm-section {
+    border-top-color: rgba(255,255,255,0.08);
+  }
+
+  /* Headings adopt primary colour for contrast */
+  h2, h3 {
+    color: #3674B5;
+  }
+
+  /* Input & textarea fields — exclude in-page-style prompt form fields */
+  input[type="text"]:not(.opm-input-field),
+  textarea:not(.opm-textarea-field) {
+    background-color: #144272;
+    color: #E2E8F0;
+    border-color: #4A5568;
+  }
+
+  #prompt-form .opm-input-field,
+  #prompt-form .opm-textarea-field,
+  #prompt-form .spm-tag-row {
+    border: var(--input-dark-border);
+    background-color: var(--input-dark-bg);
+    color: var(--input-dark-text);
+  }
+
+  #prompt-form .opm-input-field:focus,
+  #prompt-form .opm-textarea-field:focus,
+  #prompt-form .spm-tag-row:focus-within {
+    border: var(--input-dark-border);
+    box-shadow: none;
+  }
+
+  #prompt-form .spm-tag-row input[type="text"] {
+    background-color: transparent;
+    color: #E2E8F0;
+    border: none;
+  }
+
+  .spm-tag-pill {
+    background: #205295;
+    border-color: #4A5568;
+    color: #CBD5E0;
+  }
+
+  @media (min-width: 1024px) {
+    .sidebar-panel,
+    .composer-panel {
+      background: #144272;
+      border-color: rgba(255, 255, 255, 0.08);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    }
+
+    .title {
+      border-bottom-color: rgba(255, 255, 255, 0.08);
+    }
+
+    .sidepanel-bottom-dock {
+      border-top-color: rgba(255, 255, 255, 0.08);
+      background: transparent;
+    }
+
+    .prompt-search-input {
+      background: #0f3460;
+      border-color: #4A5568;
+      color: #E2E8F0;
+    }
+
+    .prompt-search-input:focus {
+      background: #144272;
+    }
+
+    #prompt-list li:hover {
+      background-color: #0f3460;
+      border-color: rgba(255, 255, 255, 0.1);
+    }
+
+    .form-actions {
+      border-top-color: rgba(255, 255, 255, 0.08);
+    }
+  }
+
+  /* Placeholder in dark */
+  ::placeholder { color: #A0AEC0; opacity: 1; }
+
+  /* Main action buttons */
+  button.main {
+    background-color: var(--primary);
+    color: #E2E8F0;
+  }
+  button.main:hover {
+    background-color: #434C5E;
+  }
+
+  /* Prompt list items */
+  #prompt-list li {
+    background-color: #205295;
+    color: #CBD5E0;
+  }
+  #prompt-list button:hover {
+    background-color: #434C5E;
+  }
+
+    /* Info banner unified dark theme */
+    .info-banner {
+      background-color: #2E3A4E;
+      border-color: #3E4C66;
+      color: #E2E8F0;
+    }
+    .info-banner-list {
+      list-style: disc;
+    }
+
+  /* Prompt list item hover (lift) */
+  #prompt-list li:hover {
+    background-color: #434C5E; /* hover-dark background */
+    transform: translateY(-2px);
+    color: #E2E8F0; /* ensure readable text */
+  }
+
+  /* Title heading & icons use light colour */
+  .title h2 {
+    color: #E2E8F0;
+  }
+  .header-icon,
+  .title img,
+  #prompt-list button img {
+    filter: invert(100%) sepia(0%) saturate(0%) hue-rotate(213deg) brightness(130%) contrast(87%);
+  }
+
+  .footer-icon-link {
+    color: #CBD5E0;
+  }
+
+  /* Info banner links: force readable white in dark mode (override UA visited purple) */
+  .info-banner a,
+  .info-banner a:visited {
+    color: #FFFFFF;
+  }
+  .info-banner a:hover,
+  .info-banner a:focus {
+    color: #FFFFFF;
+    text-decoration: underline;
+  }
+  /* LLMs section dark overrides */
+  .llms-subheading {
+    color: #A0AEC0;
+  }
+  .llm-pill.active {
+    background-color: #0b498a;
+    border-color: #0b498a;
+    color: #E2E8F0;
+  }
+  .llm-pill.icon-only.active,
+  .llm-pill.icon-only.inactive {
+    background: transparent;
+    border: none;
+    box-shadow: none;
+  }
+  .llm-pill.active:hover {
+    background-color: #0b498a;
+    border-color: #0b498a;
+    box-shadow: 0 0 0 3px rgba(11,73,138,0.32);
+  }
+  .llm-pill.inactive {
+    color: #E2E8F0;
+    border-color: #3674B5;
+    background-color: transparent;
+  }
+  .llm-pill.inactive:hover {
+    background-color: rgba(54,116,181,0.16);
+    box-shadow: 0 0 0 3px rgba(54,116,181,0.28);
+  }
+  .llm-pill.icon-only.active:hover,
+  .llm-pill.icon-only.inactive:hover {
+    background: transparent;
+    box-shadow: none;
+  }
+
+  /* Footer background stays transparent but icons/text lighten */
+  footer.footer {
+    background: transparent;
+    color: #A0AEC0;
+  }
+}
+
+/* ============================================================
+   Unified LIGHT theme overrides (matches content script theme)
+   ============================================================ */
+:root {
+  --primary: #3674b5;
+  --hover-primary: #4b93e0;
+  --light-bg: #F7FAFC;
+  /* COMMENT: Match in-page panel input tokens from content.styles.js */
+  --input-light-border: 1px solid #CBD5E0;
+  --input-light-bg: #FFFFFF;
+  --input-light-text: #2D3748;
+  --input-dark-border: 1px solid #4A5568;
+  --input-dark-bg: #2D3748;
+  --input-dark-text: #E2E8F0;
+}
+
+/* Headings adopt primary colour */
+h2, h3 {
+  color: var(--primary);
+}
+
+/* Inputs & textareas — exclude prompt form fields (styled like in-page panel) */
+input[type="text"]:not(.opm-input-field),
+textarea:not(.opm-textarea-field) {
+  border-color: var(--primary);
+}
+input[type="text"]:not(.opm-input-field):focus,
+textarea:not(.opm-textarea-field):focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px rgba(54, 116, 181, 0.25);
+}
+
+#prompt-form .spm-tag-row {
+  border: var(--input-light-border);
+}
+#prompt-form .spm-tag-row:focus-within {
+  border: var(--input-light-border);
+  box-shadow: none;
+}
+
+/* Main buttons */
+button.main {
+  background-color: var(--primary);
+  border: none;
+  transition: box-shadow 0.3s ease, background-color 0.3s ease;  /* removed transform transition */
+}
+button.main:hover {
+  background-color: var(--hover-primary);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+}
+
+/* List item styling to match prompt list cards */
+#prompt-list li {
+  transition: background-color 0.3s ease, transform 0.3s ease;
+}
+
+  /* Info banner light theme polish */
+  .info-banner {
+    background-color: rgba(54, 116, 181, 0.08);
+    border-color: rgba(54, 116, 181, 0.35);
+  }
+  .info-banner-close:hover {
+    background-color: rgba(54,116,181,0.12);
+  }
+
+  /* Ensure bullet color/spacing consistent in light theme */
+  .info-banner-list {
+    list-style: disc;
+    font-size: 13px;
+  }
+
+  /* ------------------------------------------------------------
+     LLMs section (pills for activated/available providers)
+     ------------------------------------------------------------ */
+  .llms-section {
+    margin: 5px 0 5px 0; /* tighter section spacing */
+  }
+  .llms-heading {
+    margin: 0 0 4px 0; /* slightly tighter heading spacing */
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--primary);
+  }
+  /* COMMENT: Subtle divider and compact spacing before Prompt Management */
+  #pm-section {
+    margin-top: 4px;
+    padding-top: 4px;
+    border-top: 1px solid rgba(0,0,0,0.05);
+  }
+  .llms-group {
+    margin-bottom: 8px;
+  }
+  .llms-group:last-child {
+    margin-bottom: 0;
+  }
+  .llms-subheading {
+    margin: 6px 0 8px 0;
+    font-size: 11px;
+    line-height: 1.45;
+    color: #4a5568;
+    user-select: none;
+  }
+  .llms-subheading[role="button"] { cursor: pointer; }
+  /* COMMENT: Caret indicators placed to the right of labels */
+  #llms-available-toggle::after {
+    content: ">";
+    display: inline-block;
+    margin-left: 6px;
+  }
+  #llms-available-toggle[aria-expanded="true"]::after {
+    content: "v";
+  }
+  #pm-toggle::after {
+    content: ">";
+    display: inline-block;
+    margin-left: 6px;
+  }
+  #pm-toggle[aria-expanded="true"]::after {
+    content: "v";
+  }
+
+  /* COMMENT: Prompt Management controls layout */
+  .pm-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .pm-subtitle {
+    margin-top: 6px;
+    font-size: 12px;
+    color: #4a5568;
+  }
+  .pm-row {
+    display: flex;
+    gap: 8px;
+    margin-top: 6px;
+  }
+  .pm-row .main {
+    width: auto; /* override global 100% */
+    flex: 1 1 0;
+  }
+
+  /* COMMENT: Smooth collapsible transition utility */
+  .collapsible {
+    overflow: hidden;
+    max-height: 0;
+    opacity: 0;
+    transition: max-height 0.25s ease, opacity 0.2s ease;
+    will-change: max-height, opacity;
+  }
+  .collapsible.open {
+    opacity: 1;
+  }
+  .llms-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .llm-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 9999px;
+    border: 1px solid var(--primary);
+    text-decoration: none;
+    font-size: 12px;
+    line-height: 1;
+    user-select: none;
+    transition: background-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  }
+  /* Icon-only variant: favicon circles without stretched pill backgrounds */
+  .llm-pill.icon-only,
+  .llm-pill.icon-only.active,
+  .llm-pill.icon-only.inactive {
+    padding: 0;
+    border: none;
+    background: transparent;
+    box-shadow: none;
+    width: 28px;
+    height: 28px;
+    min-width: 28px;
+    min-height: 28px;
+    justify-content: center;
+    align-items: center;
+    flex: 0 0 28px;
+  }
+  .llm-pill.icon-only.active:hover,
+  .llm-pill.icon-only.inactive:hover {
+    background: transparent;
+    border: none;
+    box-shadow: none;
+  }
+  .llm-pill.icon-only .llm-pill-icon {
+    width: 24px;
+    height: 24px;
+    min-width: 24px;
+    min-height: 24px;
+    border-radius: 50%;
+    object-fit: contain;
+    background-color: #ffffff;
+    box-shadow: 0 0 0 1px rgba(54,116,181,0.35);
+    display: block;
+  }
+  .llm-pill.icon-only:hover .llm-pill-icon {
+    box-shadow: 0 0 0 2px rgba(54,116,181,0.35);
+  }
+  .llm-pill-icon {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    object-fit: contain;
+    background-color: #ffffff;
+  }
+  .llm-pill-label {
+    white-space: nowrap;
+  }
+  .llm-pill.active {
+    background-color: var(--primary);
+    color: #ffffff;
+    border-color: var(--primary);
+  }
+  .llm-pill.active:hover {
+    background-color: var(--hover-primary);
+    border-color: var(--hover-primary);
+    box-shadow: 0 0 0 3px rgba(54,116,181,0.18);
+  }
+  .llm-pill.inactive {
+    background-color: transparent;
+    color: var(--primary);
+    border-color: var(--primary);
+  }
+  .llm-pill.inactive:hover {
+    background-color: rgba(54,116,181,0.08);
+    box-shadow: 0 0 0 3px rgba(54,116,181,0.18);
+  }
+
+  /* COMMENT: Custom website picker — explicit Assistants entry for pin mode */
+  .llm-pill.custom-site-add {
+    padding: 6px 12px;
+    border-style: dashed;
+    background: transparent;
+    color: var(--primary);
+    cursor: pointer;
+    font: inherit;
+  }
+
+  .llm-pill.custom-site-add:hover:not(:disabled) {
+    background: rgba(54, 116, 181, 0.08);
+    border-style: solid;
+  }
+
+  .llm-pill.custom-site-add:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+
+  .llm-pill.custom-site-add.is-pinned {
+    border-style: solid;
+    background: rgba(54, 116, 181, 0.12);
+    box-shadow: inset 0 0 0 1px rgba(54, 116, 181, 0.25);
+  }
+
+  .custom-site-add-icon {
+    width: 16px;
+    height: 16px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    color: inherit;
+  }
+
+  .llm-pill.custom-site-pill .llm-pill-icon.custom-site-favicon {
+    box-shadow: 0 0 0 1px rgba(54, 116, 181, 0.35);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    .llm-pill.icon-only .llm-pill-icon,
+    .llm-pill.custom-site-pill .llm-pill-icon.custom-site-favicon {
+      background-color: #1A202C;
+      box-shadow: 0 0 0 1px rgba(54, 116, 181, 0.55);
+    }
+
+    .llm-pill.icon-only:hover .llm-pill-icon {
+      box-shadow: 0 0 0 2px rgba(54, 116, 181, 0.7);
+    }
+  }
+  /* ---------------------------------------------------------- */
+
+@media (prefers-color-scheme: light) {
+  #prompt-list li:hover {
+    background-color: #e2e8f0;
+    transform: translateY(-2px);
+  }
+}
+
+/* Scrollbar colour */
+#prompt-list {
+  scrollbar-width: auto;
+  scrollbar-color: var(--primary) transparent;
+}
+
+/* ============================================================
+   Header icon colour rules
+   - Light mode: use baked-in coloured asset
+   - Dark mode: white via filter for non-header icons, header uses dark asset
+   ============================================================ */
+/* No special light-mode filter needed; using coloured PNG via <picture> */
+
+/* COMMENT: Dedicated settings page blocks (settings.html) */
+.settings-section {
+  margin: 1.25rem 0 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.settings-section-first {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: none;
+}
+
+.settings-heading {
+  margin: 0 0 0.35rem 0;
+  font-size: 1rem;
+}
+
+.settings-mode-options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.65rem;
+  margin-top: 0.75rem;
+}
+
+.settings-mode-option {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 0.85rem;
+  border: 1px solid #cbd5e0;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  background: #fff;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.settings-mode-option input {
+  margin: 0;
+}
+
+.settings-mode-option.is-selected {
+  border-color: var(--primary);
+  box-shadow: inset 0 0 0 1px var(--primary);
+}
+
+.settings-back-btn {
+  margin-top: 0.5rem;
+}
+
+.settings-permissions-empty[hidden] {
+  display: none;
+}
+
+.settings-permissions-list {
+  list-style: none;
+  margin: 0.75rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.settings-permission-item {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.55rem 0.65rem;
+  border: 1px solid #cbd5e0;
+  border-radius: 0.5rem;
+  background: #fff;
+}
+
+.settings-permission-icon {
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  flex-shrink: 0;
+  object-fit: cover;
+  background: #fff;
+}
+
+.settings-permission-label {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.92rem;
+  line-height: 1.3;
+  word-break: break-word;
+}
+
+.settings-permission-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: #718096;
+  cursor: pointer;
+  padding: 0;
+  flex-shrink: 0;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.settings-permission-remove:hover {
+  background: rgba(197, 48, 48, 0.1);
+  color: #c53030;
+}
+
+.settings-permission-remove svg {
+  display: block;
+}
+
+@media (prefers-color-scheme: dark) {
+  .settings-section {
+    border-top-color: rgba(255, 255, 255, 0.08);
+  }
+
+  .settings-mode-option {
+    background: #144272;
+    border-color: #4a5568;
+    color: #e2e8f0;
+  }
+
+  .settings-permission-item {
+    background: #144272;
+    border-color: #4a5568;
+  }
+
+  .settings-permission-remove:hover {
+    background: rgba(252, 129, 129, 0.12);
+    color: #fc8181;
+  }
+}
+
+/* COMMENT: Unified settings controls (toggles, shortcuts, tag management) */
+.settings-kbd {
+  background-color: var(--primary);
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  margin-right: 10px;
+  min-width: 4.5rem;
+  text-align: center;
+  display: inline-block;
+}
+
+.settings-shortcut-row {
+  margin-bottom: 0.75rem;
+}
+
+.settings-field-label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 600;
+  margin-bottom: 0.35rem;
+}
+
+.settings-shortcut-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.settings-shortcut-record.is-recording {
+  background: #2d3748;
+}
+
+.settings-shortcut-display {
+  background: #edf2f7;
+  border: 1px solid #cbd5e0;
+  border-radius: 0.375rem;
+  padding: 0.35rem 0.65rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.settings-shortcut-hint {
+  margin-top: 0.35rem;
+}
+
+.settings-toggle-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.settings-toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid #cbd5e0;
+  border-radius: 0.5rem;
+  background: #fff;
+  cursor: pointer;
+}
+
+.settings-toggle-input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.settings-toggle-switch {
+  position: relative;
+  width: 42px;
+  height: 22px;
+  border-radius: 999px;
+  background: #cbd5e0;
+  flex-shrink: 0;
+  transition: background 0.15s ease;
+}
+
+.settings-toggle-switch::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #fff;
+  transition: transform 0.15s ease;
+}
+
+.settings-toggle-input:checked + .settings-toggle-switch {
+  background: var(--primary);
+}
+
+.settings-toggle-input:checked + .settings-toggle-switch::after {
+  transform: translateX(20px);
+}
+
+.settings-tag-mgmt-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.settings-tag-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.5rem;
+  border: 1px solid #cbd5e0;
+  border-radius: 999px;
+  background: #fff;
+}
+
+.settings-tag-pill.is-dragging {
+  opacity: 0.65;
+}
+
+.settings-tag-drag {
+  border: none;
+  background: transparent;
+  padding: 0;
+  cursor: grab;
+  display: inline-flex;
+  align-items: center;
+}
+
+.settings-tag-label {
+  font-size: 0.8125rem;
+}
+
+.settings-tag-remove {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 1rem;
+  line-height: 1;
+  padding: 0 0.15rem;
+  color: #718096;
+}
+
+.settings-tag-remove:hover {
+  color: #e53e3e;
+}
+
+.settings-danger-btn {
+  margin-top: 0.75rem;
+  background: #9ca3af;
+}
+
+.settings-status-error {
+  color: #e53e3e;
+}
+
+.settings-community-links {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.settings-community-link {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.55rem 0.65rem;
+  border: 1px solid #cbd5e0;
+  border-radius: 0.5rem;
+  background: #fff;
+  color: inherit;
+  text-decoration: none;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.settings-community-link:hover {
+  border-color: var(--primary);
+  background: rgba(54, 116, 181, 0.06);
+}
+
+.settings-community-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  color: var(--primary, #3674B5);
+  flex-shrink: 0;
+  transition: background-color 0.15s ease;
+}
+
+.settings-community-link:hover .settings-community-icon {
+  background: rgba(54, 116, 181, 0.12);
+}
+
+@media (prefers-color-scheme: dark) {
+  .settings-shortcut-display {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.12);
+    color: #e2e8f0;
+  }
+
+  .settings-toggle-row,
+  .settings-tag-pill {
+    background: rgba(255, 255, 255, 0.04);
+    border-color: rgba(255, 255, 255, 0.12);
+    color: #e2e8f0;
+  }
+
+  .settings-toggle-switch {
+    background: rgba(255, 255, 255, 0.18);
+  }
+
+  .settings-community-link {
+    background: rgba(255, 255, 255, 0.04);
+    border-color: rgba(255, 255, 255, 0.12);
+    color: #e2e8f0;
+  }
+
+  .settings-community-link:hover {
+    background: rgba(54, 116, 181, 0.15);
+  }
+}

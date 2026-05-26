@@ -7,6 +7,11 @@
     if (window.__OPM_PROMPT_SHARED__) return;
     window.__OPM_PROMPT_SHARED__ = true;
 
+    // COMMENT: Sync with src/opd/opdConstants.js OPD_CATALOG_URL
+    const OPD_CATALOG_URL = 'https://openpromptdatabase.com';
+    // COMMENT: Same people/community SVG as the sidebar footer OPD link
+    const OPD_COMMUNITY_ICON_SVG = '<svg class="footer-md-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>';
+
     const createEl = window.createEl;
     const debounce = window.debounce || ((fn, wait = 100) => {
       let timeout;
@@ -350,6 +355,45 @@
           btns.forEach(type => bar.appendChild(Elements.createIconButton(type, actions[type])));
           return bar;
         },
+        /** COMMENT: Link to Open Prompt Database — shown below Create Prompt (in-page panel). */
+        createOpdCatalogLink() {
+          const dark = typeof window.isDarkMode === 'function' ? window.isDarkMode() : getMode() === 'dark';
+          const link = createEl('a', {
+            className: `opm-opd-catalog-link opm-${getMode()}`,
+            attributes: {
+              href: `${OPD_CATALOG_URL}/`,
+              target: '_blank',
+              rel: 'noopener noreferrer',
+            },
+            styles: {
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: '8px',
+              marginTop: '4px',
+              padding: '10px 12px',
+              borderRadius: '6px',
+              textDecoration: 'none',
+              fontSize: '12px',
+              lineHeight: '1.45',
+              flexShrink: '0',
+              border: dark ? '1px solid rgba(99, 179, 237, 0.25)' : '1px solid rgba(54, 116, 181, 0.2)',
+              backgroundColor: dark ? 'rgba(54, 116, 181, 0.15)' : '#ebf8ff',
+              color: dark ? '#E2E8F0' : '#2C5282',
+            },
+          });
+          const icon = createEl('span', {
+            className: 'opm-opd-catalog-link-icon',
+            attributes: { 'aria-hidden': 'true' },
+            innerHTML: OPD_COMMUNITY_ICON_SVG,
+          });
+          const text = createEl('span', {
+            className: 'opm-opd-catalog-link-text',
+            innerHTML: 'Import Community Prompts',
+          });
+          link.append(icon, text);
+          link.addEventListener('click', (e) => e.stopPropagation());
+          return link;
+        },
         createBottomMenu() {
           const menu = createEl('div', {
             className: `opm-bottom-menu opm-${getMode()}`,
@@ -391,6 +435,56 @@
 
           row.append(label, toggleSwitch);
           return row;
+        },
+        // COMMENT: Three-way launcher mode picker for the in-page settings panel
+        createLauncherModePicker({ getValue, onChange }) {
+          const wrapper = createEl('div', { styles: { display: 'flex', flexDirection: 'column', gap: '8px' } });
+          const title = createEl('div', {
+            styles: { fontWeight: 'bold', fontSize: '14px' },
+            innerHTML: 'Launcher mode',
+          });
+          const optionsWrap = createEl('div', { styles: { display: 'flex', flexDirection: 'column', gap: '6px' } });
+          const modes = [
+            { value: 'standard', label: 'Floating button' },
+            { value: 'hotCorner', label: 'Hot corner' },
+            { value: 'invisible', label: 'Invisible (shortcut only)' },
+          ];
+
+          const syncChecked = (activeMode) => {
+            optionsWrap.querySelectorAll('input[type="radio"]').forEach((radio) => {
+              radio.checked = radio.value === activeMode;
+            });
+          };
+
+          modes.forEach(({ value, label }) => {
+            const row = createEl('label', {
+              styles: {
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                fontSize: '14px',
+                cursor: 'pointer',
+              },
+            });
+            const radio = createEl('input', {
+              attributes: { type: 'radio', name: 'opm-display-mode', value },
+            });
+            radio.addEventListener('change', () => {
+              if (!radio.checked) return;
+              Promise.resolve(onChange?.(value))
+                .then(() => syncChecked(value))
+                .catch(err => console.error('[PromptManager] Launcher mode change failed:', err));
+            });
+            row.append(radio, createEl('span', { innerHTML: label }));
+            optionsWrap.appendChild(row);
+          });
+
+          Promise.resolve(getValue?.())
+            .then(syncChecked)
+            .catch(err => console.warn('[PromptManager] Failed to initialize launcher mode picker:', err));
+
+          wrapper.append(title, optionsWrap);
+          return wrapper;
         }
       };
 
@@ -655,7 +749,7 @@
 
           form.append(titleIn, contentArea);
           if (tagsBlock) form.append(tagsBlock);
-          form.append(saveBtn);
+          form.append(saveBtn, Elements.createOpdCatalogLink());
           form.addEventListener('click', e => e.stopPropagation());
           return form;
         },
@@ -731,14 +825,12 @@
           shortcutRow.append(recordShortcutBtn, shortcutDisplay);
           refreshShortcutDisplay().catch(() => {});
 
-          settings.appendChild(Elements.createToggleRow({
-            labelText: 'Hot Corner Mode',
-            getValue: async () => (await window.PromptStorageManager.getDisplayMode()) === 'hotCorner',
-            onToggle: async (active) => {
-              const newMode = active ? 'hotCorner' : 'standard';
-              await window.PromptStorageManager.saveDisplayMode(newMode);
-              await window.PromptUIManager.refreshDisplayMode();
-            }
+          settings.appendChild(Elements.createLauncherModePicker({
+            getValue: async () => window.PromptStorageManager.getDisplayMode(),
+            onChange: async (mode) => {
+              // COMMENT: storage.onChanged triggers refreshDisplayMode — avoid duplicate refresh races
+              await window.PromptStorageManager.saveDisplayMode(mode);
+            },
           }));
 
           settings.appendChild(Elements.createToggleRow({

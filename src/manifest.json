@@ -1,7 +1,7 @@
 {
     "manifest_version": 3,
-    "name": "Open Prompt Manager",
-    "version": "2.9",
+    "name": "Open Prompt Manager - for AI Agents & Assistants",
+    "version": "2.9.1",
     "description": "Open Source Prompt Manager for ChatGPT, Claude, Gemini, Grok and more.",
     "permissions": [
         "sidePanel",
@@ -34,7 +34,6 @@
     "content_scripts": [
         {
             "matches": [
-                "https://open-prompt-database.jonathanbertholet.workers.dev/*",
                 "http://localhost:8787/*",
                 "http://127.0.0.1:8787/*"
             ],
@@ -44,11 +43,13 @@
     ],
     "host_permissions": [],
     "optional_host_permissions": [
-        "<all_urls>"
+        "<all_urls>",
+        "https://openpromptdatabase.com/*"
     ],
     "externally_connectable": {
         "matches": [
-            "https://open-prompt-database.jonathanbertholet.workers.dev/*",
+            "https://openpromptdatabase.com/*",
+            "https://www.openpromptdatabase.com/*",
             "http://localhost:8787/*",
             "http://127.0.0.1:8787/*"
         ]

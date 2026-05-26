@@ -470,8 +470,14 @@ const PanelRouter = (() => {
     const listEl = qs(`#${SELECTORS.PROMPT_LIST}`);
     if (!listEl) return;
 
-    if (state.currentView === view && !definition.alwaysRebuild) {
-      // COMMENT: If view already active and does not require rebuild, just ensure visibility.
+    const panelContent = listEl.querySelector(`#${SELECTORS.PANEL_CONTENT}`);
+    const hasRenderedView = panelContent && (
+      panelContent.querySelector(`.${SELECTORS.PROMPT_ITEMS_CONTAINER}.opm-view-list`)
+      || panelContent.querySelector('.opm-create-form')
+      || panelContent.querySelector('.opm-form-container')
+    );
+    if (state.currentView === view && !definition.alwaysRebuild && hasRenderedView) {
+      // COMMENT: Skip rebuild only when the same view is already rendered in the current list node
       PromptUIManager.showPromptList(listEl);
       return;
     }
@@ -520,7 +526,11 @@ const PanelRouter = (() => {
     }
   };
 
-  return { mount };
+  const reset = () => {
+    state.currentView = null;
+  };
+
+  return { mount, reset };
 })();
 window.PanelRouter = PanelRouter;
 
@@ -537,6 +547,7 @@ const OutsideClickCloser = (() => {
       || e.target.closest(`.${SELECTORS.PROMPT_ITEMS_CONTAINER}`)
       || e.target.closest('.opm-icon-button')
       || e.target.closest('.opm-form-container')
+      || e.target.closest('.opm-opd-catalog-link')
       || e.target.closest('.opm-button')
       // COMMENT: Tag suggestions render in a portal on #opm-root — keep panel open when picking a tag (#71)
       || e.target.closest('.opm-tag-suggestions')
@@ -580,6 +591,12 @@ class KeyboardManager {
     }
 
     if (e.key === 'Escape') {
+      // COMMENT: Pin-picker overlay takes priority over prompt list dismiss while active
+      if (window.__OPM_PIN_PICKER_ACTIVE__ && typeof window.__OPM_PIN_PICKER_DISMISS__ === 'function') {
+        e.preventDefault();
+        window.__OPM_PIN_PICKER_DISMISS__();
+        return;
+      }
       PromptUIManager.handleGlobalEscape(e);
       return;
     }
@@ -592,7 +609,12 @@ class KeyboardManager {
   }
 
   static async _togglePromptList() {
-    const listEl = qs(`#${SELECTORS.PROMPT_LIST}`);
+    // COMMENT: Ensure launcher UI exists before toggling (covers early shortcut before bootstrap)
+    let listEl = qs(`#${SELECTORS.PROMPT_LIST}`);
+    if (!listEl) {
+      await PromptUIManager.injectUIForCurrentMode();
+      listEl = qs(`#${SELECTORS.PROMPT_LIST}`);
+    }
     if (!listEl) return;
     if (listEl.classList.contains('opm-visible')) {
       PromptUIManager.hidePromptList(listEl);
@@ -1104,27 +1126,35 @@ class PromptUIManager {
   // COMMENT: Removed panel height lock; CSS now enforces min/max height across views
 
   static injectPromptManagerButton(prompts) {
+    const populateList = (data) => {
+      // COMMENT: Always rebuild after (re)injecting the button shell — signature may match an empty list
+      PromptUIManager.state.lastPromptsSignature = null;
+      PromptUIManager.refreshPromptList(Array.isArray(data) ? data : []);
+    };
+
     // COMMENT: Reuse an existing button container if present in the DOM (survives partial re-inits)
     const existingContainer = document.getElementById(SELECTORS.PROMPT_BUTTON_CONTAINER);
     if (existingContainer) {
       PromptUIManager.state.buttonContainer = existingContainer;
       PromptUIManager.state.currentMode = 'standard';
-      PromptUIManager.refreshPromptList(prompts);
-      return;
+      populateList(prompts);
+      return Promise.resolve();
     }
     if (PromptUIManager.state.buttonContainer &&
         document.body.contains(PromptUIManager.state.buttonContainer)) {
-      PromptUIManager.refreshPromptList(prompts);
-      return;
+      populateList(prompts);
+      return Promise.resolve();
     }
-    PromptStorageManager.getButtonPosition().then(pos => {
+
+    // COMMENT: Return a promise so mode refresh can await before closing/hiding the panel
+    return PromptStorageManager.getButtonPosition().then(pos => {
       const container = createEl('div', { id: SELECTORS.PROMPT_BUTTON_CONTAINER, styles: UI_STYLES.getPromptButtonContainerStyle(pos) });
       const button = createEl('button', { id: SELECTORS.PROMPT_BUTTON, className: 'opm-prompt-button' });
       container.appendChild(button);
       const listEl = createEl('div', { id: SELECTORS.PROMPT_LIST, className: `opm-prompt-list opm-${getMode()} opm-fixed-400` });
       container.appendChild(listEl);
       PromptUIManager._ensureRoot().appendChild(container);
-      PromptUIManager.refreshPromptList(prompts);
+      populateList(prompts);
       PromptUIManager.attachButtonEvents(button, listEl, container, prompts);
       PromptUIManager.makeDraggable(container);
       PromptUIManager.checkAndShowOnboarding(container);
@@ -1815,6 +1845,28 @@ class PromptUIManager {
   static selectedSearchIndex = -1;
 
   // HOT CORNER MODE
+  static _usesCornerLauncher(mode) {
+    return mode === 'hotCorner' || mode === 'invisible';
+  }
+
+  // COMMENT: Shared bottom-right prompt list anchor used by hot corner and invisible modes
+  static _mountCornerPromptList(containerId, containerStyles) {
+    const container = createEl('div', { id: containerId, styles: containerStyles });
+    const listEl = createEl('div', {
+      id: SELECTORS.PROMPT_LIST,
+      className: `opm-prompt-list opm-${getMode()} opm-fixed-400`,
+      styles: {
+        position: 'absolute',
+        right: '30px',
+        bottom: '30px',
+      },
+    });
+    container.appendChild(listEl);
+    PromptUIManager._ensureRoot().appendChild(container);
+    OutsideClickCloser.ensure();
+    return { container, listEl };
+  }
+
   static injectHotCorner() {
     // COMMENT: Reuse an existing hot-corner container if already mounted in the DOM
     const existingHotCorner = document.getElementById(SELECTORS.HOT_CORNER_CONTAINER);
@@ -1829,10 +1881,10 @@ class PromptUIManager {
     }
 
     // container with active zone
-    const container = createEl('div', {
-      id: SELECTORS.HOT_CORNER_CONTAINER,
-      styles: UI_STYLES.hotCornerActiveZone
-    });
+    const { container, listEl } = PromptUIManager._mountCornerPromptList(
+      SELECTORS.HOT_CORNER_CONTAINER,
+      UI_STYLES.hotCornerActiveZone,
+    );
 
     //  visual indicator
     const indicator = createEl('div', {
@@ -1848,25 +1900,54 @@ class PromptUIManager {
     });
     container.appendChild(indicator);
 
-    // Create the prompt list container with some positioning rules
-    const listEl = createEl('div', {
-      id: SELECTORS.PROMPT_LIST,
-      className: `opm-prompt-list opm-${getMode()} opm-fixed-400`,
-      styles: {
-        position: 'absolute',
-        right: '30px',
-        bottom: '30px',
-      }
-    });
-    container.appendChild(listEl);
-    PromptUIManager._ensureRoot().appendChild(container);
-
     // Setup event handlers
     this.setupHotCornerEvents(container, indicator, listEl);
-    OutsideClickCloser.ensure();
     PromptUIManager.state.hotCornerContainer = container;
     PromptUIManager.state.buttonContainer = null;
     PromptUIManager.state.currentMode = 'hotCorner';
+  }
+
+  // COMMENT: Shortcut-only launcher — same panel position as hot corner, no visible trigger
+  static injectInvisibleLauncher() {
+    const existingInvisible = document.getElementById(SELECTORS.INVISIBLE_LAUNCHER_CONTAINER);
+    if (existingInvisible) {
+      PromptUIManager.state.hotCornerContainer = existingInvisible;
+      PromptUIManager.state.currentMode = 'invisible';
+      return;
+    }
+
+    const { container, listEl } = PromptUIManager._mountCornerPromptList(
+      SELECTORS.INVISIBLE_LAUNCHER_CONTAINER,
+      UI_STYLES.invisibleLauncherAnchor,
+    );
+    listEl.style.pointerEvents = 'auto';
+
+    PromptUIManager.setupInvisibleLauncherEvents(listEl);
+    PromptUIManager.state.hotCornerContainer = container;
+    PromptUIManager.state.buttonContainer = null;
+    PromptUIManager.state.currentMode = 'invisible';
+  }
+
+  // COMMENT: Close/hide behavior for invisible mode without hover-to-open
+  static setupInvisibleLauncherEvents(listEl) {
+    listEl.addEventListener('mouseenter', () => {
+      PromptUIManager.cancelCloseTimer();
+    });
+    listEl.addEventListener('mouseleave', (e) => {
+      PromptUIManager.startCloseTimer(e, listEl, () => {
+        PromptUIManager.manuallyOpened = false;
+      });
+    });
+
+    const visibilityHandler = () => {
+      if (document.hidden) {
+        PromptUIManager.manuallyOpened = false;
+        PromptUIManager.inVariableInputMode = false;
+        PromptUI.Behaviors.hideList(listEl);
+      }
+    };
+    document.addEventListener('visibilitychange', visibilityHandler);
+    PromptUIManager.state.hotCornerVisibilityHandler = visibilityHandler;
   }
 
   // Extracted event handling for hot corner
@@ -1958,8 +2039,19 @@ class PromptUIManager {
       PromptUIManager.state.hotCornerContainer.remove();
     }
 
+    // COMMENT: Remove any launcher shells even if state refs were lost mid-refresh
+    [SELECTORS.PROMPT_BUTTON_CONTAINER, SELECTORS.HOT_CORNER_CONTAINER, SELECTORS.INVISIBLE_LAUNCHER_CONTAINER]
+      .forEach((id) => {
+        const el = document.getElementById(id);
+        if (el && document.body.contains(el)) el.remove();
+      });
+
+    // COMMENT: Drop cached view so the next open remounts into the fresh list container
+    PanelRouter.reset();
+
     // Clean up any other global handlers or state
     PromptUIManager.manuallyOpened = false;
+    PromptUIManager.inVariableInputMode = false;
     PromptUIManager.state.buttonContainer = null;
     PromptUIManager.state.hotCornerContainer = null;
     PromptUIManager.state.currentMode = null;
@@ -1967,20 +2059,27 @@ class PromptUIManager {
   }
 
   static async refreshDisplayMode() {
-    // clean up all existing UI components
-    PromptUIManager.cleanupAllUIComponents();
-    // Get the current mode and prompts
-    const prompts = await PromptStorageManager.getPrompts();
-    await PromptUIManager.injectUIForCurrentMode(prompts);
-
-    // Make sure the prompt list is refreshed only if list view is active
-    PromptUIManager.refreshItemsIfListActive(prompts);
-    // If switching modes from settings, we should close any open menu
-    const listEl = qs(`#${SELECTORS.PROMPT_LIST}`);
-    if (listEl && listEl.classList.contains('opm-visible')) {
-      PromptUIManager.hidePromptList(listEl);
+    // COMMENT: Coalesce overlapping refreshes (in-page save + storage.onChanged fire together)
+    if (PromptUIManager._displayModeRefreshPromise) {
+      return PromptUIManager._displayModeRefreshPromise;
     }
-  }  
+
+    PromptUIManager._displayModeRefreshPromise = (async () => {
+      PromptUIManager.cleanupAllUIComponents();
+      const prompts = await PromptStorageManager.getPrompts();
+      await PromptUIManager.injectUIForCurrentMode(prompts, { skipCleanup: true });
+
+      PromptUIManager.refreshItemsIfListActive(prompts);
+      const listEl = qs(`#${SELECTORS.PROMPT_LIST}`);
+      if (listEl && listEl.classList.contains('opm-visible')) {
+        PromptUIManager.hidePromptList(listEl);
+      }
+    })().finally(() => {
+      PromptUIManager._displayModeRefreshPromise = null;
+    });
+
+    return PromptUIManager._displayModeRefreshPromise;
+  }
 
   // COMMENT: Helper to mark onboarding as complete and remove the popup if present
   static completeOnboarding() {
@@ -1996,23 +2095,33 @@ class PromptUIManager {
   }
 
   // COMMENT: Inject the correct UI based on current display mode
-  static async injectUIForCurrentMode(prompts) {
+  static async injectUIForCurrentMode(prompts, { skipCleanup = false } = {}) {
     const displayMode = await PromptStorageManager.getDisplayMode();
-    // COMMENT: Skip reinjection when the requested mode is already mounted and healthy
-    const hasButtonUI = PromptUIManager.state.buttonContainer &&
-      document.body.contains(PromptUIManager.state.buttonContainer);
-    const hasHotCornerUI = PromptUIManager.state.hotCornerContainer &&
-      document.body.contains(PromptUIManager.state.hotCornerContainer);
-    if (PromptUIManager.state.currentMode === displayMode) {
-      if (displayMode === 'standard' && hasButtonUI) {
-        if (prompts) PromptUIManager.refreshPromptList(prompts);
-        return;
+
+    if (!skipCleanup) {
+      // COMMENT: Skip reinjection when the requested mode is already mounted and healthy
+      const hasButtonUI = PromptUIManager.state.buttonContainer &&
+        document.body.contains(PromptUIManager.state.buttonContainer);
+      const hasHotCornerUI = PromptUIManager.state.hotCornerContainer &&
+        document.body.contains(PromptUIManager.state.hotCornerContainer);
+      if (PromptUIManager.state.currentMode === displayMode) {
+        if (displayMode === 'standard' && hasButtonUI) {
+          if (prompts) PromptUIManager.refreshPromptList(prompts);
+          return;
+        }
+        if (PromptUIManager._usesCornerLauncher(displayMode) && hasHotCornerUI) return;
       }
-      if (displayMode === 'hotCorner' && hasHotCornerUI) return;
+
+      PromptUIManager.cleanupAllUIComponents();
     }
+
     if (displayMode === 'standard') {
       const data = prompts || await PromptStorageManager.getPrompts();
-      PromptUIManager.injectPromptManagerButton(data);
+      await PromptUIManager.injectPromptManagerButton(data);
+    } else if (displayMode === 'hotCorner') {
+      PromptUIManager.injectHotCorner();
+    } else if (displayMode === 'invisible') {
+      PromptUIManager.injectInvisibleLauncher();
     } else {
       PromptUIManager.injectHotCorner();
     }
@@ -2102,7 +2211,8 @@ const PromptMediator = (() => {
     const ensureUIVisible = debounce(async () => {
       // COMMENT: Skip work when the injected UI is still present in the DOM
       if (document.getElementById(SELECTORS.PROMPT_BUTTON_CONTAINER)
-        || document.getElementById(SELECTORS.HOT_CORNER_CONTAINER)) {
+        || document.getElementById(SELECTORS.HOT_CORNER_CONTAINER)
+        || document.getElementById(SELECTORS.INVISIBLE_LAUNCHER_CONTAINER)) {
         return;
       }
       if (state.uiRecoverInProgress) return;

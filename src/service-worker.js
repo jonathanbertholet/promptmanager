@@ -1,5 +1,17 @@
 import { getProviders } from './llm_providers.js';
+import {
+  initOpdCatalogAccess,
+  isAllowedOpdMessageOrigin,
+} from './opd/opdCatalogAccess.js';
 import { importCatalogPrompt } from './opd/opdImport.js';
+import { notifyPromptImported } from './opd/opdClient.js';
+import { isHandleAvailable, registerPublisherHandle, getPublisherStatus } from './opd/opdPublisher.js';
+import { shareLocalPrompt, unpublishLocalPrompt } from './opd/opdPublish.js';
+import {
+  getOrCreatePublishToken,
+  setPublishEnabled,
+  getPublishSettings,
+} from './opd/opdPublishToken.js';
 import { getPrompts, onPromptsChanged, savePrompt } from './storage/promptStorage.js';
 import { removePinnedForHostname } from './storage/pinnedInputStorage.js';
 import { resolveProviderIconUrl } from './utils/providerIcons.js';
@@ -178,27 +190,22 @@ async function ensureContentScriptsForTab(tabId, url) {
 }
 
 /**
- * COMMENT: Run a pin-input helper inside the active page tab.
+ * COMMENT: Dispatch pin-input actions to the tab's content script (same world as InputBoxHandler).
  * @param {number} tabId
  * @param {'start'|'clear'|'status'} action
+ * @param {number} [attempts]
  * @returns {Promise<object>}
  */
 async function runPinInputAction(tabId, action) {
-  const [{ result }] = await chrome.scripting.executeScript({
-    target: { tabId },
-    func: async (pinAction) => {
-      const handler = window.InputBoxHandler;
-      if (!handler) return { ok: false, error: 'handler_missing' };
-
-      if (pinAction === 'start') return handler.startPinPickerMode();
-      if (pinAction === 'clear') return handler.clearPinnedInput();
-      if (pinAction === 'status') return handler.getPinnedStatus();
-      return { ok: false, error: 'unknown_action' };
-    },
-    args: [action],
-  });
-
-  return result || { ok: false, error: 'no_result' };
+  try {
+    const response = await chrome.tabs.sendMessage(tabId, {
+      type: 'OPM_PIN_INPUT_CONTENT',
+      action,
+    });
+    return response || { ok: false, error: 'no_response' };
+  } catch (_) {
+    return { ok: false, error: 'handler_missing' };
+  }
 }
 
 /**
@@ -210,6 +217,9 @@ function handleOpdImportPrompt(message, sendResponse) {
   (async () => {
     try {
       const result = await importCatalogPrompt(message.prompt);
+      if (result?.ok && message.prompt?.id) {
+        notifyPromptImported(message.prompt.id);
+      }
       sendResponse(result);
     } catch (error) {
       sendResponse({ ok: false, error: error?.message || 'import_failed' });
@@ -217,17 +227,152 @@ function handleOpdImportPrompt(message, sendResponse) {
   })();
 }
 
-chrome.runtime.onMessageExternal.addListener((message, _sender, sendResponse) => {
+chrome.runtime.onMessageExternal.addListener((message, sender, sendResponse) => {
+  if (!isAllowedOpdMessageOrigin(sender?.url)) {
+    sendResponse({ ok: false, error: 'forbidden_origin' });
+    return true;
+  }
+
+  if (message?.type === 'OPD_PING') {
+    sendResponse({ ok: true, version: chrome.runtime.getManifest().version });
+    return true;
+  }
+
   if (message?.type !== 'OPD_IMPORT_PROMPT') {
     return undefined;
   }
+
   handleOpdImportPrompt(message, sendResponse);
   return true;
 });
 
+// COMMENT: Optional catalog host permission → inject bridge on OPD pages (dev / fallback).
+initOpdCatalogAccess();
+
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message?.type === 'OPD_IMPORT_PROMPT') {
     handleOpdImportPrompt(message, sendResponse);
+    return true;
+  }
+
+  if (message?.type === 'OPD_PUBLISH_STATUS') {
+    (async () => {
+      try {
+        const status = await getPublisherStatus({
+          forceSync: Boolean(message.forceSync),
+        });
+        sendResponse({ ok: true, ...status });
+      } catch (error) {
+        sendResponse({ ok: false, error: error?.message || 'status_failed' });
+      }
+    })();
+    return true;
+  }
+
+  if (message?.type === 'OPD_PUBLISH_ENABLE') {
+    (async () => {
+      try {
+        const enabled = Boolean(message.enabled);
+        if (enabled) {
+          const granted = await new Promise((resolve) => {
+            chrome.permissions.request(
+              { origins: ['https://openpromptdatabase.com/*'] },
+              (ok) => resolve(Boolean(ok))
+            );
+          });
+          if (!granted) {
+            sendResponse({ ok: false, error: 'permission_denied' });
+            return;
+          }
+          await getOrCreatePublishToken();
+        }
+        await setPublishEnabled(enabled);
+        sendResponse({ ok: true });
+      } catch (error) {
+        sendResponse({ ok: false, error: error?.message || 'enable_failed' });
+      }
+    })();
+    return true;
+  }
+
+  if (message?.type === 'OPD_HANDLE_AVAILABLE') {
+    (async () => {
+      try {
+        const result = await isHandleAvailable(message.handle || '');
+        sendResponse({ ok: true, ...result });
+      } catch (error) {
+        sendResponse({ ok: false, error: error?.message || 'check_failed' });
+      }
+    })();
+    return true;
+  }
+
+  if (message?.type === 'OPD_PUBLISH_REGISTER') {
+    (async () => {
+      try {
+        await setPublishEnabled(true);
+        await getOrCreatePublishToken();
+        const result = await registerPublisherHandle(
+          message.username || '',
+          message.turnstileToken || ''
+        );
+        sendResponse(result);
+      } catch (error) {
+        sendResponse({ ok: false, error: error?.message || 'register_failed' });
+      }
+    })();
+    return true;
+  }
+
+  if (message?.type === 'OPD_PUBLISH_PROMPT') {
+    (async () => {
+      try {
+        const settings = await getPublishSettings();
+        if (!settings.enabled) {
+          sendResponse({ ok: false, error: 'publish_disabled' });
+          return;
+        }
+        // COMMENT: Optional host permission is requested on first share, same as enabling publish
+        const granted = await new Promise((resolve) => {
+          chrome.permissions.contains(
+            { origins: ['https://openpromptdatabase.com/*'] },
+            (hasPermission) => {
+              if (hasPermission) {
+                resolve(true);
+                return;
+              }
+              chrome.permissions.request(
+                { origins: ['https://openpromptdatabase.com/*'] },
+                (ok) => resolve(Boolean(ok))
+              );
+            }
+          );
+        });
+        if (!granted) {
+          sendResponse({ ok: false, error: 'permission_denied' });
+          return;
+        }
+        const result = await shareLocalPrompt(
+          message.localUuid || '',
+          message.turnstileToken || ''
+        );
+        sendResponse(result);
+      } catch (error) {
+        sendResponse({ ok: false, error: error?.message || 'publish_failed' });
+      }
+    })();
+    return true;
+  }
+
+  if (message?.type === 'OPD_PUBLISH_DELETE') {
+    (async () => {
+      try {
+        const result = await unpublishLocalPrompt(message.localUuid || '');
+        sendResponse(result);
+      } catch (error) {
+        sendResponse({ ok: false, error: error?.message || 'delete_failed' });
+      }
+    })();
     return true;
   }
 
@@ -266,7 +411,16 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         return;
       }
 
-      const result = await runPinInputAction(tab.id, message.action || 'status');
+      let result = { ok: false, error: 'handler_missing' };
+      for (let attempt = 0; attempt < 4; attempt += 1) {
+        if (attempt > 0) {
+          await ensureContentScriptsForTab(tab.id, tab.url);
+          await new Promise((resolve) => setTimeout(resolve, 60 * attempt));
+        }
+        result = await runPinInputAction(tab.id, message.action || 'status');
+        if (result?.ok || result?.error === 'picker_already_active') break;
+        if (result?.error !== 'handler_missing') break;
+      }
       sendResponse(result);
     } catch (error) {
       sendResponse({ ok: false, error: error?.message || 'pin_action_failed' });

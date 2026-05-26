@@ -46,6 +46,13 @@ function normalisePrompt(p = {}) {
   }
   // - folderId: string or null
   out.folderId = typeof p.folderId === 'string' && p.folderId.length > 0 ? p.folderId : null;
+  // COMMENT: OPD catalog link — extension-only metadata (not required in exports)
+  if (typeof p.opdPublicId === 'string' && p.opdPublicId.length > 0) {
+    out.opdPublicId = p.opdPublicId;
+  }
+  if (typeof p.opdLastPublishedAt === 'string' && p.opdLastPublishedAt.length > 0) {
+    out.opdLastPublishedAt = p.opdLastPublishedAt;
+  }
   return out;
 }
 function normaliseArray(arr) {

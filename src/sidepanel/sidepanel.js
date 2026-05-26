@@ -8,6 +8,118 @@ import {
   attachProviderIconFallback,
   getFaviconFallbackForUrl,
 } from '../utils/providerIcons.js';
+import { OPD_CATALOG_URL, OPD_MSG } from '../opd/opdConstants.js';
+import { mountSidepanelFooter } from './sidepanelFooter.js';
+
+/** @type {ReturnType<typeof collectPromptFormRefs>|null} */
+let promptFormEls = null;
+
+/** COMMENT: Detect the full-tab expanded view (?expanded=1) vs the Chrome side panel */
+function isExpandedTabView() {
+  return new URLSearchParams(window.location.search).get('expanded') === '1';
+}
+
+function collectPromptFormRefs() {
+  return {
+    actionBar: document.getElementById('sidebar-action-bar'),
+    composer: document.getElementById('sidebar-composer'),
+    form: document.getElementById('prompt-form'),
+    titleInput: document.getElementById('prompt-title'),
+    contentInput: document.getElementById('prompt-content'),
+    uuidInput: document.getElementById('prompt-uuid'),
+    submitButton: document.getElementById('submit-button'),
+    cancelButton: document.getElementById('cancel-edit-button'),
+  };
+}
+
+function getPromptFormEls() {
+  if (!promptFormEls) promptFormEls = collectPromptFormRefs();
+  return promptFormEls;
+}
+
+// COMMENT: Expanded tab uses a two-pane layout — form lives in .composer-panel, not the sidebar slot
+function setupComposerLayout() {
+  const composerPanel = document.getElementById('composer-panel');
+  const sidebarComposer = document.getElementById('sidebar-composer');
+  const topSlot = document.querySelector('.sidebar-top-slot');
+  const form = document.getElementById('prompt-form');
+  const expanded = isExpandedTabView();
+
+  if (expanded) {
+    if (form && composerPanel && form.parentElement !== composerPanel) {
+      composerPanel.appendChild(form);
+    }
+    if (composerPanel) composerPanel.hidden = false;
+    if (topSlot) topSlot.hidden = true;
+  } else {
+    if (form && sidebarComposer && form.parentElement !== sidebarComposer) {
+      sidebarComposer.appendChild(form);
+    }
+    if (composerPanel) composerPanel.hidden = true;
+    if (topSlot) topSlot.hidden = false;
+  }
+
+  promptFormEls = null;
+}
+
+// COMMENT: Swap the top sidebar slot between action buttons and the inline prompt form
+function setComposerOpen(isOpen) {
+  if (isExpandedTabView()) return;
+  const { actionBar, composer } = getPromptFormEls();
+  const showForm = Boolean(isOpen);
+  if (actionBar) actionBar.hidden = showForm;
+  if (composer) composer.hidden = !showForm;
+}
+
+function resetPromptForm({ keepOpen = false } = {}) {
+  const {
+    titleInput,
+    contentInput,
+    uuidInput,
+    submitButton,
+    cancelButton,
+  } = getPromptFormEls();
+
+  if (titleInput) titleInput.value = '';
+  if (contentInput) contentInput.value = '';
+  if (uuidInput) uuidInput.value = '';
+  if (formTagInput) formTagInput.setTags([]);
+  if (submitButton) submitButton.textContent = 'Save prompt';
+  if (cancelButton) cancelButton.textContent = 'Back';
+
+  if (!keepOpen) setComposerOpen(false);
+}
+
+function openComposerView({ title = '', content = '', uuid = '', tags = [] } = {}) {
+  const {
+    titleInput,
+    contentInput,
+    uuidInput,
+    submitButton,
+    cancelButton,
+  } = getPromptFormEls();
+
+  if (titleInput) titleInput.value = title;
+  if (contentInput) contentInput.value = content;
+  if (uuidInput) uuidInput.value = uuid;
+  if (formTagInput) formTagInput.setTags(tags);
+
+  if (submitButton) {
+    submitButton.textContent = uuid ? 'Update' : 'Save prompt';
+  }
+  if (cancelButton) {
+    cancelButton.textContent = uuid ? 'Cancel' : 'Back';
+  }
+
+  setComposerOpen(true);
+  titleInput?.focus();
+}
+
+// COMMENT: Overflow menu + success checkmark for sidebar prompt row actions
+const SPM_SHARE_ICON_SVG = '<svg class="spm-prompt-action-icon" viewBox="0 -960 960 960" aria-hidden="true"><path fill="currentColor" d="M440-320v-326L336-542l-56-58 200-200 200 200-56 58-104-104v326h-80ZM240-160q-33 0-56.5-23.5T160-240v-120h80v120h480v-120h80v120q0 33-23.5 56.5T720-160H240Z"/></svg>';
+const SPM_MORE_VERT_ICON_SVG = '<svg class="spm-prompt-action-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/></svg>';
+const SPM_CHECK_ICON_SVG = '<svg class="spm-prompt-action-icon spm-prompt-action-icon-success" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>';
+const SPM_ACTION_FEEDBACK_MS = 1200;
 
 // COMMENT: Debounce rapid tab events so switching tabs does not rebuild the whole Assistants section
 function debounceSidepanel(fn, wait = 250) {
@@ -47,9 +159,9 @@ async function getActiveBrowserTab() {
  * @param {'start'|'clear'|'status'} action
  * @returns {Promise<object>}
  */
-function sendPinInputAction(action) {
+function sendPinInputAction(action, tabId) {
   return new Promise(resolve => {
-    chrome.runtime.sendMessage({ type: 'OPM_PIN_INPUT', action }, response => {
+    chrome.runtime.sendMessage({ type: 'OPM_PIN_INPUT', action, tabId }, response => {
       if (chrome.runtime.lastError) {
         resolve({ ok: false, error: chrome.runtime.lastError.message });
         return;
@@ -127,7 +239,7 @@ async function handleCustomWebsiteAction(customWebsiteBtn) {
 
   const currentlyPinned = Boolean(await getPinnedForHostname(hostname));
   if (currentlyPinned) {
-    const result = await sendPinInputAction('clear');
+    const result = await sendPinInputAction('clear', tab.id);
     if (!result?.ok) {
       window.alert(result?.error || 'Could not unpin this custom website.');
       return;
@@ -137,14 +249,15 @@ async function handleCustomWebsiteAction(customWebsiteBtn) {
     return;
   }
 
-  let result = await sendPinInputAction('start');
+  let result = await sendPinInputAction('start', tab.id);
   if (result?.error === 'no_permission') {
     const granted = await requestPermissionForUrl(tab.url);
     if (!granted) {
       window.alert('Allow site access for this page to pick its input field.');
       return;
     }
-    result = await sendPinInputAction('start');
+    // COMMENT: Permission just granted — inject scripts then open the picker immediately
+    result = await sendPinInputAction('start', tab.id);
   }
 
   if (!result?.ok && result?.error !== 'picker_already_active') {
@@ -298,12 +411,14 @@ async function initSidepanelContent() {
     cachedProvidersMap = snapshot.providersMap;
   }
   cachedPermissionAllowed = computePermissionFromData(cachedProvidersMap, snapshot.pinnedInputs);
+  await refreshOpdPublishStatus();
 
   // COMMENT: Paint the prompt list before tag filters or Assistants build
   displayPrompts(
     allPromptsCache.filter(promptMatchesFilters),
     allPromptsCache.length
   );
+  lastPromptListDisplaySig = promptListDisplaySignature(allPromptsCache);
   await renderPermissionsGate(cachedPermissionAllowed, { skipControls: true });
 
   const controls = document.getElementById('prompt-list-controls');
@@ -333,6 +448,228 @@ let formTagInput = null;
 // COMMENT: Cached tag settings from the init snapshot to avoid repeat storage reads
 let cachedEnableTags = false;
 let cachedTagsOrder = [];
+// COMMENT: True when OPD publishing is enabled and the user has a registered handle
+let cachedOpdPublishEnabled = false;
+// COMMENT: Skip list re-renders when only OPD metadata changes (share feedback + less flicker)
+let lastPromptListDisplaySig = '';
+
+function promptListDisplaySignature(prompts = []) {
+  return prompts.map((p) => [
+    p.uuid,
+    p.title,
+    p.content,
+    (Array.isArray(p.tags) ? p.tags.join('\u001f') : ''),
+  ].join('\u001e')).join('\u001d');
+}
+
+async function refreshOpdPublishStatus() {
+  try {
+    const settings = await chrome.storage.sync.get(['opdPublishEnabled']);
+    // COMMENT: Default publish on for new users (key absent) — registration happens on first share
+    cachedOpdPublishEnabled = settings.opdPublishEnabled !== false;
+  } catch (_) {
+    cachedOpdPublishEnabled = false;
+  }
+}
+
+// COMMENT: Publish immediately and copy the catalog URL — no confirmation UI
+async function publishPromptToOpd(localUuid) {
+  try {
+    const res = await chrome.runtime.sendMessage({
+      type: OPD_MSG.PUBLISH_PROMPT,
+      localUuid,
+    });
+    if (res?.ok && res.url) {
+      try {
+        await navigator.clipboard.writeText(res.url);
+      } catch (_) {
+        // COMMENT: Publish succeeded even if clipboard write fails in the side panel
+      }
+      return true;
+    }
+  } catch (_) {
+    // Ignore publish failures silently in the sidebar
+  }
+  return false;
+}
+
+// COMMENT: Share publish re-renders the list before feedback can paint — replay after rebuild
+const pendingActionFeedback = new Map();
+
+function findPromptActionButton(uuid, kind) {
+  const li = document.querySelector(`#prompt-list li[data-uuid="${uuid}"]`);
+  if (!li) return null;
+  const label = kind === 'share'
+    ? 'Share to Open Prompt Database'
+    : 'Copy to clipboard';
+  return li.querySelector(`.spm-prompt-action-btn[aria-label="${label}"]`);
+}
+
+function schedulePromptActionFeedback(uuid, kind, btn) {
+  pendingActionFeedback.set(uuid, kind);
+  if (kind === 'copy' && btn?.isConnected) {
+    flashPromptActionSuccess(btn);
+    pendingActionFeedback.delete(uuid);
+    return;
+  }
+  applyPendingActionFeedback();
+}
+
+function applyPendingActionFeedback() {
+  if (!pendingActionFeedback.size) return;
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      for (const [uuid, kind] of [...pendingActionFeedback.entries()]) {
+        const li = document.querySelector(`#prompt-list li[data-uuid="${uuid}"]`);
+        const btn = findPromptActionButton(uuid, kind);
+        if (!btn || !li) continue;
+        li.classList.add('spm-action-feedback-visible');
+        flashPromptActionSuccess(btn);
+        pendingActionFeedback.delete(uuid);
+        window.setTimeout(() => {
+          li.classList.remove('spm-action-feedback-visible');
+        }, SPM_ACTION_FEEDBACK_MS);
+      }
+    });
+  });
+}
+
+// COMMENT: Briefly swap a row action icon to a checkmark after success
+function flashPromptActionSuccess(btn) {
+  if (!btn || btn.dataset.spmFeedbackActive === '1') return;
+  const original = btn.innerHTML;
+  btn.dataset.spmFeedbackActive = '1';
+  btn.classList.add('spm-prompt-action-success');
+  btn.innerHTML = SPM_CHECK_ICON_SVG;
+  window.setTimeout(() => {
+    btn.innerHTML = original;
+    btn.classList.remove('spm-prompt-action-success');
+    delete btn.dataset.spmFeedbackActive;
+  }, SPM_ACTION_FEEDBACK_MS);
+}
+
+function wrapPromptActionWithFeedback(btn, action, feedbackKey) {
+  btn.addEventListener('click', async (e) => {
+    e.stopPropagation();
+    const ok = await action(e);
+    if (ok !== false) {
+      if (feedbackKey) {
+        schedulePromptActionFeedback(feedbackKey.uuid, feedbackKey.kind, btn);
+      } else {
+        flashPromptActionSuccess(btn);
+      }
+    }
+  });
+  return btn;
+}
+
+function createPromptSvgActionButton(label, svgHtml, onClick, { withFeedback = false, feedbackKey = null } = {}) {
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'spm-prompt-action-btn';
+  btn.title = label;
+  btn.setAttribute('aria-label', label);
+  btn.innerHTML = svgHtml;
+  if (withFeedback) {
+    wrapPromptActionWithFeedback(btn, onClick, feedbackKey);
+  } else {
+    btn.addEventListener('click', onClick);
+  }
+  return btn;
+}
+
+function createPromptImgActionButton(label, src, size, onClick, { withFeedback = false, feedbackKey = null } = {}) {
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'spm-prompt-action-btn';
+  btn.title = label;
+  btn.setAttribute('aria-label', label);
+  const img = document.createElement('img');
+  img.src = src;
+  img.alt = '';
+  img.width = size;
+  img.height = size;
+  btn.appendChild(img);
+  if (withFeedback) {
+    wrapPromptActionWithFeedback(btn, onClick, feedbackKey);
+  } else {
+    btn.addEventListener('click', onClick);
+  }
+  return btn;
+}
+
+function buildPromptListItemActions(prompt) {
+  const actions = document.createElement('div');
+  actions.className = 'spm-prompt-actions';
+
+  const primary = document.createElement('div');
+  primary.className = 'spm-prompt-actions-primary';
+
+  primary.appendChild(createPromptImgActionButton(
+    'Copy to clipboard',
+    '../icons/copy.png',
+    14,
+    async () => {
+      await navigator.clipboard.writeText(prompt.content);
+    },
+    { withFeedback: true, feedbackKey: { uuid: prompt.uuid, kind: 'copy' } },
+  ));
+
+  if (cachedOpdPublishEnabled) {
+    primary.appendChild(createPromptSvgActionButton(
+      'Share to Open Prompt Database',
+      SPM_SHARE_ICON_SVG,
+      async () => publishPromptToOpd(prompt.uuid),
+      { withFeedback: true, feedbackKey: { uuid: prompt.uuid, kind: 'share' } },
+    ));
+  }
+
+  const menu = document.createElement('div');
+  menu.className = 'spm-prompt-actions-menu';
+
+  const overflow = document.createElement('div');
+  overflow.className = 'spm-prompt-actions-overflow';
+
+  overflow.appendChild(createPromptImgActionButton(
+    'Edit',
+    '../icons/edit-icon.png',
+    14,
+    (e) => {
+      e.stopPropagation();
+      openComposerView({
+        title: prompt.title,
+        content: prompt.content,
+        uuid: prompt.uuid,
+        tags: prompt.tags || [],
+      });
+    },
+  ));
+
+  overflow.appendChild(createPromptImgActionButton(
+    'Delete',
+    '../icons/delete.svg',
+    18,
+    async (e) => {
+      e.stopPropagation();
+      if (!window.confirm('Are you sure you want to delete this prompt?')) return;
+      await PromptStorage.deletePrompt(prompt.uuid);
+    },
+  ));
+
+  const moreBtn = createPromptSvgActionButton(
+    'More actions',
+    SPM_MORE_VERT_ICON_SVG,
+    (e) => {
+      e.stopPropagation();
+      e.currentTarget.closest('li')?.classList.toggle('spm-actions-menu-open');
+    },
+  );
+  moreBtn.classList.add('spm-prompt-action-more');
+
+  menu.append(overflow, moreBtn);
+  actions.append(primary, menu);
+  return actions;
+}
 
 async function getLocalSetting(key, defaultValue) {
   try {
@@ -588,6 +925,11 @@ async function renderTagsFilterBar(prompts, enableTagsOverride) {
 
   const orderedTags = await getOrderedTags(counts, cachedTagsOrder);
   barHost.hidden = false;
+
+  // COMMENT: Preserve horizontal scroll when the bar is rebuilt (new tags, reorder, etc.)
+  const existingBar = barHost.querySelector('.spm-tags-filter-bar');
+  const savedScrollLeft = existingBar?.scrollLeft ?? 0;
+
   barHost.innerHTML = '';
 
   const bar = document.createElement('div');
@@ -604,7 +946,8 @@ async function renderTagsFilterBar(prompts, enableTagsOverride) {
       e.stopPropagation();
       activeTagFilter = tag;
       await setLocalSetting(TAG_STORAGE.activeTagFilter, tag);
-      refreshPromptListView();
+      updateTagsFilterSelection();
+      refreshFilteredPromptList();
     });
     return pill;
   };
@@ -617,6 +960,24 @@ async function renderTagsFilterBar(prompts, enableTagsOverride) {
   });
 
   barHost.appendChild(bar);
+  bar.scrollLeft = savedScrollLeft;
+}
+
+// COMMENT: Update selected pill state without rebuilding the tags bar (keeps scroll position)
+function updateTagsFilterSelection() {
+  const bar = document.querySelector('.spm-tags-filter-bar');
+  if (!bar) return;
+  const selected = (activeTagFilter || 'all').toLowerCase();
+  bar.querySelectorAll('.spm-tag-pill-filter').forEach((pill) => {
+    const tag = String(pill.dataset.tag || 'all').toLowerCase();
+    pill.setAttribute('aria-pressed', String(tag === selected));
+  });
+}
+
+// COMMENT: Re-filter and repaint the prompt list without touching the tags bar
+function refreshFilteredPromptList() {
+  const filtered = allPromptsCache.filter(promptMatchesFilters);
+  displayPrompts(filtered, allPromptsCache.length);
 }
 
 async function renderPromptListControls(prompts, allowedOverride) {
@@ -659,13 +1020,8 @@ async function initFormTags(enableTagsOverride) {
 }
 
 const debouncedSearchRefresh = debounceSidepanel(() => {
-  refreshPromptListView();
+  refreshFilteredPromptList();
 }, 120);
-
-/** COMMENT: Detect the full-tab expanded view (?expanded=1) vs the Chrome side panel */
-function isExpandedTabView() {
-  return new URLSearchParams(window.location.search).get('expanded') === '1';
-}
 
 /** COMMENT: Close the expanded tab via the service worker (sender.tab.id) */
 async function closeExpandedView() {
@@ -993,107 +1349,70 @@ function displayPrompts(prompts, totalCount = prompts.length) {
     titleSpan.style.verticalAlign = 'middle';
     titleSpan.style.display = 'inline-block';
     li.appendChild(titleSpan);
+    li.appendChild(buildPromptListItemActions(prompt));
 
-    // COMMENT: Copy button (revealed on hover)
-    const copyBtn = document.createElement('button');
-    const copyImg = document.createElement('img');
-    copyImg.src = '../icons/copy.png';
-    copyImg.alt = 'Copy';
-    copyImg.title = 'Copy to clipboard';
-    copyImg.width = 14;
-    copyImg.height = 14;
-    copyImg.style.verticalAlign = 'middle';
-    copyBtn.style.display = 'none';
-    copyBtn.style.backgroundColor = '#ffffff00';
-    copyBtn.appendChild(copyImg);
-    copyBtn.addEventListener('click', async () => {
-      await navigator.clipboard.writeText(prompt.content);
-    });
-    li.appendChild(copyBtn);
-
-    // COMMENT: Edit button (revealed on hover)
-    const editBtn = document.createElement('button');
-    const editImg = document.createElement('img');
-    editImg.src = '../icons/edit-icon.png';
-    editImg.alt = 'Edit';
-    editImg.title = 'Edit';
-    editImg.width = 14;
-    editImg.height = 14;
-    editImg.style.verticalAlign = 'middle';
-    editBtn.style.display = 'none';
-    editBtn.style.backgroundColor = '#ffffff00';
-    editBtn.appendChild(editImg);
-    editBtn.addEventListener('click', () => {
-      // COMMENT: Track by stable uuid so reordering elsewhere cannot corrupt edits
-      document.getElementById('prompt-title').value = prompt.title;
-      document.getElementById('prompt-content').value = prompt.content;
-      document.getElementById('prompt-uuid').value = prompt.uuid;
-      if (formTagInput) formTagInput.setTags(prompt.tags || []);
-      document.getElementById('submit-button').textContent = 'Update';
-      document.getElementById('cancel-edit-button').style.display = 'inline';
-    });
-    li.appendChild(editBtn);
-
-    // COMMENT: Delete button (revealed on hover)
-    const delBtn = document.createElement('button');
-    const delImg = document.createElement('img');
-    delImg.src = '../icons/delete.svg';
-    delImg.alt = 'Delete';
-    delImg.title = 'Delete';
-    delImg.width = 18;
-    delImg.height = 18;
-    delImg.style.verticalAlign = 'middle';
-    delBtn.style.display = 'none';
-    delBtn.style.backgroundColor = '#ffffff00';
-    delBtn.appendChild(delImg);
-    delBtn.addEventListener('click', async () => {
-      if (!window.confirm('Are you sure you want to delete this prompt?')) return;
-      await PromptStorage.deletePrompt(prompt.uuid);
-    });
-    li.appendChild(delBtn);
-
-    // COMMENT: Hover interactions for action buttons
-    li.addEventListener('mouseenter', () => {
-      copyBtn.style.display = 'inline-block';
-      editBtn.style.display = 'inline-block';
-      delBtn.style.display = 'inline-block';
-    });
+    // COMMENT: Collapse the overflow menu when the pointer leaves the row
     li.addEventListener('mouseleave', () => {
-      copyBtn.style.display = 'none';
-      editBtn.style.display = 'none';
-      delBtn.style.display = 'none';
+      li.classList.remove('spm-actions-menu-open');
     });
 
     fragment.appendChild(li);
   });
   promptList.appendChild(fragment);
+  applyPendingActionFeedback();
 }
 
 // COMMENT: Load prompts from storage, apply search/tag filters, and render
-async function refreshPromptListView() {
-  allPromptsCache = await PromptStorage.getPrompts();
+async function refreshPromptListView(force = false) {
+  const nextPrompts = await PromptStorage.getPrompts();
+  const nextSig = promptListDisplaySignature(nextPrompts);
+  if (!force && nextSig === lastPromptListDisplaySig) {
+    allPromptsCache = nextPrompts;
+    applyPendingActionFeedback();
+    return;
+  }
+  lastPromptListDisplaySig = nextSig;
+  allPromptsCache = nextPrompts;
   await renderPromptListControls(allPromptsCache);
   const filtered = allPromptsCache.filter(promptMatchesFilters);
   displayPrompts(filtered, allPromptsCache.length);
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
-  const form = document.getElementById('prompt-form');
-  const titleInput = document.getElementById('prompt-title');
-  const contentInput = document.getElementById('prompt-content');
-  const promptUuidInput = document.getElementById('prompt-uuid');
-  const submitButton = document.getElementById('submit-button');
-  const cancelEditButton = document.getElementById('cancel-edit-button');
-  // COMMENT: Info banner elements for close/dismiss behavior
-  const infoBanner = document.getElementById('info-banner');
-  const infoBannerClose = document.getElementById('info-banner-close');
-  const searchInput = document.getElementById('prompt-search-input');
-  const closeExpandedBtn = document.getElementById('close-expanded-view');
-
-  // COMMENT: Mark expanded tab view so the header close button is shown
   if (isExpandedTabView()) {
     document.body.classList.add('is-expanded-tab');
   }
+  setupComposerLayout();
+  promptFormEls = collectPromptFormRefs();
+  const {
+    form,
+    titleInput,
+    contentInput,
+    uuidInput,
+    cancelButton,
+  } = getPromptFormEls();
+
+  const sidebarPanel = document.querySelector('.sidebar-panel');
+  mountSidepanelFooter({ root: sidebarPanel || document.body });
+
+  const searchInput = document.getElementById('prompt-search-input');
+  const closeExpandedBtn = document.getElementById('close-expanded-view');
+  const createPromptBtn = document.getElementById('create-prompt-btn');
+  const communityPromptsBtn = document.getElementById('community-prompts-btn');
+
+  if (communityPromptsBtn) {
+    communityPromptsBtn.href = `${OPD_CATALOG_URL}/`;
+  }
+  if (createPromptBtn) {
+    createPromptBtn.addEventListener('click', () => {
+      openComposerView();
+    });
+  }
+
+  if (!isExpandedTabView()) {
+    setComposerOpen(false);
+  }
+
   if (closeExpandedBtn) {
     closeExpandedBtn.addEventListener('click', () => {
       closeExpandedView().catch(console.error);
@@ -1102,6 +1421,16 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // COMMENT: Single coordinated init — prompt list paints before form tags / filters
   await initSidepanelContent();
+
+  // COMMENT: Escape in the side panel should also dismiss an active page pin-picker overlay
+  document.addEventListener('keydown', (event) => {
+    if (event.key !== 'Escape') return;
+    getActiveBrowserTab()
+      .then((tab) => {
+        if (tab?.id) sendPinInputAction('cancel', tab.id);
+      })
+      .catch(() => {});
+  });
 
   if (searchInput) {
     searchInput.addEventListener('input', (e) => {
@@ -1120,6 +1449,11 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
     });
     chrome.storage.onChanged.addListener((changes, area) => {
+      if (area === 'sync' && (changes.opdPublishEnabled || changes.opdUsername || changes.opdPublishToken)) {
+        refreshOpdPublishStatus()
+          .then(() => refreshPromptListView())
+          .catch(console.error);
+      }
       if (area === 'local' && changes.pinned_inputs_v1) {
         cachedPermissionAllowed = null;
         renderPermissionsGate();
@@ -1129,17 +1463,20 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (changes.activeTagFilter?.newValue !== undefined) {
           activeTagFilter = changes.activeTagFilter.newValue || 'all';
         }
-        if (changes.enableTags || changes.activeTagFilter || changes.tagsOrder) {
-          if (changes.enableTags?.newValue !== undefined) {
-            cachedEnableTags = Boolean(changes.enableTags.newValue);
-          }
-          if (changes.tagsOrder?.newValue !== undefined) {
-            cachedTagsOrder = Array.isArray(changes.tagsOrder.newValue)
-              ? changes.tagsOrder.newValue
-              : [];
-          }
+        if (changes.enableTags?.newValue !== undefined) {
+          cachedEnableTags = Boolean(changes.enableTags.newValue);
+        }
+        if (changes.tagsOrder?.newValue !== undefined) {
+          cachedTagsOrder = Array.isArray(changes.tagsOrder.newValue)
+            ? changes.tagsOrder.newValue
+            : [];
+        }
+        if (changes.enableTags || changes.tagsOrder) {
           initFormTags();
           refreshPromptListView();
+        } else if (changes.activeTagFilter) {
+          updateTagsFilterSelection();
+          refreshFilteredPromptList();
         }
       }
     });
@@ -1182,45 +1519,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Ignore if not available
   }
 
-  // Decide whether to show the info banner based on a storage-backed toggle.
-  // Default is hidden unless `spm_show_info_banner` is true and the user has not dismissed it.
-  if (infoBanner) {
-    infoBanner.style.display = 'none'; // default: hidden
-  }
-  try {
-    chrome.storage?.local?.get(['spm_show_info_banner'], (res) => {
-      const shouldShow = res && res.spm_show_info_banner === true;
-      // Respect prior dismissal stored in localStorage
-      const dismissed = (() => {
-        try { return localStorage.getItem('spm_info_banner_dismissed') === 'true'; } catch (e) { return false; }
-      })();
-      if (shouldShow && !dismissed && infoBanner) {
-        infoBanner.style.display = '';
-      }
-    });
-  } catch (err) {
-    // If storage read fails, keep banner hidden unless already visible by markup
-    try {
-      const dismissed = localStorage.getItem('spm_info_banner_dismissed') === 'true';
-      if (dismissed && infoBanner) infoBanner.style.display = 'none';
-    } catch (e) {}
-  }
-
-  // Close banner and persist choice
-  if (infoBannerClose) {
-    infoBannerClose.addEventListener('click', () => {
-      if (infoBanner) infoBanner.style.display = 'none';
-      try {
-        localStorage.setItem('spm_info_banner_dismissed', 'true');
-        // Turning off the storage toggle ensures it will not show again
-        // until explicitly re-enabled by setting `spm_show_info_banner` to true.
-        chrome.storage?.local?.set({ spm_show_info_banner: false });
-      } catch (err) {
-        // Ignore storage errors
-      }
-    });
-  }
-
   // Add or update prompt
   form.addEventListener('submit', event => {
     event.preventDefault();
@@ -1228,31 +1526,20 @@ document.addEventListener('DOMContentLoaded', async () => {
     const content = contentInput.value;
     const tags = formTagInput ? formTagInput.getTags() : [];
 
-    if (promptUuidInput.value === '') {
+    if (uuidInput.value === '') {
       // COMMENT: Add new prompt via unified manager
       PromptStorage.savePrompt({ title, content, tags }).catch(console.error);
     } else {
       // COMMENT: Update existing prompt by uuid via unified manager
-      PromptStorage.updatePrompt(promptUuidInput.value, { title, content, tags }).catch(console.error);
+      PromptStorage.updatePrompt(uuidInput.value, { title, content, tags }).catch(console.error);
     }
 
-    // Reset form
-    titleInput.value = '';
-    contentInput.value = '';
-    promptUuidInput.value = '';
-    if (formTagInput) formTagInput.setTags([]);
-    submitButton.textContent = 'Save prompt';
-    cancelEditButton.style.display = 'none';
+    // Reset form and return to the prompt list
+    resetPromptForm();
   });
 
-  // Cancel edit
-  cancelEditButton.addEventListener('click', () => {
-    // Reset form
-    titleInput.value = '';
-    contentInput.value = '';
-    promptUuidInput.value = '';
-    if (formTagInput) formTagInput.setTags([]);
-    submitButton.textContent = 'Add Prompt';
-    cancelEditButton.style.display = 'none';
+  // Back / cancel from composer
+  cancelButton.addEventListener('click', () => {
+    resetPromptForm();
   });
 });
