@@ -17,11 +17,18 @@ const OPD_BRIDGE_SCRIPT_ID = 'opd-catalog-bridge';
 /**
  * @param {string} [url]
  */
+/** Apex + www catalog hosts (manifest externally_connectable). */
+function isOpdCatalogOrigin(origin) {
+  if (origin === OPD_CATALOG_URL) return true;
+  if (origin === 'https://www.openpromptdatabase.com') return true;
+  return false;
+}
+
 export function isOpdCatalogUrl(url) {
   if (!url) return false;
   try {
     const u = new URL(url);
-    if (u.origin === OPD_CATALOG_URL) return true;
+    if (isOpdCatalogOrigin(u.origin)) return true;
     if ((u.hostname === 'localhost' || u.hostname === '127.0.0.1') && u.port === '8787') {
       return true;
     }
@@ -36,7 +43,7 @@ export function isAllowedOpdMessageOrigin(url) {
   if (!url) return false;
   try {
     const origin = new URL(url).origin;
-    if (origin === OPD_CATALOG_URL) return true;
+    if (isOpdCatalogOrigin(origin)) return true;
     if (origin === 'http://localhost:8787' || origin === 'http://127.0.0.1:8787') {
       return true;
     }

@@ -238,11 +238,12 @@ chrome.runtime.onMessageExternal.addListener((message, sender, sendResponse) => 
     return true;
   }
 
-  if (message?.type !== 'OPD_IMPORT_PROMPT') {
-    return undefined;
+  if (message?.type === 'OPD_IMPORT_PROMPT') {
+    handleOpdImportPrompt(message, sendResponse);
+    return true;
   }
 
-  handleOpdImportPrompt(message, sendResponse);
+  sendResponse({ ok: false, error: 'unknown_message' });
   return true;
 });
 
@@ -310,7 +311,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message?.type === 'OPD_PUBLISH_REGISTER') {
     (async () => {
       try {
-        await setPublishEnabled(true);
+        // COMMENT: Issue token for registration only — do not override the publish toggle
         await getOrCreatePublishToken();
         const result = await registerPublisherHandle(
           message.username || '',

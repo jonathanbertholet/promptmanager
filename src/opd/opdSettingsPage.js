@@ -61,8 +61,13 @@ async function refreshCatalogAccessUi(els) {
   if (catalogEnabled) {
     catalogEnabled.hidden = !granted;
   }
-  if (catalogStatus && !catalogStatus.classList.contains('settings-status-error')) {
-    catalogStatus.textContent = granted ? '' : 'Needed for one-click import on the site.';
+  if (catalogStatus) {
+    if (granted) {
+      catalogStatus.textContent = '';
+      catalogStatus.classList.remove('settings-status-error');
+    } else if (!catalogStatus.classList.contains('settings-status-error')) {
+      catalogStatus.textContent = 'Needed for one-click import on the site.';
+    }
   }
 }
 
@@ -211,6 +216,9 @@ export function initOpdSettingsPage(root = document) {
       }
 
       await refreshPublishStatus(els, { forceSync: true });
+      if (els.handleConfirm) {
+        els.handleConfirm.disabled = false;
+      }
     });
   }
 
