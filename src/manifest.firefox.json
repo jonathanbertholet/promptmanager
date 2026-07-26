@@ -3,16 +3,27 @@
     "name": "Open Prompt Manager - for AI Agents & Assistants",
     "version": "2.9.1",
     "description": "Open Source Prompt Manager for ChatGPT, Claude, Gemini, Grok and more.",
+    "browser_specific_settings": {
+        "gecko": {
+            "id": "open-prompt-manager@openpromptdatabase.com",
+            "strict_min_version": "115.0"
+        }
+    },
     "permissions": [
-        "sidePanel",
         "storage",
         "tabs",
         "scripting",
         "activeTab",
         "contextMenus"
     ],
-    "side_panel": {
-        "default_path": "sidepanel/index.html"
+    "sidebar_action": {
+        "default_title": "Open Sidebar",
+        "default_panel": "sidepanel/index.html",
+        "default_icon": {
+            "16": "/icons/icon16.png",
+            "48": "/icons/icon48.png",
+            "128": "/icons/icon128.png"
+        }
     },
     "icons": {
         "16": "/icons/icon16.png",
@@ -29,6 +40,7 @@
     },
     "background": {
         "service_worker": "service-worker.js",
+        "scripts": ["service-worker.js"],
         "type": "module"
     },
     "content_scripts": [
@@ -48,14 +60,6 @@
         "<all_urls>",
         "https://openpromptdatabase.com/*"
     ],
-    "externally_connectable": {
-        "matches": [
-            "https://openpromptdatabase.com/*",
-            "https://www.openpromptdatabase.com/*",
-            "http://localhost:8787/*",
-            "http://127.0.0.1:8787/*"
-        ]
-    },
     "web_accessible_resources": [
         {
             "resources": [

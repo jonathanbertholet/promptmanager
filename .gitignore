@@ -38,3 +38,6 @@ coverage/
 
 # Open Prompt Database website (private repo — clone separately)
 opd/ 
+
+# Graphify output
+graphify-out/

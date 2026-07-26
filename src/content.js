@@ -690,19 +690,61 @@ class PromptStorageManager {
     // COMMENT: Use the unified module in `src/promptStorage.js` via a dynamic import
     if (this.__ps) return this.__ps;
 
-    // COMMENT: Dynamically import the web-accessible module so content-scripts can use it
-    const mod = await import(chrome.runtime.getURL('storage/promptStorage.js'));
-
-    // COMMENT: Build a thin adapter to keep current call-sites unchanged
-    this.__ps = {
-      getPrompts: mod.getPrompts,
-      setPrompts: mod.setPrompts,
-      savePrompt: mod.savePrompt,
-      updatePrompt: mod.updatePrompt,
-      deletePrompt: mod.deletePrompt,
-      importPrompts: mod.importPrompts,
-      exportPrompts: mod.exportPrompts
-    };
+    try {
+      const mod = await import(chrome.runtime.getURL('storage/promptStorage.js'));
+      this.__ps = {
+        getPrompts: mod.getPrompts,
+        setPrompts: mod.setPrompts,
+        savePrompt: mod.savePrompt,
+        updatePrompt: mod.updatePrompt,
+        deletePrompt: mod.deletePrompt,
+        importPrompts: mod.importPrompts,
+        exportPrompts: mod.exportPrompts
+      };
+    } catch (_) {
+      this.__ps = {
+        getPrompts: async () => {
+          const res = await ChromeBridge.storage.get('prompts_storage', null);
+          if (res && Array.isArray(res.prompts)) return res.prompts;
+          const legacy = await ChromeBridge.storage.get('prompts', []);
+          return Array.isArray(legacy) ? legacy : [];
+        },
+        setPrompts: async (prompts) => {
+          const list = Array.isArray(prompts) ? prompts : [];
+          await ChromeBridge.storage.set('prompts_storage', { version: 2, prompts: list, folders: [] });
+          await ChromeBridge.storage.set('prompts', list);
+          return list;
+        },
+        savePrompt: async (prompt) => {
+          const list = await this.__ps.getPrompts();
+          const p = {
+            uuid: prompt.uuid || prompt.id || String(Date.now()),
+            title: prompt.title || '',
+            content: prompt.content || '',
+            createdAt: prompt.createdAt || new Date().toISOString()
+          };
+          list.push(p);
+          await this.__ps.setPrompts(list);
+          return p;
+        },
+        updatePrompt: async (uuid, changes) => {
+          const list = await this.__ps.getPrompts();
+          const idx = list.findIndex(p => p.uuid === uuid || p.id === uuid);
+          if (idx !== -1) {
+            list[idx] = { ...list[idx], ...changes, updatedAt: new Date().toISOString() };
+            await this.__ps.setPrompts(list);
+            return list[idx];
+          }
+          return null;
+        },
+        deletePrompt: async (uuid) => {
+          const list = await this.__ps.getPrompts();
+          const filtered = list.filter(p => p.uuid !== uuid && p.id !== uuid);
+          await this.__ps.setPrompts(filtered);
+          return true;
+        }
+      };
+    }
     return this.__ps;
   }
 
@@ -2256,9 +2298,16 @@ const PromptMediator = (() => {
           // COMMENT: Only refresh items when the list view is active to avoid polluting non-list views
           PromptUIManager.refreshItemsIfListActive(prompts);
         });
-      } catch (err) {
-        state.storageWatcherAttached = false; // COMMENT: Allow retry if import fails transiently
-        console.error('Failed to attach unified prompts change listener:', err);
+      } catch (_) {
+        if (chrome?.storage?.onChanged) {
+          chrome.storage.onChanged.addListener((changes, area) => {
+            if (area === 'local' && (changes.prompts_storage || changes.prompts)) {
+              PromptStorageManager.getPrompts().then((prompts) => {
+                PromptUIManager.refreshItemsIfListActive(prompts);
+              }).catch(() => {});
+            }
+          });
+        }
       }
     })();
   };
