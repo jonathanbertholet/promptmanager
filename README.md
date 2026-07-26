@@ -2,18 +2,18 @@
 
 A lightweight, open-source WebExtension (Manifest V3) for saving, organizing, and inserting prompts across AI chatbots — ChatGPT, Claude, Gemini, Grok, and [17+ more platforms](#supported-platforms).
 
-**Current version:** 2.9 · [Chrome Web Store](https://chromewebstore.google.com/detail/open-prompt-manager/gmhaghdbihgenofhnmdbglbkbplolain) · [Open Prompt Database](https://openpromptdatabase.com/)
+**Current version:** 2.9.1 · [Chrome Web Store](https://chromewebstore.google.com/detail/open-prompt-manager/gmhaghdbihgenofhnmdbglbkbplolain) · [Open Prompt Database](https://openpromptdatabase.com/)
 
 ## Features
 
 ### Prompt library
 
-- Save, edit, reorder, and delete prompts from the **side panel** or an **in-page panel** on assistant sites
-- **Tags** with search and filter — synced between the side panel and in-page list; tag suggestions on create/edit forms
+- Save, edit, reorder, and delete prompts from the **side panel / sidebar** or an **in-page panel** on assistant sites
+- **Tags** with search and filter — synced between the side panel / sidebar and in-page list; tag suggestions on create/edit forms
 - Drag to reorder tags in Settings → **Tag management**
 - **Variables** with `#variable#` syntax — fill in values before inserting
 - **Import / export** full v2 backups (prompts, folders, tag order) as JSON
-- **Copy to clipboard** from the side panel or context menu — handy on unsupported sites
+- **Copy to clipboard** from the side panel / sidebar or context menu — handy on unsupported sites
 - Save selected text to your library via the **context menu**
 
 ### On assistant sites
@@ -21,7 +21,7 @@ A lightweight, open-source WebExtension (Manifest V3) for saving, organizing, an
 - **Floating button** or **hot corner** launcher (choose in Settings)
 - One-click insert into the chat input, with optional append mode
 - **Custom keyboard shortcut** — record your own open/close combo (default: ⌘⇧P on Mac, Ctrl+M on Windows/Linux)
-- **Custom websites** — pin any site's chat input from the side panel
+- **Custom websites** — pin any site's chat input from the side panel / sidebar
 - Light and dark themes, with optional force-dark mode
 
 ### Open Prompt Database
@@ -34,7 +34,7 @@ Browse community prompts on the [Open Prompt Database](https://openpromptdatabas
 
 ### Settings & permissions
 
-Unified settings in the **side panel** and on **assistant pages** (same storage keys): launcher mode, preferences, tag management, import/export, custom open shortcut, and a **permissions editor** for controlling which sites the extension can access.
+Unified settings in the **side panel / sidebar** and on **assistant pages** (same storage keys): launcher mode, preferences, tag management, import/export, custom open shortcut, and a **permissions editor** for controlling which sites the extension can access.
 
 ## Supported platforms
 
@@ -48,7 +48,7 @@ Unified settings in the **side panel** and on **assistant pages** (same storage 
 
 Plus any site you configure as a **custom website**.
 
-## Installation
+## Installation & Development
 
 ### Load for Google Chrome (development)
 
@@ -59,6 +59,8 @@ Plus any site you configure as a **custom website**.
 2. Open `chrome://extensions`, enable **Developer mode**
 3. Click **Load unpacked** and select the `src/` folder
 
+Or install directly from the [Chrome Web Store](https://chromewebstore.google.com/detail/open-prompt-manager/gmhaghdbihgenofhnmdbglbkbplolain).
+
 ### Load for Mozilla Firefox (development)
 
 1. Run the Firefox build script:
@@ -68,11 +70,12 @@ Plus any site you configure as a **custom website**.
 2. Open `about:debugging#/runtime/this-firefox` in Firefox
 3. Click **Load Temporary Add-on...** and select the `src/manifest.json` (or `src/manifest.firefox.json`) file
 
-## Build scripts
+## Build & Test Scripts
 
 - `npm run build:chrome`: Configures manifest for Google Chrome (`src/manifest.chrome.json` -> `src/manifest.json`)
 - `npm run build:firefox`: Configures manifest for Mozilla Firefox (`src/manifest.firefox.json` -> `src/manifest.json`)
-- `npm run build:prod`: Production manifest build target
+- `npm test`: Runs end-to-end tests using Puppeteer and Jest (automatically runs `npm run build:chrome` via `pretest`)
+- `npm run lint` / `npm run lint:fix`: Check and automatically fix code formatting with ESLint
 
 ## Keyboard shortcuts
 
@@ -104,3 +107,4 @@ MIT License — see [LICENSE](LICENSE) if present in the repository.
 - **Hexodus** — bug reports and fixes
 - **Abdallahheidar** — ideas, contributions, and teamwork
 - **HideMaru** — extension icon ([Flaticon chatbot icons](https://www.flaticon.com/free-icons/chatbot))
+
