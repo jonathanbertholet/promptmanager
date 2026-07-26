@@ -1,48 +1,14 @@
 # Open Prompt Manager (Cross-Browser Edition)
 
-A lightweight, open-source **Cross-Browser WebExtension (Manifest V3)** for saving, organizing, and inserting prompts across AI chatbots — ChatGPT, Claude, Gemini, Grok, and [17+ more platforms](#supported-platforms).
+A lightweight, open-source WebExtension (Manifest V3) for saving, organizing, and inserting prompts across AI chatbots — ChatGPT, Claude, Gemini, Grok, and [17+ more platforms](#supported-platforms).
 
-**Branch:** `combined` (Chrome & Firefox Combined Build Target) · [Open Prompt Database](https://openpromptdatabase.com/)
-
----
-
-## Overview & Architecture
-
-This branch contains the **unified cross-browser codebase** for Open Prompt Manager, featuring automated build tools, dual manifest targets, and defensive runtime abstractions to run seamlessly on both **Google Chrome** and **Mozilla Firefox**.
-
-### Cross-Browser Architecture Highlights
-
-- **Dual Target Manifests**:
-  - `src/manifest.chrome.json`: Clean Chrome Manifest V3 specification (`service_worker`, `side_panel`, 0 developer warnings in Chrome).
-  - `src/manifest.firefox.json`: Firefox WebExtension specification (`browser_specific_settings`, `sidebar_action`, `background.scripts`).
-- **Unified WebExtensions API Abstraction**: Standardized namespace access via `globalThis.browser ?? globalThis.chrome`.
-- **Defensive API Guarding**: Programmatic checks for engine-specific APIs (`chrome.sidePanel.setPanelBehavior`, `chrome.dom.openOrClosedShadowRoot`).
-- **Content Script Storage Adapters**: Fallback adapters handling content script JS Sandbox storage access across Gecko and Chromium engines.
-
----
-
-## Build Commands & Manifest Switching
-
-Easily switch the active `src/manifest.json` file for local development or automated packaging:
-
-```bash
-# Configure manifest for Mozilla Firefox (about:debugging / AMO)
-npm run build:firefox
-
-# Configure manifest for Google Chrome (chrome://extensions / Web Store)
-npm run build:chrome
-
-# Build production bundle
-npm run build:prod
-```
-
----
+**Current version:** 2.9 · [Chrome Web Store](https://chromewebstore.google.com/detail/open-prompt-manager/gmhaghdbihgenofhnmdbglbkbplolain) · [Open Prompt Database](https://openpromptdatabase.com/)
 
 ## Features
 
-### Prompt Library
+### Prompt library
 
-- Save, edit, reorder, and delete prompts from the **side panel / sidebar** or an **in-page panel** on assistant sites
+- Save, edit, reorder, and delete prompts from the **side panel** or an **in-page panel** on assistant sites
 - **Tags** with search and filter — synced between the side panel and in-page list; tag suggestions on create/edit forms
 - Drag to reorder tags in Settings → **Tag management**
 - **Variables** with `#variable#` syntax — fill in values before inserting
@@ -50,7 +16,7 @@ npm run build:prod
 - **Copy to clipboard** from the side panel or context menu — handy on unsupported sites
 - Save selected text to your library via the **context menu**
 
-### On Assistant Sites
+### On assistant sites
 
 - **Floating button** or **hot corner** launcher (choose in Settings)
 - One-click insert into the chat input, with optional append mode
@@ -66,69 +32,52 @@ Browse community prompts on the [Open Prompt Database](https://openpromptdatabas
 - Duplicate detection — already in your library? The site shows “Already in library”
 - Link from Settings → **Browse the community catalog**
 
----
+### Settings & permissions
 
-## Supported Platforms
+Unified settings in the **side panel** and on **assistant pages** (same storage keys): launcher mode, preferences, tag management, import/export, custom open shortcut, and a **permissions editor** for controlling which sites the extension can access.
+
+## Supported platforms
 
 | ChatGPT | Claude | Google Gemini |
-| :--- | :--- | :--- |
-| **NotebookLM** | **DeepSeek** | **Microsoft Copilot** |
-| **GitHub Copilot** | **Grok** | **Poe** |
-| **Kimi** | **Mistral Le Chat** | **OpenRouter** |
-| **Perplexity** | **Qwen** | **Google AI Studio** |
-| **OpenAI Playground** | **ChatLLM (Abacus)** | **LMArena** |
+|---------|--------|---------------|
+| NotebookLM | DeepSeek | Microsoft Copilot |
+| GitHub Copilot | Grok | Poe |
+| Kimi | Mistral Le Chat | OpenRouter |
+| Perplexity | Qwen | Google AI Studio |
+| OpenAI Playground | ChatLLM (Abacus) | LMArena |
 
 Plus any site you configure as a **custom website**.
 
----
+## Installation
 
-## Installation & Local Development
+### Load for Google Chrome (development)
 
-### 1. Development for Google Chrome
+1. Run the Chrome build script:
+   ```bash
+   npm run build:chrome
+   ```
+2. Open `chrome://extensions`, enable **Developer mode**
+3. Click **Load unpacked** and select the `src/` folder
 
-```bash
-# Ensure manifest is configured for Chrome
-npm run build:chrome
-```
-1. Open Google Chrome and go to `chrome://extensions`.
-2. Enable **Developer mode** (top right toggle).
-3. Click **Load unpacked** and select the `src/` folder.
+### Load for Mozilla Firefox (development)
 
-### 2. Development for Mozilla Firefox
+1. Run the Firefox build script:
+   ```bash
+   npm run build:firefox
+   ```
+2. Open `about:debugging#/runtime/this-firefox` in Firefox
+3. Click **Load Temporary Add-on...** and select the `src/manifest.json` (or `src/manifest.firefox.json`) file
 
-```bash
-# Ensure manifest is configured for Firefox
-npm run build:firefox
-```
-1. Open Firefox and go to `about:debugging#/runtime/this-firefox`.
-2. Click **Load Temporary Add-on...**.
-3. Select `src/manifest.json` (or `src/manifest.firefox.json`).
+## Build scripts
 
----
+- `npm run build:chrome`: Configures manifest for Google Chrome (`src/manifest.chrome.json` -> `src/manifest.json`)
+- `npm run build:firefox`: Configures manifest for Mozilla Firefox (`src/manifest.firefox.json` -> `src/manifest.json`)
+- `npm run build:prod`: Production manifest build target
 
-## Repository Branch Directory
-
-| Branch | Description | Primary Target | Manifest Configuration |
-| :--- | :--- | :--- | :--- |
-| **`main`** | **Firefox Version** | Mozilla Firefox (AMO) | `manifest.firefox.json` (`sidebar_action`, `background.scripts`) |
-| **`combined`** *(current)* | **Cross-Browser Version** | Chrome & Firefox | Build tools (`npm run build:chrome`, `npm run build:firefox`) |
-| **`chrome-only`** | **Original Chrome Version** | Google Chrome | Chrome MV3 (`service_worker`, `side_panel`) |
-
-To switch branches:
-```bash
-# Switch to Firefox Main branch
-git checkout main
-
-# Switch to Original Chrome branch
-git checkout chrome-only
-```
-
----
-
-## Keyboard Shortcuts
+## Keyboard shortcuts
 
 | Shortcut | Action |
-| :--- | :--- |
+|----------|--------|
 | **⌘ + Shift + P** (Mac) / **Ctrl + M** (Win/Linux) | Open or close the in-page prompt panel |
 | **↑ / ↓** | Navigate the prompt list |
 | **Enter** | Select a prompt |
@@ -136,27 +85,19 @@ git checkout chrome-only
 
 You can change the open/close shortcut in Settings → **Record shortcut**.
 
----
-
 ## Testing
 
-Automated tests use **Puppeteer** and **Jest**. See [TESTING.md](TESTING.md) for setup and execution commands.
-
----
+Automated tests use **Puppeteer** and **Jest**. See the [Testing Guide](TESTING.md) for setup and commands.
 
 ## Privacy
 
 - Your prompt library is stored **locally** in the browser (`chrome.storage.local` / `browser.storage.local`)
 - Nothing is sent to external servers unless **you** choose to import from the [Open Prompt Database](https://openpromptdatabase.com/) — that flow only pulls the prompt you selected into your local library
-- Zero analytics or tracking
-
----
+- No analytics or tracking
 
 ## License
 
 MIT License — see [LICENSE](LICENSE) if present in the repository.
-
----
 
 ## Attributions
 
