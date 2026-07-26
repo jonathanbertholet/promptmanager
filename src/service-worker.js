@@ -275,11 +275,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       try {
         const enabled = Boolean(message.enabled);
         if (enabled) {
-          const granted = await new Promise((resolve) => {
-            chrome.permissions.request(
-              { origins: ['https://openpromptdatabase.com/*'] },
-              (ok) => resolve(Boolean(ok))
-            );
+          const granted = await chrome.permissions.contains({
+            origins: ['https://openpromptdatabase.com/*'],
           });
           if (!granted) {
             sendResponse({ ok: false, error: 'permission_denied' });
@@ -432,7 +429,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 });
 
 chrome.runtime.onInstalled.addListener(function (details) {
-  chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true });
+  if (typeof chrome !== 'undefined' && chrome.sidePanel?.setPanelBehavior) {
+    chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true });
+  }
   console.log('onInstalled', details);
   // COMMENT: Rebuild providers map on install and update (but only open UI on first install)
   const shouldRebuild = ['install', 'update'].includes(details.reason);

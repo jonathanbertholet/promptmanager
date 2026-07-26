@@ -402,7 +402,41 @@ class InputBoxHandler {
    */
   static async _pinnedStorage() {
     if (!InputBoxHandler._pinnedStorageModule) {
-      InputBoxHandler._pinnedStorageModule = await import(chrome.runtime.getURL('storage/pinnedInputStorage.js'));
+      try {
+        InputBoxHandler._pinnedStorageModule = await import(chrome.runtime.getURL('storage/pinnedInputStorage.js'));
+      } catch (_) {
+        InputBoxHandler._pinnedStorageModule = {
+          getAllPinnedInputs: async () => {
+            const data = await new Promise(r => chrome.storage.local.get('pinned_inputs_v1', r));
+            return data?.pinned_inputs_v1 && typeof data.pinned_inputs_v1 === 'object' ? data.pinned_inputs_v1 : {};
+          },
+          getPinnedForHostname: async (hostname) => {
+            const map = await InputBoxHandler._pinnedStorageModule.getAllPinnedInputs();
+            const key = String(hostname || '').trim().toLowerCase();
+            return map[key] || null;
+          },
+          setPinnedForHostname: async (hostname, entry) => {
+            const key = String(hostname || '').trim().toLowerCase();
+            const map = await InputBoxHandler._pinnedStorageModule.getAllPinnedInputs();
+            map[key] = {
+              selector: entry.selector,
+              label: entry.label || '',
+              deepShadow: Boolean(entry.deepShadow),
+              pinnedAt: entry.pinnedAt || new Date().toISOString(),
+            };
+            await new Promise(r => chrome.storage.local.set({ pinned_inputs_v1: map }, r));
+            return map[key];
+          },
+          removePinnedForHostname: async (hostname) => {
+            const key = String(hostname || '').trim().toLowerCase();
+            const map = await InputBoxHandler._pinnedStorageModule.getAllPinnedInputs();
+            if (!map[key]) return false;
+            delete map[key];
+            await new Promise(r => chrome.storage.local.set({ pinned_inputs_v1: map }, r));
+            return true;
+          }
+        };
+      }
     }
     return InputBoxHandler._pinnedStorageModule;
   }

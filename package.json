@@ -9,6 +9,8 @@
     "scripts": {
         "test": "jest ./tests/",
         "debug": "node --inspect-brk node_modules/jest/bin/jest.js",
+        "build:chrome": "cp src/manifest.chrome.json src/manifest.json && echo 'Configured for Chrome'",
+        "build:firefox": "cp src/manifest.firefox.json src/manifest.json && echo 'Configured for Firefox'",
         "build:prod": "cp src/manifest.prod.json src/manifest.json && echo 'Build for PROD'",
         "lint": "eslint src",
         "lint:fix": "eslint src --fix"
