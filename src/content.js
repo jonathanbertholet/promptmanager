@@ -727,7 +727,7 @@ class PromptStorageManager {
           await this.__ps.setPrompts(list);
           return p;
         },
- updatePrompt: async (uuid, changes) => {
+        updatePrompt: async (uuid, changes) => {
           const list = await this.__ps.getPrompts();
           const idx = list.findIndex(p => p.uuid === uuid || p.id === uuid);
           if (idx !== -1) {

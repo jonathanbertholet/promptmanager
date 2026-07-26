@@ -12,10 +12,8 @@ async function getExtensionId(browser) {
   while (Date.now() < deadline) {
     const allTargets = await browser.targets();
     const extensionTarget = allTargets.find(target => {
-      const type = target.type();
       const url = target.url();
-      return (type === 'service_worker' || type === 'background_page' || type === 'background_service_worker')
-        && url.startsWith('chrome-extension://');
+      return url.startsWith('chrome-extension://') || url.startsWith('moz-extension://');
     });
 
     if (extensionTarget) {

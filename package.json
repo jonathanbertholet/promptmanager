@@ -7,6 +7,7 @@
         "puppeteer": "^24.4.0"
     },
     "scripts": {
+        "pretest": "npm run build:chrome",
         "test": "jest ./tests/",
         "debug": "node --inspect-brk node_modules/jest/bin/jest.js",
         "build:chrome": "cp src/manifest.chrome.json src/manifest.json && echo 'Configured for Chrome'",
