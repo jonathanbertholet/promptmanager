@@ -74,6 +74,9 @@ export async function ensurePublisherRegisteredForUpload() {
   let handle = await getOrCreatePendingUsername();
   for (let attempt = 0; attempt < 5; attempt += 1) {
     const avail = await isHandleAvailable(handle);
+    if (!avail.ok) {
+      return { ok: false, error: avail.error || 'check_failed' };
+    }
     if (!avail.available) {
       handle = suggestRandomHandle();
       await setOpdPendingUsername(handle);
@@ -94,17 +97,22 @@ export async function ensurePublisherRegisteredForUpload() {
 
 /**
  * @param {string} handle
- * @returns {Promise<{ available: boolean, reason?: string }>}
+ * @returns {Promise<{ ok: boolean, available: boolean, reason?: string, error?: string }>}
  */
 export async function isHandleAvailable(handle) {
-  const res = await checkHandleAvailable(handle);
-  if (!res.ok || !res.data) {
-    return { available: false, reason: 'error' };
+  try {
+    const res = await checkHandleAvailable(handle);
+    if (!res.ok || !res.data) {
+      return { ok: false, available: false, error: 'check_failed' };
+    }
+    return {
+      ok: true,
+      available: Boolean(res.data.available),
+      reason: res.data.reason,
+    };
+  } catch (_) {
+    return { ok: false, available: false, error: 'check_failed' };
   }
-  return {
-    available: Boolean(res.data.available),
-    reason: res.data.reason,
-  };
 }
 
 /**

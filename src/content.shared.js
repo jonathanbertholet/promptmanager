@@ -85,6 +85,8 @@
     window.TagService = TagService;
 
     const TagUI = (() => {
+      const openInputs = new Set();
+
       const createTagInput = ({ initialTags = [] } = {}) => {
         const tagsSet = new Set(Array.isArray(initialTags) ? initialTags : []);
         const row = createEl('div', { className: `opm-tag-row opm-${getMode()}` });
@@ -92,6 +94,7 @@
         const input = createEl('input', { attributes: { type: 'text', placeholder: 'Enter tags here.' }, className: `opm-tag-input opm-${getMode()}` });
         const suggestions = createEl('div', { className: `opm-tag-suggestions opm-${getMode()}`, styles: { display: 'none' } });
         let activeIndex = -1; let options = [];
+        let destroyed = false;
 
         const renderPills = () => {
           pills.innerHTML = '';
@@ -183,16 +186,39 @@
         });
         input.addEventListener('focus', () => { suggestions.style.display = 'none'; });
         input.addEventListener('blur', () => { suggestions.style.display = 'none'; });
-        document.addEventListener('click', (evt) => { if (!suggestions.contains(evt.target)) suggestions.style.display = 'none'; });
-        window.addEventListener('resize', positionSuggestions);
-        window.addEventListener('scroll', positionSuggestions, true);
+
+        // COMMENT: Named listeners so destroy() can detach them when the form is replaced
+        const onDocumentClick = (evt) => {
+          if (!suggestions.contains(evt.target)) suggestions.style.display = 'none';
+        };
+        const onWindowResize = () => positionSuggestions();
+        const onWindowScroll = () => positionSuggestions();
+        document.addEventListener('click', onDocumentClick);
+        window.addEventListener('resize', onWindowResize);
+        window.addEventListener('scroll', onWindowScroll, true);
+
+        const destroy = () => {
+          if (destroyed) return;
+          destroyed = true;
+          document.removeEventListener('click', onDocumentClick);
+          window.removeEventListener('resize', onWindowResize);
+          window.removeEventListener('scroll', onWindowScroll, true);
+          if (suggestions.parentElement) suggestions.parentElement.removeChild(suggestions);
+          openInputs.delete(api);
+        };
 
         renderPills();
         row.append(pills, input);
-        return { element: row, getTags: () => Array.from(tagsSet) };
+        const api = { element: row, getTags: () => Array.from(tagsSet), destroy };
+        openInputs.add(api);
+        return api;
       };
 
-      return { createTagInput };
+      const destroyOpenInputs = () => {
+        Array.from(openInputs).forEach((tagInput) => tagInput.destroy());
+      };
+
+      return { createTagInput, destroyOpenInputs };
     })();
     window.TagUI = TagUI;
 

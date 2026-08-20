@@ -2,6 +2,7 @@ import { getProviders } from './llm_providers.js';
 import {
   initOpdCatalogAccess,
   isAllowedOpdMessageOrigin,
+  hasOpdCatalogPermission,
 } from './opd/opdCatalogAccess.js';
 import { importCatalogPrompt } from './opd/opdImport.js';
 import { notifyPromptImported } from './opd/opdClient.js';
@@ -299,7 +300,15 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message?.type === 'OPD_HANDLE_AVAILABLE') {
     (async () => {
       try {
+        if (!(await hasOpdCatalogPermission())) {
+          sendResponse({ ok: false, available: false, error: 'permission_denied' });
+          return;
+        }
         const result = await isHandleAvailable(message.handle || '');
+        if (!result.ok) {
+          sendResponse({ ok: false, available: false, error: result.error || 'check_failed' });
+          return;
+        }
         sendResponse({ ok: true, ...result });
       } catch (error) {
         sendResponse({ ok: false, error: error?.message || 'check_failed' });
@@ -311,6 +320,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message?.type === 'OPD_PUBLISH_REGISTER') {
     (async () => {
       try {
+        if (!(await hasOpdCatalogPermission())) {
+          sendResponse({ ok: false, error: 'permission_denied' });
+          return;
+        }
         // COMMENT: Issue token for registration only — do not override the publish toggle
         await getOrCreatePublishToken();
         const result = await registerPublisherHandle(
