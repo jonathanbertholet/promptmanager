@@ -5,6 +5,33 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog],
 and this project adheres to [Semantic Versioning].
 
+## [Unreleased]
+
+### Fixed
+
+- Sharing an imported catalog prompt now publishes your copy instead of returning success for the original row.
+- Re-importing a catalog prompt that is already in the library no longer increments the import counter.
+- The side panel shows an error toast when Share to Open Prompt Database fails.
+- The in-page keyboard shortcut requires an exact Shift match (`Ctrl+M` no longer also matches `Ctrl+Shift+M`).
+- Variable prompts re-detect the chat input before inserting, so SPA composer replacements do not swallow the filled prompt.
+- Perplexity apex host `perplexity.ai` is recognized for injection and permissions, not only `www.perplexity.ai`.
+
+## [2.9.1]
+
+### Added
+
+- Share local prompts to the Open Prompt Database from the side panel.
+- Publisher handle and publish toggle in Open Prompt Database settings.
+
+## [2.9] - 2026-05-25
+
+### Added
+
+- Import community prompts from the Open Prompt Database into the local library.
+- Stable `opd:` ids so re-import updates the same prompt when the catalog entry changes.
+- Duplicate detection on the catalog site (“Already in library”).
+- Settings link to browse the community catalog.
+
 ## [2.8] - 2026-05-25
 
 ### Added

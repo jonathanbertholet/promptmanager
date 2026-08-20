@@ -2,6 +2,11 @@
 // It retrieves the providers map from storage and creates elements for each provider
 document.addEventListener('DOMContentLoaded', function () {
 
+  // COMMENT: A provider may list several comma-separated Chrome origin patterns
+  function expandOriginPatterns(pattern) {
+    return String(pattern || '').split(',').map((item) => item.trim()).filter(Boolean);
+  }
+
   // COMMENT: Storage key shared with content-script display mode preference
   const DISPLAY_MODE_KEY = 'displayMode';
   const DEFAULT_DISPLAY_MODE = 'standard';
@@ -165,8 +170,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
             const providerKey = this.dataset.provider;
             const originPattern = this.dataset.urlPattern;
+            const origins = expandOriginPatterns(originPattern);
+            if (!origins.length) return;
 
-            chrome.permissions.request({ origins: [originPattern] }, (granted) => {
+            chrome.permissions.request({ origins }, (granted) => {
               if (granted) {
                 // Update local providersMap and persist
                 providersMap[providerKey].hasPermission = 'Yes';
@@ -223,8 +230,7 @@ document.addEventListener('DOMContentLoaded', function () {
         // Collect all origin patterns (unique)
         const allPatterns = Array.from(new Set(
           Object.values(currentMap)
-            .map(v => v && v.urlPattern)
-            .filter(Boolean)
+            .flatMap((v) => expandOriginPatterns(v && v.urlPattern))
         ));
         // Attempt to remove all optional host permissions in one call
         try {

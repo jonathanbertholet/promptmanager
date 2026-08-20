@@ -577,14 +577,27 @@ class KeyboardManager {
     KeyboardManager._attachShortcutWatcher();
   }
 
+  /**
+   * COMMENT: Require the exact stored modifiers so extra Shift/Alt/Meta does not steal host keys.
+   * @param {KeyboardEvent} e
+   * @param {{ key?: string, modifier?: string, requiresShift?: boolean }|null} shortcut
+   * @returns {boolean}
+   */
+  static _shortcutMatches(e, shortcut) {
+    if (!shortcut?.key || !shortcut?.modifier) return false;
+    if (!e[shortcut.modifier]) return false;
+    if (e.altKey) return false;
+    const otherMod = shortcut.modifier === 'metaKey' ? 'ctrlKey' : 'metaKey';
+    if (e[otherMod]) return false;
+    if (Boolean(e.shiftKey) !== Boolean(shortcut.requiresShift)) return false;
+    return e.key.toLowerCase() === String(shortcut.key).toLowerCase();
+  }
+
   static async _onKeyDown(e) {
     const shortcut = KeyboardManager.shortcutCache || await PromptStorageManager.getKeyboardShortcut();
     if (!KeyboardManager.shortcutCache && shortcut) KeyboardManager.shortcutCache = shortcut;
-    // COMMENT: Match the configured modifier + optional shift + key for open/close toggle
-    const modifierMatches = Boolean(shortcut?.modifier && e[shortcut.modifier]);
-    const shiftMatches = shortcut?.requiresShift ? e.shiftKey : true;
-    const keyMatches = shortcut?.key && e.key.toLowerCase() === String(shortcut.key).toLowerCase();
-    if (modifierMatches && shiftMatches && keyMatches) {
+    // COMMENT: Exact modifier match — Ctrl+M must not also fire for Ctrl+Shift+M
+    if (!e.isComposing && !e.repeat && KeyboardManager._shortcutMatches(e, shortcut)) {
       e.preventDefault();
       KeyboardManager._togglePromptList();
       return;
@@ -2185,7 +2198,23 @@ const PromptMediator = (() => {
       variables: vars,
       onSubmit: async values => {
         const processed = state.processor.replaceVariables(prompt.content, values);
-        await window.InputBoxHandler.insertPrompt(inputBox, processed, qs(`#${SELECTORS.PROMPT_LIST}`));
+        // COMMENT: ChatGPT/Perplexity often replace the composer while the variable form is open
+        if (typeof window.InputBoxHandler._invalidateInputCache === 'function') {
+          window.InputBoxHandler._invalidateInputCache();
+        }
+        let targetBox = await window.InputBoxHandler.getInputBox();
+        if (!targetBox?.isConnected) {
+          try {
+            targetBox = await window.InputBoxHandler.waitForInputBox();
+          } catch (_) {
+            targetBox = inputBox?.isConnected ? inputBox : null;
+          }
+        }
+        if (!targetBox) {
+          console.error('Input box not found.');
+          return;
+        }
+        await window.InputBoxHandler.insertPrompt(targetBox, processed, qs(`#${SELECTORS.PROMPT_LIST}`));
         const activeList = qs(`#${SELECTORS.PROMPT_LIST}`);
         if (activeList) PromptUIManager.hidePromptList(activeList);
         setTimeout(() => {

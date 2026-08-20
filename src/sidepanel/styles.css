@@ -307,6 +307,25 @@ html {
     color: #38a169;
   }
 
+  .spm-toast {
+    position: fixed;
+    bottom: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 10000;
+    max-width: calc(100% - 24px);
+    padding: 10px 14px;
+    border-radius: 8px;
+    font: 500 13px/1.4 system-ui, sans-serif;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+    background: #1f1f1f;
+    color: #fff;
+  }
+
+  .spm-toast-error {
+    background: #c53030;
+  }
+
   .spm-prompt-action-btn:has(img[width="18"]) img {
     width: 18px;
     height: 18px;

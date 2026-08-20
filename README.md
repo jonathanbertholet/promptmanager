@@ -2,7 +2,7 @@
 
 A lightweight, open-source Chrome extension for saving, organizing, and inserting prompts across AI chatbots — ChatGPT, Claude, Gemini, Grok, and [17+ more platforms](#supported-platforms).
 
-**Current version:** 2.9 · [Chrome Web Store](https://chromewebstore.google.com/detail/open-prompt-manager/gmhaghdbihgenofhnmdbglbkbplolain) · [Open Prompt Database](https://openpromptdatabase.com/)
+**Current version:** 2.9.1 · [Chrome Web Store](https://chromewebstore.google.com/detail/open-prompt-manager/gmhaghdbihgenofhnmdbglbkbplolain) · [Open Prompt Database](https://openpromptdatabase.com/)
 
 ## Features
 
@@ -26,10 +26,11 @@ A lightweight, open-source Chrome extension for saving, organizing, and insertin
 
 ### Open Prompt Database
 
-Browse community prompts on the [Open Prompt Database](https://openpromptdatabase.com/) and add them to your library with one click.
+Browse community prompts on the [Open Prompt Database](https://openpromptdatabase.com/) and add them to your library with one click. Share your own prompts from the **side panel**.
 
 - Stable `opd:` ids — re-import updates the same prompt when the catalog entry changes
 - Duplicate detection — already in your library? The site shows “Already in library”
+- **Share to Open Prompt Database** publishes a prompt you choose (title, content, tags) under your publisher handle
 - Link from Settings → **Browse the community catalog**
 
 ### Settings & permissions
@@ -77,7 +78,8 @@ Automated tests use **Puppeteer** and **Jest**. See the [Testing Guide](TESTING.
 ## Privacy
 
 - Your prompt library is stored **locally** in the browser (`chrome.storage.local`)
-- Nothing is sent to external servers unless **you** choose to import from the [Open Prompt Database](https://openpromptdatabase.com/) — that flow only pulls the prompt you selected into your local library
+- Catalog **import** pulls a prompt you selected from the [Open Prompt Database](https://openpromptdatabase.com/) into your local library
+- Catalog **share / upload** sends a prompt you choose (title, content, tags) to Open Prompt Database under your publisher handle. That only happens when you click **Share to Open Prompt Database**
 - No analytics or tracking
 
 ## License

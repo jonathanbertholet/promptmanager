@@ -15,6 +15,7 @@ import {
 import { getPrompts, onPromptsChanged, savePrompt } from './storage/promptStorage.js';
 import { removePinnedForHostname } from './storage/pinnedInputStorage.js';
 import { resolveProviderIconUrl } from './utils/providerIcons.js';
+import { expandOriginPatterns, hasAnyOriginPermission } from './utils/originPatterns.js';
 
 // COMMENT: Single source of truth for dynamically injected content-script bundles
 const CONTENT_SCRIPT_FILES = [
@@ -123,7 +124,7 @@ async function syncStorageAfterPermissionRevoke(originPatterns) {
 
   for (const pattern of originPatterns) {
     Object.entries(providersMap).forEach(([name, info]) => {
-      if (info?.urlPattern === pattern) {
+      if (info?.urlPattern === pattern || expandOriginPatterns(info?.urlPattern).includes(pattern)) {
         providersMap[name] = { ...info, hasPermission: 'No' };
       }
     });
@@ -217,7 +218,8 @@ function handleOpdImportPrompt(message, sendResponse) {
   (async () => {
     try {
       const result = await importCatalogPrompt(message.prompt);
-      if (result?.ok && message.prompt?.id) {
+      // COMMENT: Only bump catalog import counts for a new or updated row, not "already in library"
+      if (result?.ok && message.prompt?.id && result.status !== 'already') {
         notifyPromptImported(message.prompt.id);
       }
       sendResponse(result);
@@ -534,10 +536,8 @@ async function checkProviderPermissions() {
       const urlPattern = providerInfo.pattern;
       const providerUrl = providerInfo.url;
 
-      // Check if permission exists for this provider's URL pattern
-      const hasPermission = await chrome.permissions.contains({
-        origins: [urlPattern]
-      });
+      // COMMENT: Grant if any listed origin is allowed (e.g. www + apex Perplexity)
+      const hasPermission = await hasAnyOriginPermission(urlPattern);
 
       // Store the result (permission status and URL) in providersMap
       providersMap[providerName] = {

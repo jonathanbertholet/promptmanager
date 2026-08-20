@@ -9,6 +9,7 @@ import {
   getFaviconFallbackForUrl,
 } from '../utils/providerIcons.js';
 import { OPD_CATALOG_URL, OPD_MSG } from '../opd/opdConstants.js';
+import { expandOriginPatterns, hasAnyOriginPermission } from '../utils/originPatterns.js';
 import { mountSidepanelFooter } from './sidepanelFooter.js';
 
 /** @type {ReturnType<typeof collectPromptFormRefs>|null} */
@@ -487,10 +488,38 @@ async function publishPromptToOpd(localUuid) {
       }
       return true;
     }
+    showSidepanelToast(mapPublishError(res?.error), { error: true });
   } catch (_) {
-    // Ignore publish failures silently in the sidebar
+    showSidepanelToast(mapPublishError('publish_failed'), { error: true });
   }
   return false;
+}
+
+function mapPublishError(code) {
+  switch (code) {
+  case 'not_registered':
+    return 'Set a publisher handle in Open Prompt Database settings before sharing.';
+  case 'permission_denied':
+    return 'Catalog access is required to share. Grant permission and try again.';
+  case 'publish_disabled':
+    return 'Sharing is turned off in Open Prompt Database settings.';
+  case 'prompt_not_found':
+    return 'That prompt is no longer in your library.';
+  default:
+    return 'Could not share this prompt. Try again.';
+  }
+}
+
+function showSidepanelToast(message, { error = false } = {}) {
+  const existing = document.getElementById('spm-toast');
+  if (existing) existing.remove();
+  const toast = document.createElement('div');
+  toast.id = 'spm-toast';
+  toast.className = error ? 'spm-toast spm-toast-error' : 'spm-toast';
+  toast.setAttribute('role', 'status');
+  toast.textContent = message;
+  document.body.appendChild(toast);
+  window.setTimeout(() => toast.remove(), 3200);
 }
 
 // COMMENT: Share publish re-renders the list before feedback can paint — replay after rebuild
@@ -1129,7 +1158,7 @@ async function getProvidersMapOrFallback() {
     const computedEntries = await Promise.all(list.map(async (p) => {
       let permitted = false;
       try {
-        permitted = await chrome.permissions.contains({ origins: [p.pattern] });
+        permitted = await hasAnyOriginPermission(p.pattern);
       } catch (_) {
         permitted = false;
       }
@@ -1203,7 +1232,8 @@ async function renderLLMsSectionBody({ pinnedInputs: pinnedInputsOverride } = {}
         ev.preventDefault();
         const pattern = a.getAttribute('data-url-pattern');
         if (!pattern) return;
-        chrome.permissions.request({ origins: [pattern] }, (granted) => {
+        const origins = expandOriginPatterns(pattern);
+        chrome.permissions.request({ origins }, (granted) => {
           if (granted) {
             // Update storage map so both this UI and the permissions page stay in sync
             // Read, mutate, and write the aiProvidersMap

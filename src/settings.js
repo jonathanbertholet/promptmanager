@@ -6,6 +6,7 @@ import {
   attachProviderIconFallback,
   getFaviconFallbackForUrl,
 } from './utils/providerIcons.js';
+import { expandOriginPatterns } from './utils/originPatterns.js';
 import { mountSidepanelFooter } from './sidepanel/sidepanelFooter.js';
 
 // COMMENT: Storage keys shared with the in-page panel and side panel
@@ -375,9 +376,10 @@ async function loadProviderMetadata() {
   const providersByPattern = new Map();
 
   Object.entries(providersMap).forEach(([name, info]) => {
-    if (info?.urlPattern) {
-      providersByPattern.set(info.urlPattern, { name, ...info });
-    }
+    if (!info?.urlPattern) return;
+    expandOriginPatterns(info.urlPattern).forEach((origin) => {
+      providersByPattern.set(origin, { name, ...info, urlPattern: origin });
+    });
   });
 
   if (providersByPattern.size === 0) {
@@ -387,12 +389,14 @@ async function loadProviderMetadata() {
       const list = Array.isArray(data?.llm_providers) ? data.llm_providers : [];
       list.forEach((provider) => {
         if (!provider?.pattern) return;
-        providersByPattern.set(provider.pattern, {
-          name: provider.name,
-          urlPattern: provider.pattern,
-          url: provider.url,
-          iconUrl: resolveProviderIconUrl(provider.icon_url, provider.url),
-          hasPermission: 'No',
+        expandOriginPatterns(provider.pattern).forEach((origin) => {
+          providersByPattern.set(origin, {
+            name: provider.name,
+            urlPattern: origin,
+            url: provider.url,
+            iconUrl: resolveProviderIconUrl(provider.icon_url, provider.url),
+            hasPermission: 'No',
+          });
         });
       });
     } catch (_) {
@@ -467,7 +471,7 @@ async function getGrantedSiteEntries() {
 function markProviderRevoked(providersMap, pattern) {
   const updated = { ...providersMap };
   Object.entries(updated).forEach(([name, info]) => {
-    if (info?.urlPattern === pattern) {
+    if (info?.urlPattern === pattern || expandOriginPatterns(info?.urlPattern).includes(pattern)) {
       updated[name] = { ...info, hasPermission: 'No' };
     }
   });
