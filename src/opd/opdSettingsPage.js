@@ -14,6 +14,7 @@ import {
 import {
   getPublishSettings,
   setOpdPendingUsername,
+  clearOpdPendingUsername,
 } from './opdPublishToken.js';
 
 /**
@@ -172,6 +173,9 @@ export function initOpdSettingsPage(root = document) {
       const handle = normalizeHandleInput(els.handleInput);
       if (handle.length >= 3) {
         await setOpdPendingUsername(handle);
+      } else {
+        // COMMENT: Don't keep a stale draft handle after the user clears the field
+        await clearOpdPendingUsername();
       }
     });
   }

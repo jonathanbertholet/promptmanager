@@ -99,6 +99,11 @@ export async function shareLocalPrompt(localUuid, turnstileToken = '') {
       });
       return { ok: true, catalogId, url, reused: true, copiedExisting: true };
     }
+
+    // COMMENT: Known catalog id but lookup failed — don't POST a duplicate (404 means recreate)
+    if (existing.status !== 404) {
+      return { ok: false, error: 'catalog_lookup_failed' };
+    }
   }
 
   return publishLocalPrompt(localUuid, turnstileToken);

@@ -3,6 +3,8 @@ import {
   initOpdCatalogAccess,
   isAllowedOpdMessageOrigin,
   hasOpdCatalogPermission,
+  requestOpdCatalogPermission,
+  syncOpdCatalogAccess,
 } from './opd/opdCatalogAccess.js';
 import { importCatalogPrompt } from './opd/opdImport.js';
 import { notifyPromptImported } from './opd/opdClient.js';
@@ -218,7 +220,8 @@ function handleOpdImportPrompt(message, sendResponse) {
   (async () => {
     try {
       const result = await importCatalogPrompt(message.prompt);
-      if (result?.ok && message.prompt?.id) {
+      // COMMENT: Count first-time imports only — re-import of an existing row is not a new import
+      if (result?.ok && result.status === 'imported' && message.prompt?.id) {
         notifyPromptImported(message.prompt.id);
       }
       sendResponse(result);
@@ -276,15 +279,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       try {
         const enabled = Boolean(message.enabled);
         if (enabled) {
-          const granted = await new Promise((resolve) => {
-            chrome.permissions.request(
-              { origins: ['https://openpromptdatabase.com/*'] },
-              (ok) => resolve(Boolean(ok))
-            );
-          });
-          if (!granted) {
-            sendResponse({ ok: false, error: 'permission_denied' });
-            return;
+          if (!(await hasOpdCatalogPermission())) {
+            const granted = await requestOpdCatalogPermission();
+            if (!granted) {
+              sendResponse({ ok: false, error: 'permission_denied' });
+              return;
+            }
+            await syncOpdCatalogAccess();
           }
           await getOrCreatePublishToken();
         }
@@ -347,24 +348,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           return;
         }
         // COMMENT: Optional host permission is requested on first share, same as enabling publish
-        const granted = await new Promise((resolve) => {
-          chrome.permissions.contains(
-            { origins: ['https://openpromptdatabase.com/*'] },
-            (hasPermission) => {
-              if (hasPermission) {
-                resolve(true);
-                return;
-              }
-              chrome.permissions.request(
-                { origins: ['https://openpromptdatabase.com/*'] },
-                (ok) => resolve(Boolean(ok))
-              );
-            }
-          );
-        });
-        if (!granted) {
-          sendResponse({ ok: false, error: 'permission_denied' });
-          return;
+        if (!(await hasOpdCatalogPermission())) {
+          const granted = await requestOpdCatalogPermission();
+          if (!granted) {
+            sendResponse({ ok: false, error: 'permission_denied' });
+            return;
+          }
+          await syncOpdCatalogAccess();
         }
         const result = await shareLocalPrompt(
           message.localUuid || '',

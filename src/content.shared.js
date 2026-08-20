@@ -229,6 +229,21 @@
         closeTimer: null
       };
 
+      // COMMENT: Document-level listeners that outlive a view must be aborted on remount
+      let shortcutRecordingHandler = null;
+      let abortReorderDrag = null;
+
+      const stopShortcutRecording = () => {
+        if (!shortcutRecordingHandler) return;
+        document.removeEventListener('keydown', shortcutRecordingHandler, true);
+        shortcutRecordingHandler = null;
+      };
+
+      const abortTransientListeners = () => {
+        stopShortcutRecording();
+        abortReorderDrag?.();
+      };
+
       const Elements = {
         createPanelContent() {
           return createEl('div', { id: SELECTORS.PANEL_CONTENT });
@@ -516,6 +531,8 @@
 
       const Reorder = {
         attach(promptsContainer, prompts, onReorder) {
+          abortReorderDrag?.();
+
           let isDragging = false;
           let dragSrcEl = null;
           let ghost = null;
@@ -536,6 +553,7 @@
             document.body.style.cursor = '';
             document.removeEventListener('mousemove', handleMouseMove);
             document.removeEventListener('mouseup', handleMouseUp);
+            if (abortReorderDrag === cleanup) abortReorderDrag = null;
           };
 
           const handleMouseMove = (e) => {
@@ -650,6 +668,7 @@
             });
           };
 
+          abortReorderDrag = cleanup;
           return { wireItem };
         }
       };
@@ -804,7 +823,6 @@
             innerHTML: '…'
           });
           const recordShortcutBtn = createEl('button', { innerHTML: 'Record', className: `opm-button opm-${getMode()}` });
-          let recordingHandler = null;
 
           const refreshShortcutDisplay = async () => {
             const shortcut = await window.PromptStorageManager.getKeyboardShortcut();
@@ -813,21 +831,19 @@
 
           recordShortcutBtn.addEventListener('click', (e) => {
             e.stopPropagation();
-            if (recordingHandler) {
-              document.removeEventListener('keydown', recordingHandler, true);
-              recordingHandler = null;
+            if (shortcutRecordingHandler) {
+              stopShortcutRecording();
               recordShortcutBtn.innerHTML = 'Record';
               refreshShortcutDisplay().catch(() => {});
               return;
             }
             recordShortcutBtn.innerHTML = 'Press keys…';
             shortcutDisplay.innerHTML = 'Listening…';
-            recordingHandler = async (event) => {
+            shortcutRecordingHandler = async (event) => {
               event.preventDefault();
               event.stopPropagation();
               if (event.key === 'Escape') {
-                document.removeEventListener('keydown', recordingHandler, true);
-                recordingHandler = null;
+                stopShortcutRecording();
                 recordShortcutBtn.innerHTML = 'Record';
                 refreshShortcutDisplay().catch(() => {});
                 return;
@@ -841,12 +857,11 @@
                 requiresShift: event.shiftKey,
                 key: event.key.length === 1 ? event.key.toLowerCase() : event.key.toLowerCase()
               });
-              document.removeEventListener('keydown', recordingHandler, true);
-              recordingHandler = null;
+              stopShortcutRecording();
               recordShortcutBtn.innerHTML = 'Record';
               refreshShortcutDisplay().catch(() => {});
             };
-            document.addEventListener('keydown', recordingHandler, true);
+            document.addEventListener('keydown', shortcutRecordingHandler, true);
           });
           shortcutRow.append(recordShortcutBtn, shortcutDisplay);
           refreshShortcutDisplay().catch(() => {});
@@ -1322,7 +1337,7 @@
         }
       };
 
-      return Object.freeze({ State, Elements, Views, Behaviors, Events });
+      return Object.freeze({ State, Elements, Views, Behaviors, Events, abortTransientListeners });
     })();
     window.PromptUI = PromptUI;
   }

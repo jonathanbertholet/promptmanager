@@ -489,8 +489,9 @@ const PanelRouter = (() => {
     const targetHeightMode = definition.panelHeight || 'fixed';
 
     const applyView = async () => {
-      // COMMENT: Drop tag-input document/window listeners before the form is replaced
+      // COMMENT: Drop tag-input / shortcut-recorder / reorder document listeners before the form is replaced
       window.TagUI?.destroyOpenInputs?.();
+      window.PromptUI?.abortTransientListeners?.();
 
       state.currentView = view;
       PromptUIManager.inVariableInputMode = (view === PanelView.VARIABLE_INPUT);
@@ -2051,6 +2052,7 @@ class PromptUIManager {
 
     // COMMENT: Drop cached view so the next open remounts into the fresh list container
     window.TagUI?.destroyOpenInputs?.();
+    window.PromptUI?.abortTransientListeners?.();
     PanelRouter.reset();
 
     // Clean up any other global handlers or state
