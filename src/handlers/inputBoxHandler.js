@@ -13,6 +13,7 @@ class InputBoxHandler {
   static _cachedInputAt = 0;
   static _inputCacheMs = 2500;
   static _pinnedStorageModule = null;
+  static _learnedStorageModule = null;
   static _waitObserver = null;
   static _waitObserverTimer = null;
 
@@ -621,6 +622,17 @@ class InputBoxHandler {
   }
 
   /**
+   * COMMENT: Load auto-learned input storage from the extension bundle.
+   * @returns {Promise<object>}
+   */
+  static async _learnedStorage() {
+    if (!InputBoxHandler._learnedStorageModule) {
+      InputBoxHandler._learnedStorageModule = await import(chrome.runtime.getURL('storage/learnedInputStorage.js'));
+    }
+    return InputBoxHandler._learnedStorageModule;
+  }
+
+  /**
    * COMMENT: Build a stable selector for a pinned input element.
    * @param {HTMLElement} element
    * @returns {{ selector: string, label: string, deepShadow: boolean }}
@@ -789,6 +801,74 @@ class InputBoxHandler {
   }
 
   /**
+   * COMMENT: Return the auto-learned input for the current page, if any.
+   * @returns {Promise<HTMLElement|null>}
+   */
+  static async _getLearnedInputForCurrentSite() {
+    try {
+      const storage = await InputBoxHandler._learnedStorage();
+      const learned = await storage.getLearnedForHostname(window.location.hostname);
+      if (!learned) return null;
+
+      const resolved = InputBoxHandler._resolvePinnedInput(learned);
+      if (!resolved) {
+        // COMMENT: Drop stale learned selectors after a site redesign
+        await storage.removeLearnedForHostname(window.location.hostname).catch(() => {});
+        return null;
+      }
+      return resolved;
+    } catch (error) {
+      console.error('Failed to resolve learned input:', error);
+      return null;
+    }
+  }
+
+  /**
+   * COMMENT: True when inserted prompt text appears to have landed in the field.
+   * @param {HTMLElement} inputBox
+   * @param {string} content
+   * @param {string} beforeText
+   * @returns {boolean}
+   */
+  static _insertLooksSuccessful(inputBox, content, beforeText) {
+    const normalize = (text) => String(text || '').replace(/\s+/g, ' ').trim();
+    const afterText = normalize(InputBoxHandler._readPlainText(inputBox));
+    const snippet = normalize(content).slice(0, 48);
+    if (!snippet) return false;
+
+    const normalizedBefore = normalize(beforeText);
+    if (afterText === normalizedBefore) return false;
+    if (afterText.includes(snippet)) return true;
+
+    const prefix = snippet.slice(0, Math.min(8, snippet.length));
+    return prefix.length >= 4 && afterText.includes(prefix);
+  }
+
+  /**
+   * COMMENT: Persist a successful insert as a soft-learned selector for this hostname.
+   * @param {HTMLElement} inputBox
+   * @param {string} content
+   * @param {string} beforeText
+   */
+  static async _maybeLearnInput(inputBox, content, beforeText) {
+    if (!(inputBox instanceof HTMLElement)) return;
+    if (!InputBoxHandler._insertLooksSuccessful(inputBox, content, beforeText)) return;
+    if (InputBoxHandler._scoreInputCandidate(inputBox) < 0) return;
+
+    try {
+      const pinnedStorage = await InputBoxHandler._pinnedStorage();
+      const existingPin = await pinnedStorage.getPinnedForHostname(window.location.hostname);
+      if (existingPin) return;
+
+      const learnedStorage = await InputBoxHandler._learnedStorage();
+      const descriptor = InputBoxHandler._buildPinDescriptor(inputBox);
+      await learnedStorage.setLearnedForHostname(window.location.hostname, descriptor);
+    } catch (error) {
+      console.error('Failed to save learned input:', error);
+    }
+  }
+
+  /**
    * COMMENT: True when the element can receive prompt text.
    * @param {HTMLElement} element
    * @returns {boolean}
@@ -853,14 +933,21 @@ class InputBoxHandler {
 
   /**
    * COMMENT: Enter click-to-pin mode with a mouse-following spotlight that snaps to inputs.
+   * @param {{ pendingPrompt?: object }} [options]
    * @returns {object}
    */
-  static startPinPickerMode() {
+  static startPinPickerMode({ pendingPrompt } = {}) {
     if (window.__OPM_PIN_PICKER_ACTIVE__) {
+      if (pendingPrompt?.content) {
+        window.__OPM_PIN_PENDING_PROMPT__ = pendingPrompt;
+      }
       return { ok: false, error: 'picker_already_active' };
     }
 
     window.__OPM_PIN_PICKER_ACTIVE__ = true;
+    if (pendingPrompt?.content) {
+      window.__OPM_PIN_PENDING_PROMPT__ = pendingPrompt;
+    }
 
     const EXAMPLE_PROMPT = 'Example Prompt';
     const INPUT_PAD = 6;
@@ -1050,6 +1137,7 @@ class InputBoxHandler {
       dismissed = true;
       window.__OPM_PIN_PICKER_ACTIVE__ = false;
       delete window.__OPM_PIN_PICKER_DISMISS__;
+      delete window.__OPM_PIN_PENDING_PROMPT__;
       document.documentElement.classList.remove('opm-pin-picker-active');
       removeListeners();
       root.remove();
@@ -1099,13 +1187,25 @@ class InputBoxHandler {
         const storage = await InputBoxHandler._pinnedStorage();
         const descriptor = InputBoxHandler._buildPinDescriptor(editable);
         await storage.setPinnedForHostname(window.location.hostname, descriptor);
+        try {
+          const learnedStorage = await InputBoxHandler._learnedStorage();
+          await learnedStorage.removeLearnedForHostname(window.location.hostname);
+        } catch (_) {
+          // COMMENT: Pin replaces learned detection even if learned storage is unavailable
+        }
         InputBoxHandler._invalidateInputCache();
         InputBoxHandler._rememberInput(editable);
 
+        const queuedPrompt = window.__OPM_PIN_PENDING_PROMPT__;
+        delete window.__OPM_PIN_PENDING_PROMPT__;
         try {
-          await InputBoxHandler.insertPrompt(editable, EXAMPLE_PROMPT, null);
+          await InputBoxHandler.insertPrompt(
+            editable,
+            queuedPrompt?.content || EXAMPLE_PROMPT,
+            null,
+          );
         } catch (insertError) {
-          console.error('Failed to insert example prompt after pin:', insertError);
+          console.error('Failed to insert prompt after pin:', insertError);
         }
 
         dismissPicker();
@@ -1160,21 +1260,44 @@ class InputBoxHandler {
   }
 
   /**
-   * COMMENT: Remove the pinned input mapping for the current hostname.
+   * COMMENT: Remove the pinned (and learned) input mapping for the current hostname.
+   * @param {{ silent?: boolean }} [options]
    * @returns {Promise<object>}
    */
-  static async clearPinnedInput() {
+  static async clearPinnedInput({ silent = false } = {}) {
     try {
       const storage = await InputBoxHandler._pinnedStorage();
       const removed = await storage.removePinnedForHostname(window.location.hostname);
+      let learnedRemoved = false;
+      try {
+        const learnedStorage = await InputBoxHandler._learnedStorage();
+        learnedRemoved = await learnedStorage.removeLearnedForHostname(window.location.hostname);
+      } catch (_) {
+        learnedRemoved = false;
+      }
       InputBoxHandler._invalidateInputCache();
-      if (removed) {
+      if (!silent && (removed || learnedRemoved)) {
         InputBoxHandler._showPinToast(`Custom website removed for ${window.location.hostname}`);
       }
-      return { ok: true, removed, hostname: window.location.hostname };
+      return {
+        ok: true,
+        removed: removed || learnedRemoved,
+        hostname: window.location.hostname,
+      };
     } catch (error) {
       return { ok: false, error: error.message || 'clear_failed' };
     }
+  }
+
+  /**
+   * COMMENT: Clear saved detection for this site and reopen the field-pointer picker.
+   * @param {{ pendingPrompt?: object }} [options]
+   * @returns {Promise<object>}
+   */
+  static async resetInputDetection({ pendingPrompt } = {}) {
+    await InputBoxHandler.clearPinnedInput({ silent: true });
+    InputBoxHandler._showPinToast('Click the input field on the page');
+    return InputBoxHandler.startPinPickerMode({ pendingPrompt });
   }
 
   /**
@@ -1210,6 +1333,12 @@ class InputBoxHandler {
     if (pinnedInput) {
       InputBoxHandler._rememberInput(pinnedInput);
       return pinnedInput;
+    }
+
+    const learnedInput = await InputBoxHandler._getLearnedInputForCurrentSite();
+    if (learnedInput) {
+      InputBoxHandler._rememberInput(learnedInput);
+      return learnedInput;
     }
 
     const providers = await InputBoxHandler._loadProviders();
@@ -1350,6 +1479,11 @@ class InputBoxHandler {
     }
     InputBoxHandler._prepareGeminiInput(inputBox);
     inputBox.focus();
+    const beforeText = InputBoxHandler._readPlainText(inputBox);
+    const finishInsert = () => {
+      PromptUIManager.hidePromptList(promptList);
+      InputBoxHandler._maybeLearnInput(inputBox, content, beforeText).catch(() => {});
+    };
     try {
       // COMMENT: Read setting that controls append vs overwrite behavior
       const disableOverwrite = await new Promise(resolve => {
@@ -1366,7 +1500,7 @@ class InputBoxHandler {
         // COMMENT: Nested ProseMirror/Lexical (ChatGPT/Perplexity wrappers) must use the rich path
         if (InputBoxHandler._isRichEditor(editor) || InputBoxHandler._isRichEditor(inputBox)) {
           InputBoxHandler._insertViaExecCommand(editor, content, disableOverwrite);
-          PromptUIManager.hidePromptList(promptList);
+          finishInsert();
           return;
         }
 
@@ -1454,7 +1588,7 @@ class InputBoxHandler {
         console.error('Unknown input box type.', { inputBox });
         return;
       }
-      PromptUIManager.hidePromptList(promptList);
+      finishInsert();
     } catch (error) {
       console.error('Error inserting prompt:', error, { content, inputBox, promptList });
     }
@@ -1486,11 +1620,13 @@ if (typeof chrome !== 'undefined' && chrome.runtime?.onMessage) {
     (async () => {
       try {
         if (message.action === 'start') {
-          sendResponse(InputBoxHandler.startPinPickerMode());
+          sendResponse(InputBoxHandler.startPinPickerMode({ pendingPrompt: message.pendingPrompt }));
         } else if (message.action === 'cancel') {
           sendResponse(InputBoxHandler.cancelPinPickerMode());
         } else if (message.action === 'clear') {
           sendResponse(await InputBoxHandler.clearPinnedInput());
+        } else if (message.action === 'reset') {
+          sendResponse(await InputBoxHandler.resetInputDetection({ pendingPrompt: message.pendingPrompt }));
         } else if (message.action === 'status') {
           sendResponse(await InputBoxHandler.getPinnedStatus());
         } else {

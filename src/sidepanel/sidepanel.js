@@ -3,6 +3,7 @@
 // COMMENT: Use unified prompt storage for all prompt operations
 import * as PromptStorage from '../storage/promptStorage.js';
 import { getPinnedForHostname, getAllPinnedInputs } from '../storage/pinnedInputStorage.js';
+import { getLearnedForHostname } from '../storage/learnedInputStorage.js';
 import {
   resolveProviderIconUrl,
   attachProviderIconFallback,
@@ -10,7 +11,6 @@ import {
 } from '../utils/providerIcons.js';
 import { OPD_CATALOG_URL, OPD_MSG } from '../opd/opdConstants.js';
 import {
-  hasOpdCatalogPermission,
   requestOpdCatalogPermission,
   syncOpdCatalogAccess,
 } from '../opd/opdCatalogAccess.js';
@@ -23,6 +23,20 @@ let promptFormEls = null;
 /** COMMENT: Detect the full-tab expanded view (?expanded=1) vs the Chrome side panel */
 function isExpandedTabView() {
   return new URLSearchParams(window.location.search).get('expanded') === '1';
+}
+
+/**
+ * COMMENT: Keep a port open while the Chrome side panel is visible so tabs can hide in-page UI.
+ */
+function maintainSidePanelPresence() {
+  if (isExpandedTabView()) return;
+
+  chrome.windows.getCurrent()
+    .then((win) => {
+      const port = chrome.runtime.connect({ name: 'opm-sidepanel' });
+      port.postMessage({ type: 'OPM_SIDEPANEL_HELLO', windowId: win.id });
+    })
+    .catch(() => {});
 }
 
 function collectPromptFormRefs() {
@@ -73,8 +87,129 @@ function setComposerOpen(isOpen) {
   if (isExpandedTabView()) return;
   const { actionBar, composer } = getPromptFormEls();
   const showForm = Boolean(isOpen);
+
+  if (showForm && pendingVariablePrompt) {
+    pendingVariablePrompt = null;
+    document.body.classList.remove('spm-variable-mode');
+    const variableView = document.getElementById('sidebar-variable-input');
+    if (variableView) variableView.hidden = true;
+  }
+
   if (actionBar) actionBar.hidden = showForm;
   if (composer) composer.hidden = !showForm;
+}
+
+// COMMENT: Prompt variable helpers — same #name# syntax as the in-page panel
+function extractPromptVariables(content) {
+  const regex = /#([a-zA-Z0-9_]+)#/g;
+  return [...new Set([...String(content || '').matchAll(regex)].map((m) => m[1]))];
+}
+
+function replacePromptVariables(content, values) {
+  return Object.entries(values).reduce(
+    (res, [key, value]) => res.replace(new RegExp(`#${key}#`, 'g'), value),
+    content,
+  );
+}
+
+let pendingVariablePrompt = null;
+
+/** COMMENT: Match in-page panel light/dark field classes in the sidebar. */
+function getSidebarThemeClass() {
+  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'opm-dark' : 'opm-light';
+}
+
+/** COMMENT: Show variable fill-in mode — hides prompt list chrome like the in-page panel. */
+function setVariableInputOpen(isOpen) {
+  const showForm = Boolean(isOpen);
+  document.body.classList.toggle('spm-variable-mode', showForm);
+
+  const actionBar = document.getElementById('sidebar-action-bar');
+  const composer = document.getElementById('sidebar-composer');
+  const variableView = document.getElementById('sidebar-variable-input');
+
+  if (variableView) {
+    variableView.hidden = !showForm;
+    variableView.classList.remove('opm-light', 'opm-dark');
+    if (showForm) variableView.classList.add(getSidebarThemeClass());
+  }
+
+  if (showForm) {
+    if (actionBar) actionBar.hidden = true;
+    if (composer) composer.hidden = true;
+    return;
+  }
+
+  // COMMENT: Return to the list chrome — Create / Community must not stay hidden after Submit/Back
+  if (actionBar) actionBar.hidden = false;
+  if (composer) composer.hidden = true;
+}
+
+/** COMMENT: Open the variable form for a prompt before inserting into the active tab. */
+function openVariableInputView(prompt) {
+  pendingVariablePrompt = prompt;
+  const variableView = document.getElementById('sidebar-variable-input');
+  const fieldsHost = document.getElementById('spm-variable-fields');
+  if (!fieldsHost || !variableView) return;
+
+  const themeClass = getSidebarThemeClass();
+  fieldsHost.innerHTML = '';
+
+  extractPromptVariables(prompt.content).forEach((variableName) => {
+    const displayLabel = String(variableName)
+      .replace(/_/g, ' ')
+      .replace(/^./, (c) => c.toUpperCase());
+    const row = document.createElement('div');
+    row.className = 'opm-variable-row';
+
+    const label = document.createElement('label');
+    label.className = themeClass;
+    label.textContent = displayLabel;
+
+    const input = document.createElement('textarea');
+    input.className = `opm-textarea-field ${themeClass}`;
+    input.rows = 2;
+    input.placeholder = `${displayLabel} value`;
+    input.dataset.variable = variableName;
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        submitVariableInputView().catch(console.error);
+      }
+    });
+
+    row.append(label, input);
+    fieldsHost.appendChild(row);
+  });
+
+  variableView.querySelectorAll('.opm-button').forEach((btn) => {
+    btn.classList.remove('opm-light', 'opm-dark');
+    btn.classList.add(themeClass);
+  });
+
+  setVariableInputOpen(true);
+  fieldsHost.querySelector('textarea')?.focus();
+}
+
+function closeVariableInputView() {
+  pendingVariablePrompt = null;
+  setVariableInputOpen(false);
+  renderPermissionsGate(undefined, { skipControls: true }).catch(console.error);
+}
+
+/** COMMENT: Replace variables then insert the resolved prompt into the active tab. */
+async function submitVariableInputView() {
+  if (!pendingVariablePrompt) return;
+  const fieldsHost = document.getElementById('spm-variable-fields');
+  const values = {};
+  fieldsHost?.querySelectorAll('[data-variable]').forEach((input) => {
+    values[input.dataset.variable] = input.value;
+  });
+
+  const resolvedContent = replacePromptVariables(pendingVariablePrompt.content, values);
+  const prompt = { ...pendingVariablePrompt, content: resolvedContent };
+  closeVariableInputView();
+  await insertPromptIntoActiveTab(prompt);
 }
 
 function resetPromptForm({ keepOpen = false } = {}) {
@@ -165,9 +300,14 @@ async function getActiveBrowserTab() {
  * @param {'start'|'clear'|'status'} action
  * @returns {Promise<object>}
  */
-function sendPinInputAction(action, tabId) {
+function sendPinInputAction(action, tabId, extras = {}) {
   return new Promise(resolve => {
-    chrome.runtime.sendMessage({ type: 'OPM_PIN_INPUT', action, tabId }, response => {
+    chrome.runtime.sendMessage({
+      type: 'OPM_PIN_INPUT',
+      action,
+      tabId,
+      pendingPrompt: extras.pendingPrompt,
+    }, response => {
       if (chrome.runtime.lastError) {
         resolve({ ok: false, error: chrome.runtime.lastError.message });
         return;
@@ -175,6 +315,123 @@ function sendPinInputAction(action, tabId) {
       resolve(response || { ok: false, error: 'empty_response' });
     });
   });
+}
+
+/**
+ * COMMENT: Start (or retry after permission) the input-field picker on the active tab.
+ * @param {chrome.tabs.Tab} tab
+ * @param {{ pendingPrompt?: object }} [options]
+ * @returns {Promise<object>}
+ */
+async function startInputPickerForTab(tab, { pendingPrompt } = {}) {
+  const pickerOptions = pendingPrompt ? { pendingPrompt } : {};
+  let result = await sendPinInputAction('start', tab.id, pickerOptions);
+  if (result?.error === 'no_permission') {
+    const granted = await requestPermissionForUrl(tab.url);
+    if (!granted) return { ok: false, error: 'permission_denied' };
+    result = await sendPinInputAction('start', tab.id, pickerOptions);
+  }
+  return result;
+}
+
+/**
+ * COMMENT: Clear saved detection and reopen the field-pointer picker on the active tab.
+ * @param {chrome.tabs.Tab} tab
+ * @param {{ pendingPrompt?: object }} [options]
+ * @returns {Promise<object>}
+ */
+async function resetInputDetectionForTab(tab, { pendingPrompt } = {}) {
+  const pickerOptions = pendingPrompt ? { pendingPrompt } : {};
+  let result = await sendPinInputAction('reset', tab.id, pickerOptions);
+  if (result?.error === 'no_permission') {
+    const granted = await requestPermissionForUrl(tab.url);
+    if (!granted) return { ok: false, error: 'permission_denied' };
+    result = await sendPinInputAction('reset', tab.id, pickerOptions);
+  }
+  return result;
+}
+
+/**
+ * COMMENT: Insert a library prompt into the focused tab's chat input when that site is enabled.
+ * @param {{ uuid: string }} prompt
+ * @returns {Promise<boolean>}
+ */
+async function insertPromptIntoActiveTab(prompt) {
+  const tab = await getActiveBrowserTab();
+  if (!tab?.id || !tab.url || !/^https?:/i.test(tab.url)) {
+    showSidepanelToast('Open a chat site, then click a prompt to insert it.', { error: true });
+    return false;
+  }
+
+  const pendingPrompt = {
+    uuid: prompt.uuid,
+    title: prompt.title,
+    content: prompt.content,
+    tags: Array.isArray(prompt.tags) ? prompt.tags : [],
+  };
+
+  const result = await new Promise(resolve => {
+    chrome.runtime.sendMessage(
+      { type: 'OPM_INSERT_PROMPT', localUuid: prompt.uuid, tabId: tab.id, prompt: pendingPrompt },
+      response => {
+        if (chrome.runtime.lastError) {
+          resolve({ ok: false, error: chrome.runtime.lastError.message });
+          return;
+        }
+        resolve(response || { ok: false, error: 'empty_response' });
+      },
+    );
+  });
+
+  if (result?.ok) return true;
+
+  if (result?.error === 'no_permission' || result?.error === 'no_input') {
+    const pickerResult = await startInputPickerForTab(tab, { pendingPrompt });
+    if (pickerResult?.error === 'permission_denied') {
+      showSidepanelToast('Allow site access for this page to pick its input field.', { error: true });
+      return false;
+    }
+    if (!pickerResult?.ok && pickerResult?.error !== 'picker_already_active') {
+      showSidepanelToast(pickerResult?.error || 'Could not start input picker on this page.', { error: true });
+      return false;
+    }
+    cachedPermissionAllowed = null;
+    await renderPermissionsGate();
+    return true;
+  }
+
+  showSidepanelToast(mapInsertError(result?.error), { error: true });
+  return false;
+}
+
+function mapInsertError(code) {
+  switch (code) {
+    case 'no_permission':
+      return 'This page is not enabled. Grant it under Assistants, then try again.';
+    case 'no_input':
+      return 'No chat input found on this page.';
+    case 'no_active_tab':
+      return 'Open a chat site, then click a prompt to insert it.';
+    case 'prompt_not_found':
+      return 'That prompt could not be found. Refresh the side panel and try again.';
+    case 'inject_failed':
+    case 'handler_missing':
+      return 'Could not reach this page. Reload the tab and try again.';
+    default:
+      return 'Could not insert this prompt. Try again.';
+  }
+}
+
+/**
+ * COMMENT: Row click — show variable form first when needed, otherwise insert immediately.
+ * @param {object} prompt
+ */
+async function handlePromptRowClick(prompt) {
+  if (extractPromptVariables(prompt.content).length > 0) {
+    openVariableInputView(prompt);
+    return;
+  }
+  await insertPromptIntoActiveTab(prompt);
 }
 
 /**
@@ -204,7 +461,7 @@ async function refreshCustomWebsiteButton(customWebsiteBtn) {
   const tab = await getActiveBrowserTab();
   if (!tab?.url || !/^https?:/i.test(tab.url)) {
     customWebsiteBtn.disabled = true;
-    customWebsiteBtn.classList.remove('is-pinned');
+    customWebsiteBtn.classList.remove('is-pinned', 'is-learned');
     customWebsiteBtn.setAttribute('aria-pressed', 'false');
     customWebsiteBtn.title = 'Open a website tab, then click to pick its input field';
     return;
@@ -219,13 +476,20 @@ async function refreshCustomWebsiteButton(customWebsiteBtn) {
   }
 
   const stored = hostname ? await getPinnedForHostname(hostname) : null;
+  const learned = hostname ? await getLearnedForHostname(hostname) : null;
   const pinned = Boolean(stored);
+  const hasDetection = pinned || Boolean(learned);
 
   customWebsiteBtn.classList.toggle('is-pinned', pinned);
-  customWebsiteBtn.setAttribute('aria-pressed', pinned ? 'true' : 'false');
-  customWebsiteBtn.title = pinned
-    ? `Unpin custom input on ${hostname}${stored?.label ? ` (${stored.label})` : ''}`
-    : `Pick the input field on ${hostname}`;
+  customWebsiteBtn.classList.toggle('is-learned', Boolean(learned) && !pinned);
+  customWebsiteBtn.setAttribute('aria-pressed', hasDetection ? 'true' : 'false');
+  if (pinned) {
+    customWebsiteBtn.title = `Reset input field on ${hostname}${stored?.label ? ` (${stored.label})` : ''} — click to re-pick`;
+  } else if (learned) {
+    customWebsiteBtn.title = `Reset auto-detected input on ${hostname} — click to re-pick`;
+  } else {
+    customWebsiteBtn.title = `Pick the input field on ${hostname}`;
+  }
 }
 
 /**
@@ -244,10 +508,15 @@ async function handleCustomWebsiteAction(customWebsiteBtn) {
   }
 
   const currentlyPinned = Boolean(await getPinnedForHostname(hostname));
-  if (currentlyPinned) {
-    const result = await sendPinInputAction('clear', tab.id);
-    if (!result?.ok) {
-      window.alert(result?.error || 'Could not unpin this custom website.');
+  const currentlyLearned = Boolean(await getLearnedForHostname(hostname));
+  if (currentlyPinned || currentlyLearned) {
+    const result = await resetInputDetectionForTab(tab);
+    if (result?.error === 'permission_denied') {
+      window.alert('Allow site access for this page to pick its input field.');
+      return;
+    }
+    if (!result?.ok && result?.error !== 'picker_already_active') {
+      window.alert(result?.error || 'Could not reset input detection on this page.');
       return;
     }
     await refreshCustomWebsiteButton(customWebsiteBtn);
@@ -255,17 +524,11 @@ async function handleCustomWebsiteAction(customWebsiteBtn) {
     return;
   }
 
-  let result = await sendPinInputAction('start', tab.id);
-  if (result?.error === 'no_permission') {
-    const granted = await requestPermissionForUrl(tab.url);
-    if (!granted) {
-      window.alert('Allow site access for this page to pick its input field.');
-      return;
-    }
-    // COMMENT: Permission just granted — inject scripts then open the picker immediately
-    result = await sendPinInputAction('start', tab.id);
+  const result = await startInputPickerForTab(tab);
+  if (result?.error === 'permission_denied') {
+    window.alert('Allow site access for this page to pick its input field.');
+    return;
   }
-
   if (!result?.ok && result?.error !== 'picker_already_active') {
     window.alert(result?.error || 'Could not start input picker on this page.');
     return;
@@ -482,14 +745,12 @@ async function refreshOpdPublishStatus() {
 async function publishPromptToOpd(localUuid) {
   try {
     // COMMENT: Request catalog host access on the click gesture (SW cannot prompt reliably)
-    if (!(await hasOpdCatalogPermission())) {
-      const granted = await requestOpdCatalogPermission();
-      if (!granted) {
-        showSidepanelToast(mapPublishError('permission_denied'), { error: true });
-        return false;
-      }
-      await syncOpdCatalogAccess();
+    const granted = await requestOpdCatalogPermission();
+    if (!granted) {
+      showSidepanelToast(mapPublishError('permission_denied'), { error: true });
+      return false;
     }
+    await syncOpdCatalogAccess();
 
     const res = await new Promise((resolve) => {
       chrome.runtime.sendMessage(
@@ -749,6 +1010,8 @@ function buildPromptListItemActions(prompt) {
 
   menu.append(overflow, moreBtn);
   actions.append(primary, menu);
+  // COMMENT: Copy/share/edit clicks must not also insert the prompt into the page
+  actions.addEventListener('click', (e) => e.stopPropagation());
   return actions;
 }
 
@@ -1419,6 +1682,7 @@ async function renderPermissionsGate(allowedOverride, { skipControls = false } =
 
 // COMMENT: Render the list of prompts in the sidepanel UI
 function displayPrompts(prompts, totalCount = prompts.length) {
+  if (pendingVariablePrompt) return;
   const promptList = document.getElementById('prompt-list');
   const emptyState = document.getElementById('empty-state');
   const shortcut = document.getElementById('permissions-shortcut');
@@ -1443,6 +1707,11 @@ function displayPrompts(prompts, totalCount = prompts.length) {
     titleSpan.style.display = 'inline-block';
     li.appendChild(titleSpan);
     li.appendChild(buildPromptListItemActions(prompt));
+    li.title = 'Insert into the chat on this page';
+
+    li.addEventListener('click', () => {
+      handlePromptRowClick(prompt).catch(console.error);
+    });
 
     // COMMENT: Collapse the overflow menu when the pointer leaves the row
     li.addEventListener('mouseleave', () => {
@@ -1472,6 +1741,8 @@ async function refreshPromptListView(force = false) {
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
+  maintainSidePanelPresence();
+
   if (isExpandedTabView()) {
     document.body.classList.add('is-expanded-tab');
   }
@@ -1495,6 +1766,13 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   if (communityPromptsBtn) {
     communityPromptsBtn.href = `${OPD_CATALOG_URL}/`;
+    communityPromptsBtn.addEventListener('click', () => {
+      requestOpdCatalogPermission()
+        .then((granted) => {
+          if (granted) return syncOpdCatalogAccess();
+        })
+        .catch(console.error);
+    });
   }
   if (createPromptBtn) {
     createPromptBtn.addEventListener('click', () => {
@@ -1502,8 +1780,22 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   }
 
+  const variableSubmitBtn = document.getElementById('spm-variable-submit');
+  const variableBackBtn = document.getElementById('spm-variable-back');
+  if (variableSubmitBtn) {
+    variableSubmitBtn.addEventListener('click', () => {
+      submitVariableInputView().catch(console.error);
+    });
+  }
+  if (variableBackBtn) {
+    variableBackBtn.addEventListener('click', () => {
+      closeVariableInputView();
+    });
+  }
+
   if (!isExpandedTabView()) {
     setComposerOpen(false);
+    setVariableInputOpen(false);
   }
 
   if (closeExpandedBtn) {
@@ -1547,7 +1839,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           .then(() => refreshPromptListView())
           .catch(console.error);
       }
-      if (area === 'local' && changes.pinned_inputs_v1) {
+      if (area === 'local' && (changes.pinned_inputs_v1 || changes.learned_inputs_v1)) {
         cachedPermissionAllowed = null;
         renderPermissionsGate();
         renderLLMsSection();

@@ -5,16 +5,38 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog],
 and this project adheres to [Semantic Versioning].
 
-## [Unreleased]
+## [3.0.1] - 2026-08-20
+
+### Changed
+
+- Catalog import on the website uses `externally_connectable` for store installs; the bridge is registered after the user grants optional catalog access. This avoids a required host-permission warning on update.
+
+## [3.0.0] - 2026-08-20
+
+### Added
+
+- Share local prompts to the Open Prompt Database from the side panel, including copies of imported community prompts.
+- Publisher handle check and registration with clearer catalog-permission errors.
+- Click a prompt in the side panel to insert it into the chat input on an enabled site.
+- Fill `#variables#` in the side panel before insert; if the site has no input yet, the field picker opens and inserts after you pin.
+- Hide the in-page launcher while the side panel is open.
+- Remember the last successful chat input per site (learned selectors).
+- First-run onboarding: pick a launcher, then click an assistant to grant access, open the site, and open the side panel.
+- Onboarding Features section links to Community prompts and includes an Enable sharing toggle.
 
 ### Fixed
 
-- Sharing an imported catalog prompt now publishes your copy instead of returning success for the original row.
+- Prompt insert no longer posts twice on ChatGPT and Perplexity.
+- Sharing an imported catalog prompt now publishes your copy instead of linking the original row.
 - Re-importing a catalog prompt that is already in the library no longer increments the import counter.
 - The side panel shows an error toast when Share to Open Prompt Database fails.
 - The in-page keyboard shortcut requires an exact Shift match (`Ctrl+M` no longer also matches `Ctrl+Shift+M`).
+- Clicking an assistant on first run requests site access on that click, then opens the side panel.
+- Sharing an imported catalog prompt now keeps a local copy that re-import cannot overwrite.
 - Variable prompts re-detect the chat input before inserting, so SPA composer replacements do not swallow the filled prompt.
 - Perplexity apex host `perplexity.ai` is recognized for injection and permissions, not only `www.perplexity.ai`.
+- Tag input, shortcut recorder, and reorder-drag listeners are removed when the in-page panel changes view.
+- Hot-corner hover on first page load uses the corner hit target, not the still-invisible in-page panel.
 
 ## [2.9.1]
 

@@ -9,8 +9,6 @@ import { OPD_CATALOG_URL } from './opdConstants.js';
 export const OPD_CATALOG_ORIGINS = [
   'https://openpromptdatabase.com/*',
   'https://www.openpromptdatabase.com/*',
-  'http://localhost:8787/*',
-  'http://127.0.0.1:8787/*',
 ];
 
 const OPD_BRIDGE_SCRIPT_ID = 'opd-catalog-bridge';
@@ -64,7 +62,12 @@ export async function grantedOpdCatalogOrigins() {
 
 /** True when optional host permission for the catalog is granted. */
 export async function hasOpdCatalogPermission() {
-  return (await grantedOpdCatalogOrigins()).length > 0;
+  return new Promise((resolve) => {
+    chrome.permissions.contains(
+      { origins: ['https://openpromptdatabase.com/*', 'https://www.openpromptdatabase.com/*'] },
+      (granted) => resolve(Boolean(granted)),
+    );
+  });
 }
 
 /** Ask for catalog host access (one-time prompt). */

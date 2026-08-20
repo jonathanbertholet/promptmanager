@@ -5,6 +5,7 @@ import { publishPrompt, deletePublishedPrompt, getCatalogPrompt } from './opdCli
 import { getOpdApiBaseUrl } from './opdPublishToken.js';
 import { ensurePublisherRegisteredForUpload, getPublisherStatus } from './opdPublisher.js';
 import { getPrompts, updatePrompt } from '../storage/promptStorage.js';
+import { generateUUID } from '../utils.js';
 
 /**
  * Stable catalog id for create/update — avoids duplicate rows when re-sharing.
@@ -152,11 +153,15 @@ export async function publishLocalPrompt(localUuid, turnstileToken = '', { force
   const catalogId = res.data.prompt.id;
   const apiBase = await getOpdApiBaseUrl();
   const now = new Date().toISOString();
-  // COMMENT: updatePrompt persists opdPublicId reliably (mergePrompts could skip metadata merges)
-  await updatePrompt(localUuid, {
+  // COMMENT: Imported rows keep opd:{catalogId} — fork a local uuid so re-import cannot clobber this copy
+  const patch = {
     opdPublicId: catalogId,
     opdLastPublishedAt: now,
-  });
+  };
+  if (forceNewCatalogRow && String(local.uuid || '').startsWith('opd:')) {
+    patch.uuid = generateUUID();
+  }
+  await updatePrompt(localUuid, patch);
 
   return {
     ok: true,

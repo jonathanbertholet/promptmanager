@@ -26,14 +26,14 @@
       <div class="custom-onboarding-section">
         <div class="custom-row">
           <div class="custom-col">
-            <img src="../icons/onboarding-start.png" alt="Hover to start" class="custom-onboarding-gif"> <!-- Updated path to onboarding-start.png -->
+            <img src="../icons/onboarding-start.png" alt="Hover to start" class="custom-onboarding-gif">
             <h3 class="custom-onboarding-gif-title">Hover to Start...</h3>
             <p class="custom-onboarding-caption">
               Or check out Keyboard Shortcuts.
             </p>
           </div>
           <div class="custom-col">
-            <img src="../icons/onboarding-start2.png" alt="Explore features" class="custom-onboarding-gif"> <!-- Updated path to onboarding-start.png -->
+            <img src="../icons/onboarding-start2.png" alt="Explore features" class="custom-onboarding-gif">
             <h3 class="custom-onboarding-gif-title">...And Explore</h3>
             <p class="custom-onboarding-caption">Hot Corner, variables, context menu, tags, and more.</p>
           </div>
@@ -52,7 +52,7 @@
                 </span>
                 <span class="custom-display-mode-name">Floating button</span>
                 <span class="custom-display-mode-desc">Your prompts appear when you hover over the floating button.</span>
-                <span class="custom-display-mode-badge">Default</span>
+                <span class="custom-display-mode-badge custom-display-mode-badge-spacer" aria-hidden="true">Default</span>
               </span>
             </label>
             <label class="custom-display-mode-option">
@@ -63,7 +63,7 @@
                 </span>
                 <span class="custom-display-mode-name">Hot corner</span>
                 <span class="custom-display-mode-desc">Move your cursor to the bottom-right corner to open prompts instantly.</span>
-                <span class="custom-display-mode-badge custom-display-mode-badge-spacer" aria-hidden="true">Default</span>
+                <span class="custom-display-mode-badge">Default</span>
               </span>
             </label>
             <label class="custom-display-mode-option">
@@ -72,8 +72,8 @@
                 <span class="custom-display-mode-preview custom-display-mode-preview-invisible" aria-hidden="true">
                   <span class="custom-display-mode-preview-shortcut">⌘⇧P</span>
                 </span>
-                <span class="custom-display-mode-name">Invisible</span>
-                <span class="custom-display-mode-desc">No on-page launcher — open prompts with your keyboard shortcut only.</span>
+                <span class="custom-display-mode-name">Sidebar or shortcut</span>
+                <span class="custom-display-mode-desc">Open the Chrome side panel or use your keyboard shortcut — no on-page launcher.</span>
                 <span class="custom-display-mode-badge custom-display-mode-badge-spacer" aria-hidden="true">Default</span>
               </span>
             </label>
@@ -83,88 +83,104 @@
         <!-- COMMENT: Features section (inserted between onboarding row and get-started button) -->
         <section class="custom-features-section" aria-labelledby="features-title">
           <h3 id="features-title" class="custom-features-title">Features</h3>
-          <!-- COMMENT: Each feature item now includes a subtitle for instant context -->
           <ul class="custom-features-list">
-            <!-- COMMENT: Add/remove items to customize the feature list -->
             <li class="custom-feature-item">
-              <!-- COMMENT: Subtitle clarifies how the quick-launch workflow behaves -->
               <div class="custom-feature-copy">
                 <span class="custom-feature-text">Your prompts, in a single click</span>
                 <span class="custom-feature-subtitle">Just hover to get started.</span>
               </div>
             </li>
             <li class="custom-feature-item">
-              <!-- COMMENT: Subtitle explains the value of granting host permissions -->
               <div class="custom-feature-copy">
                 <span class="custom-feature-text">Available everywhere you need it</span>
                 <span class="custom-feature-subtitle">Works on any website.</span>
               </div>
             </li>
             <li class="custom-feature-item">
-              <!-- COMMENT: Subtitle highlights dynamic placeholder collection -->
               <div class="custom-feature-copy">
                 <span class="custom-feature-text">Advanced features</span>
                 <span class="custom-feature-subtitle">Prompt Variables, Tags, Search, Append prompts, Easy Import.</span>
               </div>
             </li>
             <li class="custom-feature-item">
-              <!-- COMMENT: Subtitle calls out multi-surface availability -->
               <div class="custom-feature-copy">
                 <span class="custom-feature-text">Keyboard Shortcuts</span>
                 <span class="custom-feature-subtitle">Keyboard shortcuts and navigation.</span>
               </div>
             </li>
             <li class="custom-feature-item">
-              <!-- COMMENT: Subtitle reassures users about data portability -->
               <div class="custom-feature-copy">
                 <span class="custom-feature-text">Clean & Simple</span>
                 <span class="custom-feature-subtitle">User friendly, Light &amp; Dark mode.</span>
               </div>
             </li>
             <li class="custom-feature-item">
-              <!-- COMMENT: Subtitle explains how hot corner activation works -->
               <div class="custom-feature-copy">
                 <span class="custom-feature-text">Open Source</span>
                 <span class="custom-feature-subtitle">No account required, full privacy.</span>
               </div>
             </li>
           </ul>
-        </section>
-        <!-- Get Started Button Placeholder -->
-        <div id="get-started-btn-container" style="margin-top: 2rem;"></div>
-      </div>
-
-      <div class="custom-container-mt5">
-        <!-- Collection -->
-        <div class="custom-section-border">
-          <!-- Title inside the border -->
-          <span class="custom-badge-absolute">
-            <small class="custom-badge-text">Allowed</small>
-          </span>
-
-          <!-- Buttons -->
-          <div id="permission-granted" class="custom-flex-wrap-group">
+          <!-- COMMENT: Catalog CTA + optional sharing — same card language as the feature list -->
+          <div class="custom-community-panel">
+            <a
+              id="community-prompts-btn"
+              class="custom-community-btn"
+              href="https://openpromptdatabase.com/"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <span class="custom-community-btn-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><path fill="currentColor" d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
+              </span>
+              <span class="custom-community-btn-copy">
+                <span class="custom-community-btn-title">Community prompts</span>
+                <span class="custom-community-btn-sub">Browse and import from the Open Prompt Database.</span>
+              </span>
+              <svg class="custom-community-btn-open" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M19 19H5V5h7V3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14c1.1 0 2-.9 2-2v-7h-2v7zM14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3h-7z"/></svg>
+            </a>
+            <label class="custom-share-toggle" for="opd-share-toggle">
+              <span class="custom-share-toggle-copy">
+                <span class="custom-share-toggle-title">Enable sharing</span>
+                <span class="custom-share-toggle-sub">Publish prompts you choose to the catalog.</span>
+              </span>
+              <input type="checkbox" id="opd-share-toggle" class="custom-toggle-input" checked />
+              <span class="custom-toggle-switch" aria-hidden="true"></span>
+            </label>
           </div>
-        </div>
+        </section>
+        <!-- COMMENT: Onboarding guidance — provider shortcuts below handle the actual launch -->
+        <p id="get-started-guidance" class="custom-onboarding-title">Choose an AI Assistant below to get started.</p>
       </div>
-      <div class="custom-container-mt5">
-        <!-- Collection -->
-        <div class="custom-section-border">
-          <!-- Title inside the border -->
-          <span class="custom-badge-absolute">
-            <small class="custom-badge-text">Available</small>
-          </span>
 
-          <!-- Buttons -->
-          <div id="request-permission" class="custom-flex-wrap-group">
-          </div>    
-          <!-- COMMENT: Action to revoke all granted optional host permissions and reset pills -->
+      <div class="custom-container-mt5">
+        <div class="custom-section-border">
+          <span class="custom-badge-absolute">
+            <small class="custom-badge-text">AI Assistants</small>
+          </span>
+          <div id="provider-shortcuts" class="custom-flex-wrap-group">
+            <button
+              type="button"
+              id="another-website-btn"
+              class="custom-button custom-provider-shortcut custom-another-website-btn"
+            >
+              <span class="custom-another-website-icon" aria-hidden="true">+</span>
+              <span class="custom-mb-0">Another website</span>
+            </button>
+            <div id="another-website-hint" class="custom-another-website-hint" hidden>
+              <p>
+                To add a site that isn't listed above, open that website in your browser, open the
+                <strong>Open Prompt Manager</strong> sidebar, and click
+                <strong>+ Custom website</strong> under Assistants. Then click the chat input on the page.
+              </p>
+            </div>
+          </div>
           <div style="margin-top: 1rem; text-align: center;">
             <button id="remove-all-permissions" class="custom-button" style="padding: 0.5rem 0.9rem;">
               Remove all permissions
             </button>
           </div>
-        </div>  
+        </div>
       </div>
     </div>
   </div>
@@ -174,7 +190,6 @@
   <!-- Footer Area: Links to GitHub, Chrome Store, and CC License -->
   <footer class="custom-footer">
     <div class="custom-footer-content">
-      <!-- Replace the href values with your actual links -->
       <a href="https://github.com/jonathanbertholet/promptmanager" target="_blank" rel="noopener" class="custom-footer-link">GitHub</a>
       &nbsp;|&nbsp;
       <a href="https://chromewebstore.google.com/detail/open-prompt-manager/gmhaghdbihgenofhnmdbglbkbplolain" target="_blank" rel="noopener" class="custom-footer-link">Chrome Store</a>

@@ -232,6 +232,9 @@ const showEl = el => {
  * @param {HTMLElement} el
  */
 const hideEl = el => {
+  // COMMENT: Keep display during the fade; CSS display:none on !visible would otherwise skip the opacity transition
+  const isPromptList = el.classList && el.classList.contains('opm-prompt-list');
+  if (isPromptList) el.style.display = 'flex';
   el.classList.remove('opm-visible');
   setTimeout(() => {
     el.style.display = 'none';
@@ -839,7 +842,8 @@ class PromptUIManager {
     tagsBar: null,
     suppressNextListRefresh: false,
     listPanelPromptCount: 0,
-    listPanelHeight: null
+    listPanelHeight: null,
+    sidebarOpen: false,
   };
 
   static _ensureRoot() {
@@ -1171,7 +1175,11 @@ class PromptUIManager {
       const container = createEl('div', { id: SELECTORS.PROMPT_BUTTON_CONTAINER, styles: UI_STYLES.getPromptButtonContainerStyle(pos) });
       const button = createEl('button', { id: SELECTORS.PROMPT_BUTTON, className: 'opm-prompt-button' });
       container.appendChild(button);
-      const listEl = createEl('div', { id: SELECTORS.PROMPT_LIST, className: `opm-prompt-list opm-${getMode()} opm-fixed-400` });
+      const listEl = createEl('div', {
+        id: SELECTORS.PROMPT_LIST,
+        className: `opm-prompt-list opm-${getMode()} opm-fixed-400`,
+        styles: { display: 'none' },
+      });
       container.appendChild(listEl);
       PromptUIManager._ensureRoot().appendChild(container);
       populateList(prompts);
@@ -1187,8 +1195,8 @@ class PromptUIManager {
 
   static async checkAndShowOnboarding(container) {
     const onboardingCompleted = await PromptStorageManager.getOnboardingCompleted();
-    // Remove "!" to the onboardingCompleted to force it to show.
-    if (!onboardingCompleted) {
+    const devForceOnboarding = await PromptStorageManager.getData('opmDevForceOnboarding', false);
+    if (devForceOnboarding || !onboardingCompleted) {
       PromptUIManager.showOnboardingPopup(container);
     }
   }
@@ -1879,6 +1887,7 @@ class PromptUIManager {
         position: 'absolute',
         right: '30px',
         bottom: '30px',
+        display: 'none',
       },
     });
     container.appendChild(listEl);
@@ -1940,8 +1949,6 @@ class PromptUIManager {
       SELECTORS.INVISIBLE_LAUNCHER_CONTAINER,
       UI_STYLES.invisibleLauncherAnchor,
     );
-    listEl.style.pointerEvents = 'auto';
-
     PromptUIManager.setupInvisibleLauncherEvents(listEl);
     PromptUIManager.state.hotCornerContainer = container;
     PromptUIManager.state.buttonContainer = null;
@@ -2080,6 +2087,24 @@ class PromptUIManager {
     PromptUIManager.state.lastPromptsSignature = null;
   }
 
+  // COMMENT: Hide in-page launcher UI while the extension side panel is open in this window.
+  static async setSidePanelOpen(open) {
+    const next = Boolean(open);
+    if (PromptUIManager.state.sidebarOpen === next) return;
+    PromptUIManager.state.sidebarOpen = next;
+
+    if (next) {
+      const listEl = qs(`#${SELECTORS.PROMPT_LIST}`);
+      if (listEl?.classList.contains('opm-visible')) {
+        PromptUIManager.hidePromptList(listEl);
+      }
+      PromptUIManager.cleanupAllUIComponents();
+      return;
+    }
+
+    await PromptUIManager.injectUIForCurrentMode();
+  }
+
   static async refreshDisplayMode() {
     // COMMENT: Coalesce overlapping refreshes (in-page save + storage.onChanged fire together)
     if (PromptUIManager._displayModeRefreshPromise) {
@@ -2087,8 +2112,16 @@ class PromptUIManager {
     }
 
     PromptUIManager._displayModeRefreshPromise = (async () => {
+      if (PromptUIManager.state.sidebarOpen) {
+        PromptUIManager.cleanupAllUIComponents();
+        return;
+      }
       PromptUIManager.cleanupAllUIComponents();
       const prompts = await PromptStorageManager.getPrompts();
+      if (PromptUIManager.state.sidebarOpen) {
+        PromptUIManager.cleanupAllUIComponents();
+        return;
+      }
       await PromptUIManager.injectUIForCurrentMode(prompts, { skipCleanup: true });
 
       PromptUIManager.refreshItemsIfListActive(prompts);
@@ -2104,8 +2137,11 @@ class PromptUIManager {
   }
 
   // COMMENT: Helper to mark onboarding as complete and remove the popup if present
-  static completeOnboarding() {
-    PromptStorageManager.setOnboardingCompleted();
+  static async completeOnboarding() {
+    await Promise.all([
+      PromptStorageManager.setOnboardingCompleted(),
+      PromptStorageManager.setData('opmDevForceOnboarding', false),
+    ]);
     const popup = document.getElementById(SELECTORS.ONBOARDING_POPUP);
     if (popup) popup.remove();
   }
@@ -2118,7 +2154,10 @@ class PromptUIManager {
 
   // COMMENT: Inject the correct UI based on current display mode
   static async injectUIForCurrentMode(prompts, { skipCleanup = false } = {}) {
+    if (PromptUIManager.state.sidebarOpen) return;
     const displayMode = await PromptStorageManager.getDisplayMode();
+    // COMMENT: Side-panel broadcast can arrive during the await above — do not remount over a hide
+    if (PromptUIManager.state.sidebarOpen) return;
 
     if (!skipCleanup) {
       // COMMENT: Skip reinjection when the requested mode is already mounted and healthy
@@ -2139,6 +2178,7 @@ class PromptUIManager {
 
     if (displayMode === 'standard') {
       const data = prompts || await PromptStorageManager.getPrompts();
+      if (PromptUIManager.state.sidebarOpen) return;
       await PromptUIManager.injectPromptManagerButton(data);
     } else if (displayMode === 'hotCorner') {
       PromptUIManager.injectHotCorner();
@@ -2185,39 +2225,40 @@ const PromptMediator = (() => {
    * COMMENT: Main prompt selection handler reused across listeners.
    * @param {Prompt} prompt
    */
-  const handlePromptSelect = async (prompt) => {
+  const handlePromptSelect = async (prompt, { waitMs = 10000 } = {}) => {
     // COMMENT: Ignore duplicate click/keyboard fires that would insert the same prompt twice
     const selectKey = prompt?.uuid || prompt?.content || '';
     const now = Date.now();
     if (selectKey && selectKey === state.lastPromptSelectKey && now - state.lastPromptSelectAt < 400) {
-      return;
+      return { ok: true, duplicate: true };
     }
     state.lastPromptSelectKey = selectKey;
     state.lastPromptSelectAt = now;
 
+    const processor = state.processor || PromptProcessor;
     // COMMENT: Be resilient — if input box isn't ready yet, wait briefly before giving up
     let inputBox = await window.InputBoxHandler.getInputBox();
     if (!inputBox) {
       try {
-        inputBox = await window.InputBoxHandler.waitForInputBox();
+        inputBox = await window.InputBoxHandler.waitForInputBox(waitMs);
       } catch (_) {
         console.error('Input box not found.');
-        return;
+        return { ok: false, error: 'no_input' };
       }
     }
-    const vars = state.processor.extractVariables(prompt.content);
+    const vars = processor.extractVariables(prompt.content);
     const listEl = qs(`#${SELECTORS.PROMPT_LIST}`);
     if (vars.length === 0) {
       await window.InputBoxHandler.insertPrompt(inputBox, prompt.content, listEl);
       PromptUIManager.hidePromptList(listEl);
-      return;
+      return { ok: true };
     }
     PanelRouter.mount(PanelView.VARIABLE_INPUT, {
       inputBox,
       content: prompt.content,
       variables: vars,
       onSubmit: async values => {
-        const processed = state.processor.replaceVariables(prompt.content, values);
+        const processed = processor.replaceVariables(prompt.content, values);
         // COMMENT: ChatGPT/Perplexity often replace the composer while the variable form is open
         if (typeof window.InputBoxHandler._invalidateInputCache === 'function') {
           window.InputBoxHandler._invalidateInputCache();
@@ -2244,7 +2285,33 @@ const PromptMediator = (() => {
         }, 300);
       }
     });
+    return { ok: true, needsVariables: true };
   };
+
+  if (typeof chrome !== 'undefined' && chrome.runtime?.onMessage) {
+    chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+      if (message?.type === 'OPM_SIDE_PANEL_STATE') {
+        PromptUIManager.setSidePanelOpen(message.open)
+          .then(() => sendResponse({ ok: true }))
+          .catch((error) => sendResponse({ ok: false, error: error?.message || 'side_panel_state_failed' }));
+        return true;
+      }
+      if (message?.type !== 'OPM_INSERT_PROMPT_CONTENT') return undefined;
+      (async () => {
+        try {
+          if (!message.prompt?.content) {
+            sendResponse({ ok: false, error: 'prompt_not_found' });
+            return;
+          }
+          const result = await handlePromptSelect(message.prompt, { waitMs: 2000 });
+          sendResponse(result || { ok: true });
+        } catch (error) {
+          sendResponse({ ok: false, error: error?.message || 'insert_failed' });
+        }
+      })();
+      return true;
+    });
+  }
 
   const ensurePromptSelectionListener = () => {
     if (state.promptSelectHandler) return;
@@ -2258,7 +2325,8 @@ const PromptMediator = (() => {
     if (!target) return;
 
     const ensureUIVisible = debounce(async () => {
-      // COMMENT: Skip work when the injected UI is still present in the DOM
+      // COMMENT: Skip work when the side panel is covering this window, or the launcher is already present
+      if (PromptUIManager.state.sidebarOpen) return;
       if (document.getElementById(SELECTORS.PROMPT_BUTTON_CONTAINER)
         || document.getElementById(SELECTORS.HOT_CORNER_CONTAINER)
         || document.getElementById(SELECTORS.INVISIBLE_LAUNCHER_CONTAINER)) {

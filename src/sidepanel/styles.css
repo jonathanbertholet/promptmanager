@@ -191,6 +191,7 @@ html {
     padding-right: 6px;
     border-radius: 4px;
     color: #494949;
+    cursor: pointer;
   }
 
   #prompt-list li span {
@@ -675,6 +676,119 @@ html {
   .sidebar-action-bar[hidden],
   .sidebar-composer[hidden] {
     display: none !important;
+  }
+
+  /* COMMENT: Variable fill-in mode — full prompts area, same layout as in-page panel */
+  body.spm-variable-mode .sidebar-action-bar,
+  body.spm-variable-mode .prompts-section > :not(#sidebar-variable-input) {
+    display: none !important;
+  }
+
+  body.spm-variable-mode .prompts-container,
+  body.spm-variable-mode .prompts-section {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+  }
+
+  #sidebar-variable-input.opm-variable-input-form {
+    position: relative;
+    flex: 0 0 auto;
+    padding: 12px;
+    overflow: visible;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    box-sizing: border-box;
+    margin: 0;
+  }
+
+  #sidebar-variable-input[hidden] {
+    display: none !important;
+  }
+
+  #sidebar-variable-input .opm-variable-fields {
+    flex: 0 0 auto;
+    overflow: visible;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  #sidebar-variable-input .opm-variable-row {
+    flex: 0 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  #sidebar-variable-input .opm-variable-row label {
+    display: block;
+    margin: 0 0 2px 0;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.2px;
+    opacity: 0.85;
+    line-height: 1.2;
+  }
+
+  #sidebar-variable-input .opm-textarea-field {
+    width: 100%;
+    padding: 8px;
+    border-radius: 6px;
+    box-sizing: border-box;
+    font-size: 14px;
+    font-family: Helvetica, Verdana, Geneva, Tahoma, sans-serif;
+    flex: 0 0 auto;
+    min-height: 44px;
+    height: auto;
+    resize: vertical;
+    margin-bottom: 0;
+    outline: none;
+  }
+
+  #sidebar-variable-input .opm-textarea-field.opm-light {
+    border: var(--input-light-border);
+    background-color: var(--input-light-bg);
+    color: var(--input-light-text);
+  }
+
+  #sidebar-variable-input .opm-textarea-field.opm-dark {
+    border: var(--input-dark-border);
+    background-color: var(--input-dark-bg);
+    color: var(--input-dark-text);
+  }
+
+  #sidebar-variable-input .opm-variable-actions {
+    flex: 0 0 auto;
+    display: flex;
+    flex-direction: row;
+    gap: 8px;
+    padding: 0;
+  }
+
+  #sidebar-variable-input .opm-variable-actions .opm-button {
+    flex: 1 1 0;
+    width: auto;
+    margin-top: 0;
+    padding: 10px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.2s ease;
+    color: #fff;
+  }
+
+  #sidebar-variable-input .opm-variable-actions .opm-button.opm-light,
+  #sidebar-variable-input .opm-variable-actions .opm-button.opm-dark {
+    background-color: var(--primary);
+  }
+
+  #sidebar-variable-input .opm-variable-actions .opm-button:hover {
+    background-color: var(--hover-primary);
   }
 
   .sidebar-action-btn {
@@ -1664,6 +1778,13 @@ button.main:hover {
     border-style: solid;
     background: rgba(54, 116, 181, 0.12);
     box-shadow: inset 0 0 0 1px rgba(54, 116, 181, 0.25);
+  }
+
+  /* COMMENT: Auto-learned detection uses the same affordance as a manual pin */
+  .llm-pill.custom-site-add.is-learned {
+    border-style: solid;
+    background: rgba(54, 116, 181, 0.08);
+    box-shadow: inset 0 0 0 1px rgba(54, 116, 181, 0.18);
   }
 
   .custom-site-add-icon {

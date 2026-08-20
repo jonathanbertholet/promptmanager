@@ -1,19 +1,38 @@
-// This script is injected into the page to manage permissions for AI providers
-// It retrieves the providers map from storage and creates elements for each provider
+// COMMENT: Install onboarding — launcher choice, unified LLM shortcuts, sidebar launch
+import { OPM_DEV_FORCE_ONBOARDING_STORAGE_KEY } from '../devFlags.js';
+import { attachProviderIconFallback } from '../utils/providerIcons.js';
+import { expandOriginPatterns } from '../utils/originPatterns.js';
+import { OPD_CATALOG_URL, OPD_MSG } from '../opd/opdConstants.js';
+import {
+  requestOpdCatalogPermission,
+  syncOpdCatalogAccess,
+} from '../opd/opdCatalogAccess.js';
+import { getPublishSettings } from '../opd/opdPublishToken.js';
+
+/** COMMENT: ?reset=1 clears onboarding state so the in-page tooltip shows again (dev only). */
+async function maybeResetOnboardingFromQuery() {
+  const params = new URLSearchParams(window.location.search);
+  if (!params.has('reset')) return;
+  await chrome.storage.local.set({
+    onboardingCompleted: false,
+    [OPM_DEV_FORCE_ONBOARDING_STORAGE_KEY]: true,
+  });
+}
+
 document.addEventListener('DOMContentLoaded', function () {
-
-  // COMMENT: A provider may list several comma-separated Chrome origin patterns
-  function expandOriginPatterns(pattern) {
-    return String(pattern || '').split(',').map((item) => item.trim()).filter(Boolean);
-  }
-
-  // COMMENT: Storage key shared with content-script display mode preference
+  maybeResetOnboardingFromQuery().catch(console.error);
   const DISPLAY_MODE_KEY = 'displayMode';
-  const DEFAULT_DISPLAY_MODE = 'standard';
+  const DEFAULT_DISPLAY_MODE = 'hotCorner';
   const ALLOWED_DISPLAY_MODES = new Set(['standard', 'hotCorner', 'invisible']);
 
+  // COMMENT: Cached so sidePanel.open can run on the click gesture (windows.getCurrent is async)
+  let onboardingWindowId = null;
+  chrome.windows.getCurrent((win) => {
+    onboardingWindowId = win?.id ?? null;
+  });
+
   /**
-   * COMMENT: Wire the install-page launcher choice (hover button vs hot corner).
+   * COMMENT: Wire the install-page launcher choice (hover button vs hot corner vs sidebar).
    */
   function initDisplayModePicker() {
     const section = document.getElementById('display-mode-section');
@@ -32,6 +51,9 @@ document.addEventListener('DOMContentLoaded', function () {
     chrome.storage.local.get([DISPLAY_MODE_KEY], (result) => {
       const storedMode = result[DISPLAY_MODE_KEY];
       const mode = ALLOWED_DISPLAY_MODES.has(storedMode) ? storedMode : DEFAULT_DISPLAY_MODE;
+      if (!ALLOWED_DISPLAY_MODES.has(storedMode)) {
+        chrome.storage.local.set({ [DISPLAY_MODE_KEY]: DEFAULT_DISPLAY_MODE });
+      }
       radios.forEach((radio) => {
         radio.checked = radio.value === mode;
       });
@@ -47,179 +69,204 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
 
-  initDisplayModePicker();
+  /**
+   * COMMENT: Features-section catalog link + sharing toggle (same storage as OPD settings).
+   */
+  function initCommunityFeatures() {
+    const catalogLink = document.getElementById('community-prompts-btn');
+    const shareToggle = document.getElementById('opd-share-toggle');
 
-  // Get the target containers
-  const permissionGrantedContainer = document.getElementById('permission-granted');
-  const requestPermissionContainer = document.getElementById('request-permission');
-  // Get the Get Started button container
-  const getStartedBtnContainer = document.getElementById('get-started-btn-container');
-  // COMMENT: Control to remove all granted permissions at once
-  const removeAllBtn = document.getElementById('remove-all-permissions');
+    if (catalogLink) {
+      catalogLink.href = `${OPD_CATALOG_URL}/`;
+      catalogLink.addEventListener('click', (event) => {
+        event.preventDefault();
+        // COMMENT: Request on this click, then open the catalog so the permission dialog stays on this tab
+        requestOpdCatalogPermission()
+          .then((granted) => {
+            if (granted) return syncOpdCatalogAccess();
+          })
+          .catch(console.error)
+          .finally(() => {
+            chrome.tabs.create({ url: `${OPD_CATALOG_URL}/`, active: true });
+          });
+      });
+    }
 
-  if (!permissionGrantedContainer || !requestPermissionContainer) {
-    console.error('Required container elements (#permission-granted or #request-permission) not found.');
-    return; // Stop execution if containers are missing
-  }
+    if (!shareToggle) return;
 
-  function updateGetStartedButton(allowedProviders) {
-    if (allowedProviders.length > 0 && getStartedBtnContainer) {
-      /*
-        Try to use the URL that we already have in memory (it was populated via
-        service-worker.js -> checkProviderPermissions). This removes the need for
-        an extra fetch request and avoids potential path issues when the
-        permissions page lives in a sub-folder ("src/permissions") while the JSON
-        file is located in "src/llm_providers.json".
-      */
-      let firstAllowedUrl = null;
+    const applyShareState = (enabled) => {
+      shareToggle.checked = Boolean(enabled);
+    };
 
-      for (const allowed of allowedProviders) {
-        if (allowed.providerInfo && allowed.providerInfo.url) {
-          firstAllowedUrl = allowed.providerInfo.url;
-          break;
+    getPublishSettings()
+      .then((settings) => applyShareState(settings.enabled))
+      .catch(console.error);
+
+    shareToggle.addEventListener('change', async () => {
+      const enabled = shareToggle.checked;
+      if (enabled) {
+        const granted = await requestOpdCatalogPermission();
+        if (!granted) {
+          applyShareState(false);
+          return;
         }
+        await syncOpdCatalogAccess();
       }
 
-      // Fallback – if, for some reason, the providerInfo does not contain a
-      // URL, we fetch the JSON file (using the correct path) and try to look it
-      // up. This keeps backwards-compatibility with existing logic.
-      const ensureUrlPromise = firstAllowedUrl
-        ? Promise.resolve(firstAllowedUrl)
-        : fetch(chrome.runtime.getURL('/llm_providers.json'))
-          .then(response => response.json())
-          .then(data => {
-            const llmList = data.llm_providers || [];
-            for (const allowed of allowedProviders) {
-              const match = llmList.find(llm => llm.name === allowed.key);
-              if (match && match.url) {
-                return match.url;
-              }
-            }
-            return null;
-          });
-
-      ensureUrlPromise.then(resolvedUrl => {
-        if (resolvedUrl) {
-          // Create (or replace) the Get Started button
-          getStartedBtnContainer.innerHTML = `<button id="get-started-btn" class="custom-button" style="font-size: 1.2rem; padding: 0.75rem 1rem; margin-top: 1rem; display: inline-flex; align-items: center; gap: 0.5rem;">
-              <img src="../icons/icon-button.png" alt="Open Prompt Manager Icon" width="28" height="28" style="object-fit: cover;"> 
-              <span style="vertical-align: middle;">Get Started</span>
-            </button>`;
-
-          // Open the provider in a new tab when the button is clicked
-          document.getElementById('get-started-btn').addEventListener('click', () => {
-            window.open(resolvedUrl, '_blank');
-          });
-        }
+      const res = await new Promise((resolve) => {
+        chrome.runtime.sendMessage({ type: OPD_MSG.PUBLISH_ENABLE, enabled }, (response) => {
+          resolve(response ?? { ok: false });
+        });
       });
+      if (!res?.ok) applyShareState(!enabled);
+    });
 
-    } else if (getStartedBtnContainer) {
-      // When no providers are allowed yet, show guidance title instead of the button
-      // This matches the requested behavior: display a title until at least one LLM is selected
-      getStartedBtnContainer.innerHTML = '<h3 class="custom-onboarding-title">First, select the AI Assistants you want to use.</h3>';
-    }
+    chrome.storage.onChanged.addListener((changes, area) => {
+      if (area !== 'sync' || !changes.opdPublishEnabled) return;
+      applyShareState(changes.opdPublishEnabled.newValue !== false);
+    });
   }
 
-  // Function to populate providers UI
+  initDisplayModePicker();
+  initCommunityFeatures();
+
+  const providerShortcutsContainer = document.getElementById('provider-shortcuts');
+  const removeAllBtn = document.getElementById('remove-all-permissions');
+  const anotherWebsiteBtn = document.getElementById('another-website-btn');
+  const anotherWebsiteHint = document.getElementById('another-website-hint');
+
+  if (!providerShortcutsContainer) {
+    console.error('Required container element (#provider-shortcuts) not found.');
+    return;
+  }
+
+  // COMMENT: Custom sites are pinned from the sidebar on the target page — show guidance only here
+  if (anotherWebsiteBtn && anotherWebsiteHint) {
+    anotherWebsiteBtn.addEventListener('click', () => {
+      const willShow = anotherWebsiteHint.hidden;
+      anotherWebsiteHint.hidden = !willShow;
+      anotherWebsiteBtn.setAttribute('aria-expanded', willShow ? 'true' : 'false');
+      if (willShow) {
+        anotherWebsiteHint.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+    });
+  }
+
+  /** COMMENT: Request host access in the click handler, then open tab + sidebar via the service worker. */
+  function launchProviderFromOnboarding(providerKey, providerInfo) {
+    return new Promise((resolve) => {
+      const origins = expandOriginPatterns(providerInfo.urlPattern);
+      if (!origins.length) {
+        resolve({ ok: false, error: 'missing_provider' });
+        return;
+      }
+
+      // COMMENT: sidePanel.open requires this click — do not await contains() first
+      if (onboardingWindowId != null && chrome.sidePanel?.open) {
+        chrome.sidePanel.open({ windowId: onboardingWindowId }).catch(() => {});
+      }
+
+      const finishLaunch = (permissionGranted) => {
+        chrome.runtime.sendMessage(
+          {
+            type: 'OPM_LAUNCH_PROVIDER_ONBOARDING',
+            providerKey,
+            url: providerInfo.url,
+            originPattern: providerInfo.urlPattern,
+            permissionAlreadyGranted: permissionGranted,
+          },
+          (response) => {
+            if (chrome.runtime.lastError) {
+              resolve({ ok: false, error: chrome.runtime.lastError.message });
+              return;
+            }
+            if (response?.error === 'permission_denied') {
+              alert(`Permission denied for ${providerKey}. Allow site access in the Chrome prompt to continue.`);
+            }
+            resolve(response || { ok: false, error: 'no_response' });
+          },
+        );
+      };
+
+      const syncGrantedState = (granted) => {
+        if (!granted) return;
+        chrome.storage.local.get(['aiProvidersMap'], (res) => {
+          const map = res?.aiProvidersMap || {};
+          if (map[providerKey]) {
+            map[providerKey].hasPermission = 'Yes';
+            chrome.storage.local.set({ aiProvidersMap: map });
+          }
+        });
+      };
+
+      chrome.permissions.request({ origins }, (granted) => {
+        if (chrome.runtime.lastError) {
+          alert(`Could not request permission for ${providerKey}: ${chrome.runtime.lastError.message}`);
+          resolve({ ok: false, error: chrome.runtime.lastError.message });
+          return;
+        }
+        if (!granted) {
+          alert(`Permission denied for ${providerKey}. Allow site access in the Chrome prompt to continue.`);
+          resolve({ ok: false, error: 'permission_denied' });
+          return;
+        }
+
+        syncGrantedState(true);
+        finishLaunch(true);
+      });
+    });
+  }
+
+  /** COMMENT: Render all default LLM providers as equal shortcuts (no allowed/available split). */
   function populateProviders(providersMap) {
-    console.log('Populating UI with providers map:', providersMap);
-
-    // Clear existing content
-    permissionGrantedContainer.innerHTML = '';
-    requestPermissionContainer.innerHTML = '';
-
-    const allowedProviders = [];
+    providerShortcutsContainer.querySelectorAll('[data-provider]').forEach((el) => el.remove());
 
     for (const [key, providerInfo] of Object.entries(providersMap)) {
       const iconUrl = providerInfo.iconUrl;
-      const isAllowed = providerInfo.hasPermission === 'Yes';
+      const isGranted = providerInfo.hasPermission === 'Yes';
 
-      // For allowed providers, clicking should open their website in a new tab.
-      // For not-yet-allowed providers, the link remains "#" and we attach the
-      // permission-request listener below.
-      const elementHTML = isAllowed
-        ? `<a id="perm-${key}" class="custom-button"
-               aria-current="true" href="${providerInfo.url}" target="_blank" rel="noopener">
-              <img src="${iconUrl}" alt="${key} icon" width="32" height="32" class="custom-rounded-circle">
-              <span class="custom-mb-0">${key}</span>
-            </a>`
-        : `<a id="perm-${key}" class="custom-button"
-               aria-current="true" href="#" data-provider="${key}" data-url-pattern="${providerInfo.urlPattern}">
-              <img src="${iconUrl}" alt="${key} icon" width="32" height="32" class="custom-rounded-circle">
-              <span class="custom-mb-0">${key}</span>
-            </a>`;
+      providerShortcutsContainer.insertAdjacentHTML(
+        'beforeend',
+        `<button type="button" id="perm-${key}" class="custom-button custom-provider-shortcut${isGranted ? ' is-granted' : ''}"
+                data-provider="${key}">
+          <img src="${iconUrl}" alt="${key} icon" width="32" height="32" class="custom-rounded-circle">
+          <span class="custom-mb-0">${key}</span>
+        </button>`,
+      );
 
-      let targetContainer;
-      let needsClickListener = false;
+      const element = Array.from(providerShortcutsContainer.querySelectorAll('[data-provider]'))
+        .find((node) => node.dataset.provider === key);
+      if (!element) continue;
 
-      if (providerInfo.hasPermission == 'Yes') {
-        targetContainer = permissionGrantedContainer;
-        allowedProviders.push({ key, providerInfo }); // Collect allowed providers
-      } else {
-        targetContainer = requestPermissionContainer;
-        needsClickListener = true;
-      }
+      const iconEl = element.querySelector('img');
+      if (iconEl) attachProviderIconFallback(iconEl, providerInfo.url);
 
-      targetContainer.insertAdjacentHTML('beforeend', elementHTML);
-
-      if (needsClickListener) {
-        const element = document.getElementById(`perm-${key}`);
-        if (element) {
-          const handleProviderClick = function (event) {
-            event.preventDefault();
-
-            const providerKey = this.dataset.provider;
-            const originPattern = this.dataset.urlPattern;
-            const origins = expandOriginPatterns(originPattern);
-            if (!origins.length) return;
-
-            chrome.permissions.request({ origins }, (granted) => {
-              if (granted) {
-                // Update local providersMap and persist
-                providersMap[providerKey].hasPermission = 'Yes';
-                // Persist change; UI will refresh via storage.onChanged listener
-                chrome.storage.local.set({ aiProvidersMap: providersMap });
-              } else {
-                alert(`Permission denied for ${providerKey}`);
-              }
-            });
-          };
-          element.addEventListener('click', handleProviderClick);
-        }
-      }
+      element.addEventListener('click', () => {
+        launchProviderFromOnboarding(key, providerInfo).catch(console.error);
+      });
     }
 
-    // COMMENT: Hide the "Allowed" section container when there are no allowed providers yet.
-    // This keeps the UI clean until the user approves at least one LLM origin.
-    const allowedSectionContainer = permissionGrantedContainer.closest('.custom-container-mt5');
-    if (allowedSectionContainer) {
-      allowedSectionContainer.style.display = allowedProviders.length > 0 ? '' : 'none';
+    // COMMENT: Keep "+ Another website" after the built-in provider pills
+    if (anotherWebsiteBtn) {
+      providerShortcutsContainer.appendChild(anotherWebsiteBtn);
     }
-
-    updateGetStartedButton(allowedProviders);
+    if (anotherWebsiteHint) {
+      providerShortcutsContainer.appendChild(anotherWebsiteHint);
+    }
   }
 
-  // Listen for changes to aiProvidersMap in storage and update UI
   chrome.storage.onChanged.addListener((changes, areaName) => {
-    if (areaName === 'local' && changes.aiProvidersMap && changes.aiProvidersMap.newValue) {
+    if (areaName === 'local' && changes.aiProvidersMap?.newValue) {
       populateProviders(changes.aiProvidersMap.newValue);
     }
   });
 
-  // Get the providers map from storage when the page loads
   chrome.storage.local.get(['aiProvidersMap'], function (result) {
     if (result.aiProvidersMap) {
-      const providersMap = result.aiProvidersMap;
-      console.log('Retrieved providersMap from storage:', providersMap);
-
-      // Use the helper to populate UI and attach listeners
-      populateProviders(providersMap);
-      
-    } else {
-      console.log('No providersMap found in storage.');
-      // Handle the case where the map doesn't exist yet
-      requestPermissionContainer.innerHTML = '<p>No provider data found in storage.</p>'; // Example message
+      populateProviders(result.aiProvidersMap);
+      return;
     }
+    providerShortcutsContainer.innerHTML = '<p>No provider data found in storage.</p>';
   });
 
   // COMMENT: Remove all permissions handler — revokes all optional origins and resets providers map
@@ -227,45 +274,51 @@ document.addEventListener('DOMContentLoaded', function () {
     removeAllBtn.addEventListener('click', () => {
       chrome.storage.local.get(['aiProvidersMap'], (res) => {
         const currentMap = res && res.aiProvidersMap ? res.aiProvidersMap : {};
-        // Collect all origin patterns (unique)
         const allPatterns = Array.from(new Set(
           Object.values(currentMap)
             .flatMap((v) => expandOriginPatterns(v && v.urlPattern))
         ));
-        // Attempt to remove all optional host permissions in one call
-        try {
-          chrome.permissions.remove({ origins: allPatterns }, (removed) => {
-            // Regardless of removed flag, update local storage map to reflect "No"
-            const updated = {};
-            for (const [key, val] of Object.entries(currentMap)) {
-              updated[key] = {
-                ...val,
-                hasPermission: 'No'
-              };
-            }
-            // COMMENT: Clear custom pinned inputs when all site access is revoked
-            chrome.storage.local.set({ aiProvidersMap: updated, pinned_inputs_v1: {} });
-          });
-        } catch (e) {
-          // On error, still set map to "No" to reset UI; users can re-grant
+
+        const persistRevokedState = () => {
           const updated = {};
           for (const [key, val] of Object.entries(currentMap)) {
             updated[key] = {
               ...val,
-              hasPermission: 'No'
+              hasPermission: 'No',
             };
           }
-          chrome.storage.local.set({ aiProvidersMap: updated, pinned_inputs_v1: {} });
+          chrome.storage.local.set({
+            aiProvidersMap: updated,
+            pinned_inputs_v1: {},
+            learned_inputs_v1: {},
+          });
+        };
+
+        if (allPatterns.length === 0) {
+          persistRevokedState();
+          return;
         }
+
+        chrome.permissions.remove({ origins: allPatterns }, () => {
+          if (chrome.runtime.lastError) {
+            console.error('Failed to remove permissions:', chrome.runtime.lastError);
+            alert('Could not remove all permissions. Try again from Settings.');
+            return;
+          }
+          persistRevokedState();
+        });
       });
     });
   }
 
-  const isDarkMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-  if (isDarkMode) {
+  const darkQuery = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)');
+  const applyHeaderIcon = (dark) => {
     const headerIcon = document.getElementById('header-icon');
-    if (headerIcon) {
-      headerIcon.classList.add('dark-mode-icon');
-    }
+    if (!headerIcon) return;
+    headerIcon.src = dark ? '../icons/icon-base.png' : '../icons/icon128.png';
+  };
+  if (darkQuery) {
+    applyHeaderIcon(darkQuery.matches);
+    darkQuery.addEventListener('change', (event) => applyHeaderIcon(event.matches));
   }
 });

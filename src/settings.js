@@ -1,6 +1,7 @@
 import { exportPrompts, importPrompts } from './importExport.js';
 import { getPrompts, setPrompts } from './storage/promptStorage.js';
 import { getAllPinnedInputs, removePinnedForHostname } from './storage/pinnedInputStorage.js';
+import { removeLearnedForHostname } from './storage/learnedInputStorage.js';
 import {
   resolveProviderIconUrl,
   attachProviderIconFallback,
@@ -493,6 +494,7 @@ async function syncStorageAfterRevoke(patterns) {
     const hostname = patternToHostname(pattern);
     if (hostname) {
       removePinnedForHostname(hostname).catch(() => {});
+      removeLearnedForHostname(hostname).catch(() => {});
     }
   });
 

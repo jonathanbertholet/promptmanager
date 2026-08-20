@@ -199,20 +199,18 @@ export function initOpdSettingsPage(root = document) {
         els.handleStatus.classList.remove('settings-status-error');
       }
 
-      // COMMENT: Request catalog host access on the click gesture so the availability API can run
-      if (!(await hasOpdCatalogPermission())) {
-        const granted = await requestOpdCatalogPermission();
-        if (!granted) {
-          if (els.handleStatus) {
-            els.handleStatus.textContent = 'Catalog access is required to check handles.';
-            els.handleStatus.classList.add('settings-status-error');
-          }
-          els.handleConfirm.disabled = false;
-          return;
+      // COMMENT: Request catalog host access on this click (already-granted returns true, no prompt)
+      const granted = await requestOpdCatalogPermission();
+      if (!granted) {
+        if (els.handleStatus) {
+          els.handleStatus.textContent = 'Catalog access is required to check handles.';
+          els.handleStatus.classList.add('settings-status-error');
         }
-        await syncOpdCatalogAccess();
-        await refreshCatalogAccessUi(els);
+        els.handleConfirm.disabled = false;
+        return;
       }
+      await syncOpdCatalogAccess();
+      await refreshCatalogAccessUi(els);
 
       const avail = await sendOpdMessage(OPD_MSG.HANDLE_AVAILABLE, { handle });
       if (!avail?.ok) {
@@ -257,6 +255,14 @@ export function initOpdSettingsPage(root = document) {
   if (els.publishToggle) {
     els.publishToggle.addEventListener('change', async () => {
       const enabled = els.publishToggle.checked;
+      if (enabled) {
+        const granted = await requestOpdCatalogPermission();
+        if (!granted) {
+          els.publishToggle.checked = false;
+          return;
+        }
+        await syncOpdCatalogAccess();
+      }
       const res = await sendOpdMessage(OPD_MSG.PUBLISH_ENABLE, { enabled });
       if (!res?.ok) {
         els.publishToggle.checked = !enabled;

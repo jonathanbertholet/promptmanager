@@ -3,7 +3,6 @@ import {
   initOpdCatalogAccess,
   isAllowedOpdMessageOrigin,
   hasOpdCatalogPermission,
-  requestOpdCatalogPermission,
   syncOpdCatalogAccess,
 } from './opd/opdCatalogAccess.js';
 import { importCatalogPrompt } from './opd/opdImport.js';
@@ -17,8 +16,12 @@ import {
 } from './opd/opdPublishToken.js';
 import { getPrompts, onPromptsChanged, savePrompt } from './storage/promptStorage.js';
 import { removePinnedForHostname } from './storage/pinnedInputStorage.js';
+import { removeLearnedForHostname } from './storage/learnedInputStorage.js';
 import { resolveProviderIconUrl } from './utils/providerIcons.js';
 import { expandOriginPatterns, hasAnyOriginPermission } from './utils/originPatterns.js';
+import {
+  OPM_DEV_FORCE_ONBOARDING_STORAGE_KEY,
+} from './devFlags.js';
 
 // COMMENT: Single source of truth for dynamically injected content-script bundles
 const CONTENT_SCRIPT_FILES = [
@@ -136,6 +139,7 @@ async function syncStorageAfterPermissionRevoke(originPatterns) {
     const hostname = patternToHostname(pattern);
     if (hostname) {
       await removePinnedForHostname(hostname).catch(() => {});
+      await removeLearnedForHostname(hostname).catch(() => {});
     }
   }
 
@@ -197,20 +201,105 @@ async function ensureContentScriptsForTab(tabId, url) {
 /**
  * COMMENT: Dispatch pin-input actions to the tab's content script (same world as InputBoxHandler).
  * @param {number} tabId
- * @param {'start'|'clear'|'status'} action
- * @param {number} [attempts]
+ * @param {'start'|'clear'|'reset'|'status'} action
+ * @param {{ pendingPrompt?: object }} [extras]
  * @returns {Promise<object>}
  */
-async function runPinInputAction(tabId, action) {
+async function runPinInputAction(tabId, action, extras = {}) {
   try {
     const response = await chrome.tabs.sendMessage(tabId, {
       type: 'OPM_PIN_INPUT_CONTENT',
       action,
+      pendingPrompt: extras.pendingPrompt,
     });
     return response || { ok: false, error: 'no_response' };
   } catch (_) {
     return { ok: false, error: 'handler_missing' };
   }
+}
+
+/**
+ * COMMENT: Insert a library prompt into the tab's chat input (same handler as in-page clicks).
+ * @param {number} tabId
+ * @param {{ uuid?: string, title?: string, content: string }} prompt
+ * @returns {Promise<object>}
+ */
+async function runInsertPromptAction(tabId, prompt) {
+  try {
+    const response = await chrome.tabs.sendMessage(tabId, {
+      type: 'OPM_INSERT_PROMPT_CONTENT',
+      prompt,
+    });
+    return response || { ok: false, error: 'no_response' };
+  } catch (_) {
+    return { ok: false, error: 'handler_missing' };
+  }
+}
+
+// COMMENT: Track which browser windows have the extension side panel open.
+const sidePanelOpenWindows = new Set();
+
+/**
+ * COMMENT: Tell permitted tabs in a window to hide or restore in-page launcher UI.
+ * @param {boolean} open
+ * @param {number} windowId
+ */
+async function broadcastSidePanelState(open, windowId) {
+  if (!windowId) return;
+  let tabs = [];
+  try {
+    tabs = await chrome.tabs.query({ windowId });
+  } catch (_) {
+    return;
+  }
+
+  await Promise.all(tabs.map(async (tab) => {
+    if (!tab?.id || !tab.url || !/^https?:/i.test(tab.url)) return;
+    if (!(await tabHasScriptingPermission(tab.url))) return;
+    try {
+      await ensureContentScriptsForTab(tab.id, tab.url);
+      await chrome.tabs.sendMessage(tab.id, { type: 'OPM_SIDE_PANEL_STATE', open: Boolean(open) });
+    } catch (_) {
+      // Tab may not have a content-script listener yet — safe to ignore.
+    }
+  }));
+}
+
+/**
+ * COMMENT: Long-lived port from sidepanel/index.html signals open/close for its window.
+ */
+chrome.runtime.onConnect.addListener((port) => {
+  if (port.name !== 'opm-sidepanel') return;
+
+  let windowId = null;
+  port.onMessage.addListener((message) => {
+    if (message?.type !== 'OPM_SIDEPANEL_HELLO' || !message.windowId) return;
+    windowId = message.windowId;
+    sidePanelOpenWindows.add(windowId);
+    broadcastSidePanelState(true, windowId);
+  });
+
+  port.onDisconnect.addListener(() => {
+    if (windowId == null) return;
+    sidePanelOpenWindows.delete(windowId);
+    broadcastSidePanelState(false, windowId);
+  });
+});
+
+// COMMENT: Prefer native side-panel events when available (Chrome 138+).
+if (chrome.sidePanel?.onOpened) {
+  chrome.sidePanel.onOpened.addListener((info) => {
+    if (!info?.windowId) return;
+    sidePanelOpenWindows.add(info.windowId);
+    broadcastSidePanelState(true, info.windowId);
+  });
+}
+if (chrome.sidePanel?.onClosed) {
+  chrome.sidePanel.onClosed.addListener((info) => {
+    if (!info?.windowId) return;
+    sidePanelOpenWindows.delete(info.windowId);
+    broadcastSidePanelState(false, info.windowId);
+  });
 }
 
 /**
@@ -281,15 +370,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       try {
         const enabled = Boolean(message.enabled);
         if (enabled) {
-          if (!(await hasOpdCatalogPermission())) {
-            const granted = await requestOpdCatalogPermission();
-            if (!granted) {
-              sendResponse({ ok: false, error: 'permission_denied' });
-              return;
-            }
-            await syncOpdCatalogAccess();
-          }
+          // COMMENT: Host permission must be requested from the page click/change handler
           await getOrCreatePublishToken();
+          await syncOpdCatalogAccess();
         }
         await setPublishEnabled(enabled);
         sendResponse({ ok: true });
@@ -349,14 +432,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           sendResponse({ ok: false, error: 'publish_disabled' });
           return;
         }
-        // COMMENT: Optional host permission is requested on first share, same as enabling publish
+        // COMMENT: Catalog host access is requested from the share click in the side panel
         if (!(await hasOpdCatalogPermission())) {
-          const granted = await requestOpdCatalogPermission();
-          if (!granted) {
-            sendResponse({ ok: false, error: 'permission_denied' });
-            return;
-          }
-          await syncOpdCatalogAccess();
+          sendResponse({ ok: false, error: 'permission_denied' });
+          return;
         }
         const result = await shareLocalPrompt(
           message.localUuid || '',
@@ -394,6 +473,130 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true;
   }
 
+  if (message?.type === 'OPM_LAUNCH_PROVIDER_ONBOARDING') {
+    (async () => {
+      try {
+        const { url, originPattern, permissionAlreadyGranted } = message;
+        if (!url) {
+          sendResponse({ ok: false, error: 'missing_provider' });
+          return;
+        }
+
+        // COMMENT: Host permission must be granted from the onboarding page click handler (user gesture).
+        if (!permissionAlreadyGranted) {
+          if (!originPattern) {
+            sendResponse({ ok: false, error: 'missing_provider' });
+            return;
+          }
+          const granted = await hasAnyOriginPermission(originPattern);
+          if (!granted) {
+            sendResponse({ ok: false, error: 'permission_denied' });
+            return;
+          }
+        }
+
+        const providersMap = await checkProviderPermissions();
+        if (providersMap && typeof providersMap === 'object') {
+          await chrome.storage.local.set({ aiProvidersMap: providersMap });
+        }
+
+        const tab = await chrome.tabs.create({ url, active: true });
+        if (!tab?.id) {
+          sendResponse({ ok: false, error: 'tab_create_failed' });
+          return;
+        }
+
+        await chrome.storage.local.set({
+          onboardingCompleted: true,
+        });
+        await chrome.storage.local.remove(OPM_DEV_FORCE_ONBOARDING_STORAGE_KEY);
+
+        const openSidePanel = () => {
+          if (!chrome.sidePanel?.open || !tab.id) return;
+          chrome.sidePanel.open({ tabId: tab.id }).catch((error) => {
+            console.warn('Failed to open side panel after onboarding launch:', error);
+          });
+        };
+
+        openSidePanel();
+        if (tab.status !== 'complete') {
+          const listener = (updatedTabId, info) => {
+            if (updatedTabId !== tab.id || info.status !== 'complete') return;
+            chrome.tabs.onUpdated.removeListener(listener);
+            openSidePanel();
+          };
+          chrome.tabs.onUpdated.addListener(listener);
+        }
+
+        sendResponse({ ok: true, tabId: tab.id });
+      } catch (error) {
+        sendResponse({ ok: false, error: error?.message || 'launch_failed' });
+      }
+    })();
+    return true;
+  }
+
+  if (message?.type === 'OPM_INSERT_PROMPT') {
+    (async () => {
+      try {
+        const tab = message.tabId
+          ? await chrome.tabs.get(message.tabId)
+          : (await chrome.tabs.query({ active: true, lastFocusedWindow: true }))[0];
+
+        if (!tab?.id || !tab.url || !/^https?:/i.test(tab.url)) {
+          sendResponse({ ok: false, error: 'no_active_tab' });
+          return;
+        }
+
+        if (!(await tabHasScriptingPermission(tab.url))) {
+          sendResponse({ ok: false, error: 'no_permission', url: tab.url });
+          return;
+        }
+
+        if (!(await ensureContentScriptsForTab(tab.id, tab.url))) {
+          sendResponse({ ok: false, error: 'inject_failed' });
+          return;
+        }
+
+        let payload = message.prompt?.content
+          ? {
+              uuid: message.prompt.uuid,
+              title: message.prompt.title,
+              content: message.prompt.content,
+            }
+          : null;
+        if (!payload) {
+          const prompts = await getPrompts();
+          const stored = prompts.find((item) => item.uuid === message.localUuid);
+          if (!stored?.content) {
+            sendResponse({ ok: false, error: 'prompt_not_found' });
+            return;
+          }
+          payload = {
+            uuid: stored.uuid,
+            title: stored.title,
+            content: stored.content,
+          };
+        }
+
+        let result = { ok: false, error: 'handler_missing' };
+        for (let attempt = 0; attempt < 4; attempt += 1) {
+          if (attempt > 0) {
+            await ensureContentScriptsForTab(tab.id, tab.url);
+            await new Promise((resolve) => setTimeout(resolve, 60 * attempt));
+          }
+          result = await runInsertPromptAction(tab.id, payload);
+          if (result?.ok) break;
+          if (result?.error !== 'handler_missing') break;
+        }
+        sendResponse(result);
+      } catch (error) {
+        sendResponse({ ok: false, error: error?.message || 'insert_failed' });
+      }
+    })();
+    return true;
+  }
+
   if (message?.type !== 'OPM_PIN_INPUT') return undefined;
 
   (async () => {
@@ -417,13 +620,14 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         return;
       }
 
+      const pinExtras = message.pendingPrompt ? { pendingPrompt: message.pendingPrompt } : {};
       let result = { ok: false, error: 'handler_missing' };
       for (let attempt = 0; attempt < 4; attempt += 1) {
         if (attempt > 0) {
           await ensureContentScriptsForTab(tab.id, tab.url);
           await new Promise((resolve) => setTimeout(resolve, 60 * attempt));
         }
-        result = await runPinInputAction(tab.id, message.action || 'status');
+        result = await runPinInputAction(tab.id, message.action || 'status', pinExtras);
         if (result?.ok || result?.error === 'picker_already_active') break;
         if (result?.error !== 'handler_missing') break;
       }
@@ -442,9 +646,10 @@ chrome.runtime.onInstalled.addListener(function (details) {
   // COMMENT: Rebuild providers map on install and update (but only open UI on first install)
   const shouldRebuild = ['install', 'update'].includes(details.reason);
   if (details.reason === 'install') {
-    // COMMENT: Default new installs to hover-button mode; user can switch on the install page
-    chrome.storage.local.set({ displayMode: 'standard' });
-    chrome.tabs.create({ url: 'permissions/permissions.html' });
+    // COMMENT: Default new installs to hot-corner mode with tags enabled
+    chrome.storage.local.set({ displayMode: 'hotCorner', enableTags: true }, () => {
+      chrome.tabs.create({ url: 'permissions/permissions.html' });
+    });
   }
   if (shouldRebuild) {
     (async () => {
@@ -497,24 +702,28 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
     try {
       if (!/^https?:/i.test(tab.url)) return;
 
-      // COMMENT: Inject on any site the user has granted access to (supports pinned inputs)
-      if (await tabHasScriptingPermission(tab.url)) {
+      const canScript = await tabHasScriptingPermission(tab.url);
+      if (canScript) {
         await ensureContentScriptsForTab(tabId, tab.url);
-        return;
+      } else {
+        const { patternsArray } = await getProviders();
+        for (const originPattern of patternsArray) {
+          const injected = await injectIfPermittedAndNeeded(tabId, tab.url, originPattern);
+          if (injected) break;
+        }
       }
 
-      // Get the providers object and extract the patterns array
-      const { patternsArray } = await getProviders(); // Call getProviders and destructure
-
-      // Check if the tab's URL matches any of the provider patterns
-      for (const originPattern of patternsArray) {
-        const injected = await injectIfPermittedAndNeeded(tabId, tab.url, originPattern);
-        if (injected) break;
+      // COMMENT: New documents re-init with sidebarOpen=false — hide the launcher again if the side panel is still open
+      if (tab.windowId && sidePanelOpenWindows.has(tab.windowId) && (await tabHasScriptingPermission(tab.url))) {
+        try {
+          await chrome.tabs.sendMessage(tabId, { type: 'OPM_SIDE_PANEL_STATE', open: true });
+        } catch (_) {
+          // Content script may not be listening yet on this navigation
+        }
       }
     } catch (err) {
       // Avoid logging errors for URLs like 'chrome://extensions/'
       if (tab.url && !tab.url.startsWith('chrome://')) {
-        // Log errors from getProviders or permission checks
         console.error(`Error during tab update processing for ${tab.url}:`, err);
       }
     }
@@ -687,5 +896,25 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
     }
   }
 });
+
+/**
+ * COMMENT: MV3 service workers restart often — never auto-open onboarding tabs on wake.
+ * Clear a stale dev flag once onboarding is already complete.
+ */
+async function clearStaleDevOnboardingFlag() {
+  try {
+    const stored = await chrome.storage.local.get([
+      'onboardingCompleted',
+      OPM_DEV_FORCE_ONBOARDING_STORAGE_KEY,
+    ]);
+    if (stored.onboardingCompleted && stored[OPM_DEV_FORCE_ONBOARDING_STORAGE_KEY]) {
+      await chrome.storage.local.remove(OPM_DEV_FORCE_ONBOARDING_STORAGE_KEY);
+    }
+  } catch (error) {
+    console.warn('Failed to clear stale onboarding dev flag:', error);
+  }
+}
+
+clearStaleDevOnboardingFlag();
 
 // --- END CONTEXT MENU ---

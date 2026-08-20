@@ -62,6 +62,18 @@
     </div>
     <div class="prompts-container">
       <div class="prompts-section">
+        <!-- COMMENT: Variable fill-in view — same structure as the in-page variable form -->
+        <div
+          class="opm-form-container opm-variable-input-form sidebar-variable-input"
+          id="sidebar-variable-input"
+          hidden
+        >
+          <div id="spm-variable-fields" class="opm-variable-fields"></div>
+          <div class="opm-variable-actions">
+            <button type="button" class="opm-button" id="spm-variable-submit">Submit</button>
+            <button type="button" class="opm-button" id="spm-variable-back">Back</button>
+          </div>
+        </div>
         <!-- COMMENT: Empty state when no LLM provider permissions are enabled -->
         <div id="permissions-shortcut" class="shortcut-container" style="display: none">
           <p style="margin: 8px 0">Add your supported Assistants below to get started.</p>

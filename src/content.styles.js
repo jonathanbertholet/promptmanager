@@ -210,12 +210,13 @@ var injectGlobalStyles = window.injectGlobalStyles || function injectGlobalStyle
       transform: translateY(10px);
       transition: opacity var(--transition-speed) ease, transform var(--transition-speed) ease;
       backdrop-filter: blur(12px);
-      /* Constrain panel and let inner list scroll. The main scroll must be inside items, not the whole panel. */
-      display: flex;
       flex-direction: column;
       min-height: 450px;
       max-height: 450px;
+      /* Constrain panel and let inner list scroll. The main scroll must be inside items, not the whole panel. */
       overflow: hidden; /* prevent bottom menu from being pushed outside */
+      /* COMMENT: Hidden panel must not steal hover from the hot-corner / button hit target */
+      pointer-events: none;
     }
     /* Dedicated scrollable content container inside the panel */
     #${SELECTORS.ROOT} #${SELECTORS.PANEL_CONTENT} {
@@ -229,8 +230,10 @@ var injectGlobalStyles = window.injectGlobalStyles || function injectGlobalStyle
       padding-bottom: 64px; /* COMMENT: increase reserved space to avoid overlap with bottom menu */
     }
     #${SELECTORS.ROOT} .opm-prompt-list.opm-visible {
+      display: flex;
       opacity: 1;
       transform: translateY(0);
+      pointer-events: auto;
     }
     /* COMMENT: During view transitions, suppress mode min/max height only — width stays inline-driven */
     #${SELECTORS.ROOT} .opm-prompt-list.opm-resizing {
@@ -649,7 +652,7 @@ var injectGlobalStyles = window.injectGlobalStyles || function injectGlobalStyle
     }
     /* Ensure prompt list stays visible during keyboard navigation */
     #${SELECTORS.ROOT} .opm-prompt-list.opm-visible:focus-within {
-      display: block;
+      display: flex;
       opacity: 1;
       transform: translateY(0);
     }

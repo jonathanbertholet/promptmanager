@@ -488,7 +488,7 @@
           const modes = [
             { value: 'standard', label: 'Floating button' },
             { value: 'hotCorner', label: 'Hot corner' },
-            { value: 'invisible', label: 'Invisible (shortcut only)' },
+            { value: 'invisible', label: 'Sidebar or shortcut' },
           ];
 
           const syncChecked = (activeMode) => {
