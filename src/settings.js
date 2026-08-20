@@ -8,6 +8,7 @@ import {
   getFaviconFallbackForUrl,
 } from './utils/providerIcons.js';
 import { expandOriginPatterns } from './utils/originPatterns.js';
+import { uniqueNormalizedTags } from './utils/tags.js';
 import { mountSidepanelFooter } from './sidepanel/sidepanelFooter.js';
 
 // COMMENT: Storage keys shared with the in-page panel and side panel
@@ -204,9 +205,7 @@ function initKeyboardShortcutRecorder() {
 function computeTagCounts(prompts = []) {
   const counts = new Map();
   prompts.forEach((prompt) => {
-    (Array.isArray(prompt.tags) ? prompt.tags : []).forEach((tag) => {
-      const key = String(tag).trim();
-      if (!key) return;
+    uniqueNormalizedTags(prompt.tags).forEach((key) => {
       counts.set(key, (counts.get(key) || 0) + 1);
     });
   });
@@ -216,7 +215,9 @@ function computeTagCounts(prompts = []) {
 /** COMMENT: Merge stored tag order with tags found on prompts. */
 async function getOrderedTags(counts) {
   const stored = await storageGet([TAGS_ORDER_KEY]);
-  const order = Array.isArray(stored[TAGS_ORDER_KEY]) ? stored[TAGS_ORDER_KEY] : [];
+  const order = uniqueNormalizedTags(
+    Array.isArray(stored[TAGS_ORDER_KEY]) ? stored[TAGS_ORDER_KEY] : [],
+  );
   const tags = Array.from(counts.keys());
   const missing = tags.filter(t => !order.includes(t)).sort((a, b) => a.localeCompare(b));
   return [...order.filter(t => counts.has(t)), ...missing];

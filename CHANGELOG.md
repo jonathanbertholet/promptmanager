@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog],
 and this project adheres to [Semantic Versioning].
 
+## [3.0.2] - 2026-08-20
+
+### Fixed
+
+- Exporting a backup no longer turns tags off when `enableTags` was never set.
+- Import accepts a parsed v2 backup object, not only a File, JSON string, or legacy array.
+- Tags are stored lowercase and unique, so `Work` and `work` no longer split filters.
+- In-page UI injection finishes before mutation observers attach, avoiding a bootstrap race on SPA pages.
+- Scrollbar hide timers are cleared when panel views unmount.
+
 ## [3.0.1] - 2026-08-20
 
 ### Changed

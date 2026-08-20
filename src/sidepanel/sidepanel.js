@@ -15,6 +15,7 @@ import {
   syncOpdCatalogAccess,
 } from '../opd/opdCatalogAccess.js';
 import { expandOriginPatterns, hasAnyOriginPermission } from '../utils/originPatterns.js';
+import { normalizeTag, uniqueNormalizedTags } from '../utils/tags.js';
 import { mountSidepanelFooter } from './sidepanelFooter.js';
 
 /** @type {ReturnType<typeof collectPromptFormRefs>|null} */
@@ -1035,9 +1036,7 @@ async function setLocalSetting(key, value) {
 function computeTagCounts(prompts = []) {
   const counts = new Map();
   prompts.forEach(p => {
-    (Array.isArray(p.tags) ? p.tags : []).forEach(t => {
-      const key = String(t).trim();
-      if (!key) return;
+    uniqueNormalizedTags(p.tags).forEach((key) => {
       counts.set(key, (counts.get(key) || 0) + 1);
     });
   });
@@ -1045,9 +1044,9 @@ function computeTagCounts(prompts = []) {
 }
 
 async function getOrderedTags(counts, orderOverride) {
-  const order = Array.isArray(orderOverride)
+  const order = uniqueNormalizedTags(Array.isArray(orderOverride)
     ? orderOverride
-    : (cachedTagsOrder.length ? cachedTagsOrder : await getLocalSetting(TAG_STORAGE.tagsOrder, []));
+    : (cachedTagsOrder.length ? cachedTagsOrder : await getLocalSetting(TAG_STORAGE.tagsOrder, [])));
   const tags = Array.from(counts.keys());
   const missing = tags.filter(t => !order.includes(t)).sort((a, b) => a.localeCompare(b));
   return [...order.filter(t => counts.has(t)), ...missing];
@@ -1080,7 +1079,7 @@ function promptMatchesFilters(prompt) {
 
 /** COMMENT: Tag input row for create/edit — mirrors in-page TagUI.createTagInput */
 function createSidepanelTagInput({ initialTags = [] } = {}) {
-  const tagsSet = new Set(Array.isArray(initialTags) ? initialTags : []);
+  const tagsSet = new Set(uniqueNormalizedTags(initialTags));
   const row = document.createElement('div');
   row.className = 'spm-tag-row';
 
@@ -1139,7 +1138,7 @@ function createSidepanelTagInput({ initialTags = [] } = {}) {
   };
 
   const addTag = (val) => {
-    const tag = (val || '').trim();
+    const tag = normalizeTag(val);
     if (!tag || tagsSet.has(tag)) return;
     tagsSet.add(tag);
     renderPills();
@@ -1241,10 +1240,7 @@ function createSidepanelTagInput({ initialTags = [] } = {}) {
     getTags: () => Array.from(tagsSet),
     setTags: (tags) => {
       tagsSet.clear();
-      (Array.isArray(tags) ? tags : []).forEach(t => {
-        const key = String(t).trim();
-        if (key) tagsSet.add(key);
-      });
+      uniqueNormalizedTags(tags).forEach((key) => tagsSet.add(key));
       renderPills();
     },
     destroy: () => {

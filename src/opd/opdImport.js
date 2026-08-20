@@ -3,6 +3,7 @@
  * Catalog id maps to a stable local uuid: opd:{catalogId}
  */
 import { getPrompts, mergePrompts } from '../storage/promptStorage.js';
+import { uniqueNormalizedTags } from '../utils/tags.js';
 
 /** Prefix for stable local UUIDs — re-import updates the same library row. */
 export const OPD_LOCAL_UUID_PREFIX = 'opd:';
@@ -20,13 +21,8 @@ export function catalogLocalUuid(catalogId) {
  * @param {string[]} b
  */
 function tagsEqual(a, b) {
-  const norm = (arr) =>
-    [...(Array.isArray(arr) ? arr : [])]
-      .map((t) => (typeof t === 'string' ? t.trim() : ''))
-      .filter(Boolean)
-      .sort();
-  const sa = norm(a);
-  const sb = norm(b);
+  const sa = uniqueNormalizedTags(a).slice().sort();
+  const sb = uniqueNormalizedTags(b).slice().sort();
   return sa.length === sb.length && sa.every((t, i) => t === sb[i]);
 }
 
@@ -56,9 +52,7 @@ export function catalogPromptToLocal(catalog) {
     throw new Error('invalid_catalog_prompt');
   }
 
-  const tags = Array.isArray(catalog.tags)
-    ? catalog.tags.map((t) => (typeof t === 'string' ? t.trim() : '')).filter(Boolean)
-    : [];
+  const tags = uniqueNormalizedTags(catalog.tags);
 
   const publishedAt =
     typeof catalog.publishedAt === 'string' && catalog.publishedAt

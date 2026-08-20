@@ -37,6 +37,21 @@
 
     const fallbackIconFilter = 'invert(37%) sepia(74%) saturate(380%) hue-rotate(175deg) brightness(93%) contrast(88%)';
     const iconFilter = () => (typeof getIconFilterFn === 'function' ? getIconFilterFn() : fallbackIconFilter);
+    // COMMENT: Keep in sync with src/utils/tags.js (this classic script cannot import ESM)
+    const normalizeTag = (tag) => (typeof tag === 'string' ? tag.trim().toLowerCase() : '');
+    const uniqueNormalizedTags = (tags) => {
+      const seen = new Set();
+      const out = [];
+      if (!Array.isArray(tags)) return out;
+      for (const raw of tags) {
+        if (typeof raw !== 'string') continue;
+        const key = normalizeTag(raw);
+        if (!key || seen.has(key)) continue;
+        seen.add(key);
+        out.push(key);
+      }
+      return out;
+    };
 
     const ICON_SVGS = {
       list: `<img src="${chrome.runtime.getURL('icons/list.svg')}" width="16" height="16" alt="List Prompts" title="List Prompts" style="filter: ${iconFilter()}">`,
@@ -50,9 +65,7 @@
     const TagService = (() => {
       const computeCounts = (prompts = []) => {
         const counts = new Map();
-        prompts.forEach(p => (Array.isArray(p.tags) ? p.tags : []).forEach(t => {
-          const key = String(t).trim();
-          if (!key) return;
+        prompts.forEach(p => uniqueNormalizedTags(p.tags).forEach((key) => {
           counts.set(key, (counts.get(key) || 0) + 1);
         }));
         return counts;
@@ -67,7 +80,7 @@
 
       const getOrderedTags = async (countsOrPrompts) => {
         const counts = countsOrPrompts instanceof Map ? countsOrPrompts : await getCounts(countsOrPrompts);
-        const order = await window.PromptStorageManager.getTagsOrder();
+        const order = uniqueNormalizedTags(await window.PromptStorageManager.getTagsOrder());
         const tags = Array.from(counts.keys());
         const missing = tags.filter(t => !order.includes(t)).sort((a, b) => a.localeCompare(b));
         return [...order.filter(t => counts.has(t)), ...missing];
@@ -88,7 +101,7 @@
       const openInputs = new Set();
 
       const createTagInput = ({ initialTags = [] } = {}) => {
-        const tagsSet = new Set(Array.isArray(initialTags) ? initialTags : []);
+        const tagsSet = new Set(uniqueNormalizedTags(initialTags));
         const row = createEl('div', { className: `opm-tag-row opm-${getMode()}` });
         const pills = createEl('div', { className: 'opm-tags-container' });
         const input = createEl('input', { attributes: { type: 'text', placeholder: 'Enter tags here.' }, className: `opm-tag-input opm-${getMode()}` });
@@ -134,7 +147,7 @@
         };
 
         const addTag = (val) => {
-          const tag = (val || '').trim();
+          const tag = normalizeTag(val);
           if (!tag || tagsSet.has(tag)) return;
           tagsSet.add(tag);
           renderPills();

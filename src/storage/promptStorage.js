@@ -8,6 +8,7 @@
 //        and side-panel.  Content-scripts import this file dynamically.
 
 import { generateUUID } from '../utils.js';
+import { normalizeTag, uniqueNormalizedTags } from '../utils/tags.js';
 
 // ---------------------------
 // Constants & helpers
@@ -34,16 +35,8 @@ function normalisePrompt(p = {}) {
     createdAt: p.createdAt || new Date().toISOString()
   };
   if (p.updatedAt) out.updatedAt = p.updatedAt;
-  // COMMENT: v2 fields – ensure new properties exist with safe defaults
-  // - tags: array of unique string tags
-  if (Array.isArray(p.tags)) {
-    const seen = new Set();
-    out.tags = p.tags
-      .map(t => (typeof t === 'string' ? t.trim() : ''))
-      .filter(t => t.length > 0 && !seen.has(t) && seen.add(t));
-  } else {
-    out.tags = [];
-  }
+  // COMMENT: v2 fields – unique lowercase tags so filters and storage agree
+  out.tags = uniqueNormalizedTags(p.tags);
   // - folderId: string or null
   out.folderId = typeof p.folderId === 'string' && p.folderId.length > 0 ? p.folderId : null;
   // COMMENT: OPD catalog link — extension-only metadata (not required in exports)
@@ -57,6 +50,15 @@ function normalisePrompt(p = {}) {
 }
 function normaliseArray(arr) {
   return Array.isArray(arr) ? arr.map(normalisePrompt) : [];
+}
+
+/** COMMENT: True when stored tags still have mixed case, blanks, or duplicates. */
+function promptsNeedTagRewrite(prompts) {
+  if (!Array.isArray(prompts)) return false;
+  return prompts.some((prompt) => {
+    if (!Array.isArray(prompt?.tags)) return false;
+    return JSON.stringify(prompt.tags) !== JSON.stringify(uniqueNormalizedTags(prompt.tags));
+  });
 }
 
 // ---------------------------
@@ -78,12 +80,13 @@ async function readRawStorage() {
       await writeStore(upgraded); // persist upgrade atomically
       return upgraded;
     }
-    // Ensure folders exists in v2 store
-    if (!Array.isArray(store.folders)) {
-      store.folders = [];
-      await writeStore({ version: PROMPT_STORAGE_VERSION, prompts: normaliseArray(store.prompts), folders: [] });
+    const prompts = normaliseArray(store.prompts);
+    const folders = Array.isArray(store.folders) ? normaliseFolderArray(store.folders) : [];
+    // COMMENT: Persist lowercase unique tags so mixed-case libraries converge once
+    if (!Array.isArray(store.folders) || promptsNeedTagRewrite(store.prompts)) {
+      await writeStore({ version: PROMPT_STORAGE_VERSION, prompts, folders });
     }
-    return { version: store.version, prompts: normaliseArray(store.prompts), folders: normaliseFolderArray(store.folders) };
+    return { version: store.version, prompts, folders };
   }
   // 2) Legacy migration – only the bare array exists
   if (Array.isArray(data[LEGACY_KEY])) {
@@ -246,21 +249,22 @@ export async function movePromptToFolder(promptUuid, folderId = null) {
 
 // COMMENT: Prompt tags helpers
 export async function addTagToPrompt(promptUuid, tag) {
-  const clean = typeof tag === 'string' ? tag.trim() : '';
+  const clean = normalizeTag(tag);
   if (!clean) return await getPrompts();
   const prompts = await getPrompts();
   const idx = prompts.findIndex(p => p.uuid === promptUuid);
   if (idx === -1) throw new Error('Prompt not found');
-  const set = new Set(prompts[idx].tags || []);
-  set.add(clean);
-  return await updatePrompt(promptUuid, { tags: Array.from(set) });
+  return await updatePrompt(promptUuid, {
+    tags: uniqueNormalizedTags([...(prompts[idx].tags || []), clean]),
+  });
 }
 
 export async function removeTagFromPrompt(promptUuid, tag) {
   const prompts = await getPrompts();
   const idx = prompts.findIndex(p => p.uuid === promptUuid);
   if (idx === -1) throw new Error('Prompt not found');
-  const next = (prompts[idx].tags || []).filter(t => t !== tag);
+  const clean = normalizeTag(tag);
+  const next = uniqueNormalizedTags(prompts[idx].tags).filter((t) => t !== clean);
   return await updatePrompt(promptUuid, { tags: next });
 }
 
@@ -279,9 +283,10 @@ export async function buildExportPayload() {
     prompts: store.prompts,
     folders: store.folders,
     meta: {
-      tagsOrder: Array.isArray(settings.tagsOrder) ? settings.tagsOrder : [],
+      tagsOrder: uniqueNormalizedTags(settings.tagsOrder),
       activeTagFilter: typeof settings.activeTagFilter === 'string' ? settings.activeTagFilter : 'all',
-      enableTags: !!settings.enableTags,
+      // COMMENT: Runtime treats missing enableTags as on — export the same default
+      enableTags: settings.enableTags !== false,
     },
   };
 }
@@ -310,12 +315,7 @@ async function mergeImportMeta(meta = {}) {
   if (Array.isArray(meta.tagsOrder)) {
     const current = await storageGet(['tagsOrder']);
     const existing = Array.isArray(current.tagsOrder) ? current.tagsOrder : [];
-    const merged = [...existing];
-    meta.tagsOrder.forEach((tag) => {
-      const clean = typeof tag === 'string' ? tag.trim() : '';
-      if (clean && !merged.includes(clean)) merged.push(clean);
-    });
-    patch.tagsOrder = merged;
+    patch.tagsOrder = uniqueNormalizedTags([...existing, ...meta.tagsOrder]);
   }
   if (typeof meta.enableTags === 'boolean') {
     patch.enableTags = meta.enableTags;
@@ -329,15 +329,17 @@ async function mergeImportMeta(meta = {}) {
 }
 
 export async function importPrompts(source) {
-  // source can be File, Array, or raw JSON string
+  // source can be File, Array, JSON string, or a parsed v2 object
   let imported;
   if (Array.isArray(source)) {
     imported = source;
-  } else if (source instanceof File) {
+  } else if (typeof File !== 'undefined' && source instanceof File) {
     const text = await source.text();
     imported = JSON.parse(text);
   } else if (typeof source === 'string') {
     imported = JSON.parse(source);
+  } else if (source && typeof source === 'object') {
+    imported = source;
   } else {
     throw new Error('Unsupported import source');
   }

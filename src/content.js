@@ -307,9 +307,9 @@ const ScrollVisibilityManager = (() => {
   };
 
   const ensureListeners = (node) => {
-    const state = { timer: null };
-    const handler = () => markActive(node, state);
-    ACTIVITY_EVENTS.forEach(evt => node.addEventListener(evt, handler, { passive: true }));
+    const state = { timer: null, handler: null };
+    state.handler = () => markActive(node, state);
+    ACTIVITY_EVENTS.forEach(evt => node.addEventListener(evt, state.handler, { passive: true }));
     observers.set(node, state);
   };
 
@@ -318,6 +318,14 @@ const ScrollVisibilityManager = (() => {
       if (!node || observers.has(node)) return;
       node.classList.add('opm-scrollable');
       ensureListeners(node);
+    },
+    unobserve(node) {
+      const state = observers.get(node);
+      if (!state) return;
+      clearTimeout(state.timer);
+      ACTIVITY_EVENTS.forEach(evt => node.removeEventListener(evt, state.handler, { passive: true }));
+      observers.delete(node);
+      node.classList.remove('opm-scrollable', 'opm-scroll-active');
     }
   };
 })();
@@ -811,7 +819,15 @@ class PromptStorageManager {
   }
   static async saveTagsOrder(order) {
     if (!Array.isArray(order)) return false;
-    return await PromptStorageManager.setData('tagsOrder', order);
+    const seen = new Set();
+    const next = [];
+    for (const raw of order) {
+      const tag = typeof raw === 'string' ? raw.trim().toLowerCase() : '';
+      if (!tag || seen.has(tag)) continue;
+      seen.add(tag);
+      next.push(tag);
+    }
+    return await PromptStorageManager.setData('tagsOrder', next);
   }
 }
 window.PromptStorageManager = PromptStorageManager;
@@ -1380,6 +1396,16 @@ class PromptUIManager {
     });
   }
 
+  static releaseScrollObservers(root) {
+    if (!root || !window.ScrollVisibilityManager?.unobserve) return;
+    if (root.classList?.contains('opm-scrollable')) {
+      window.ScrollVisibilityManager.unobserve(root);
+    }
+    root.querySelectorAll?.('.opm-scrollable')?.forEach((el) => {
+      window.ScrollVisibilityManager.unobserve(el);
+    });
+  }
+
   // COMMENT: Tag filter setter that reruns combined filtering without changing panel height
   static filterByTag(tag) {
     PromptUIManager.activeTagFilter = (tag || 'all');
@@ -1485,6 +1511,7 @@ class PromptUIManager {
 
   static resetPromptListContainer() {
     const listEl = qs(`#${SELECTORS.PROMPT_LIST}`);
+    PromptUIManager.releaseScrollObservers(listEl);
     const wasVisible = listEl && listEl.classList.contains('opm-visible');
     PromptUIManager.buildPromptListContainer();
     PromptUIManager.state.lastPromptsSignature = null;
@@ -1499,6 +1526,7 @@ class PromptUIManager {
     if (!panel) return;
     const items = panel.querySelector(`.${SELECTORS.PROMPT_ITEMS_CONTAINER}`);
     if (items) {
+      PromptUIManager.releaseScrollObservers(items);
       items.replaceWith(node);
     } else {  // If items container is missing, inject the node before the last child (bottom menu) if present
       const lastChild = panel.lastElementChild;
@@ -2397,10 +2425,13 @@ const PromptMediator = (() => {
 
     state.processor = processor;
     ensurePromptSelectionListener();
-    // COMMENT: Inject UI immediately on page load without waiting for input box detection
-    PromptStorageManager.getPrompts()
-      .then(prompts => PromptUIManager.injectUIForCurrentMode(prompts))
-      .catch(err => console.error('Error initializing extension UI:', err));
+    // COMMENT: Inject UI on load, then attach observers so SPA recovery cannot race bootstrap
+    try {
+      const prompts = await PromptStorageManager.getPrompts();
+      await PromptUIManager.injectUIForCurrentMode(prompts);
+    } catch (err) {
+      console.error('Error initializing extension UI:', err);
+    }
     setupMutationObserver();
     setupDisplayModeWatcher();
     setupStorageChangeMonitor();
