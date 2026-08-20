@@ -1217,9 +1217,12 @@ class InputBoxHandler {
 
     for (const provider of providers) {
       if (!provider.pattern) continue;
-      const pattern = provider.pattern.replace(/\*/g, '.*');
-      const regex = new RegExp(pattern, 'i');
-      if (!regex.test(window.location.href)) continue;
+      const originPatterns = String(provider.pattern).split(',').map((item) => item.trim()).filter(Boolean);
+      const matchesHost = originPatterns.some((originPattern) => {
+        const regex = new RegExp(originPattern.replace(/\*/g, '.*'), 'i');
+        return regex.test(window.location.href);
+      });
+      if (!matchesHost) continue;
 
       matchedProvider = provider;
       if (provider.element_selector) {

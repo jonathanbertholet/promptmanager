@@ -107,7 +107,7 @@
     },
     {
       "name": "Perplexity AI",
-      "pattern": "*://www.perplexity.ai/*",
+      "pattern": "*://www.perplexity.ai/*,*://perplexity.ai/*",
       "url": "https://www.perplexity.ai",
       "icon_url": "../icons/perplexity-icon.png",
       "element_selector": "#ask-input, [data-lexical-editor='true'][contenteditable='true']"

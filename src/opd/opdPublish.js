@@ -27,13 +27,17 @@ export function resolveCatalogClientId(local) {
 /**
  * @param {object} local — normalised prompt from storage
  */
-export function localPromptToCatalogBody(local) {
-  return {
-    id: resolveCatalogClientId(local),
+export function localPromptToCatalogBody(local, { forceNew = false } = {}) {
+  const body = {
     title: local.title,
     content: local.content,
     tags: Array.isArray(local.tags) ? local.tags : [],
   };
+  if (!forceNew) {
+    const id = resolveCatalogClientId(local);
+    if (id) body.id = id;
+  }
+  return body;
 }
 
 /**
@@ -92,12 +96,8 @@ export async function shareLocalPrompt(localUuid, turnstileToken = '') {
         return { ok: true, catalogId, url, reused: true };
       }
 
-      // COMMENT: Imported community prompt — link locally to the existing catalog row, no duplicate POST
-      await updatePrompt(localUuid, {
-        opdPublicId: catalogId,
-        opdLastPublishedAt: local.opdLastPublishedAt || remote.updatedAt || new Date().toISOString(),
-      });
-      return { ok: true, catalogId, url, reused: true, copiedExisting: true };
+      // COMMENT: Imported someone else's prompt — publish a new catalog row for this user's copy
+      return publishLocalPrompt(localUuid, turnstileToken, { forceNewCatalogRow: true });
     }
   }
 
@@ -109,7 +109,7 @@ export async function shareLocalPrompt(localUuid, turnstileToken = '') {
  * @param {string} [turnstileToken]
  * @returns {Promise<{ ok: boolean, catalogId?: string, url?: string, error?: string }>}
  */
-export async function publishLocalPrompt(localUuid, turnstileToken = '') {
+export async function publishLocalPrompt(localUuid, turnstileToken = '', { forceNewCatalogRow = false } = {}) {
   const registration = await ensurePublisherRegisteredForUpload();
   if (!registration.ok) {
     return { ok: false, error: registration.error || 'not_registered' };
@@ -126,7 +126,10 @@ export async function publishLocalPrompt(localUuid, turnstileToken = '') {
     return { ok: false, error: 'prompt_not_found' };
   }
 
-  const res = await publishPrompt(localPromptToCatalogBody(local), turnstileToken);
+  const res = await publishPrompt(
+    localPromptToCatalogBody(local, { forceNew: forceNewCatalogRow }),
+    turnstileToken,
+  );
   if (!res.ok || !res.data?.prompt?.id) {
     return { ok: false, error: res.data?.error || 'publish_failed' };
   }

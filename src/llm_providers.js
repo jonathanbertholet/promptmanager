@@ -1,3 +1,5 @@
+import { expandOriginPatterns } from './utils/originPatterns.js';
+
 export async function getProviders() {
   try {
     const response = await fetch(chrome.runtime.getURL('llm_providers.json'));
@@ -16,7 +18,8 @@ export async function getProviders() {
       return acc;
     }, {});
 
-    const patternsArray = data.llm_providers.map(item => item.pattern);
+    // COMMENT: A provider may list several comma-separated Chrome origin patterns
+    const patternsArray = data.llm_providers.flatMap((item) => expandOriginPatterns(item.pattern));
 
     return { patternsObject, patternsArray };
   } catch (error) {
