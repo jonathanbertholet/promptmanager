@@ -9,6 +9,10 @@ import {
   getFaviconFallbackForUrl,
 } from '../utils/providerIcons.js';
 import { OPD_CATALOG_URL, OPD_MSG } from '../opd/opdConstants.js';
+import {
+  hasOpdCatalogPermission,
+  requestOpdCatalogPermission,
+} from '../opd/opdCatalogAccess.js';
 import { expandOriginPatterns, hasAnyOriginPermission } from '../utils/originPatterns.js';
 import { mountSidepanelFooter } from './sidepanelFooter.js';
 
@@ -476,6 +480,15 @@ async function refreshOpdPublishStatus() {
 // COMMENT: Publish immediately and copy the catalog URL — no confirmation UI
 async function publishPromptToOpd(localUuid) {
   try {
+    // COMMENT: Request catalog host access on the click gesture (SW cannot prompt reliably)
+    if (!(await hasOpdCatalogPermission())) {
+      const granted = await requestOpdCatalogPermission();
+      if (!granted) {
+        showSidepanelToast(mapPublishError('permission_denied'), { error: true });
+        return false;
+      }
+    }
+
     const res = await chrome.runtime.sendMessage({
       type: OPD_MSG.PUBLISH_PROMPT,
       localUuid,
@@ -505,6 +518,19 @@ function mapPublishError(code) {
     return 'Sharing is turned off in Open Prompt Database settings.';
   case 'prompt_not_found':
     return 'That prompt is no longer in your library.';
+  case 'catalog_lookup_failed':
+    return 'Could not reach the catalog. Check your connection and try again.';
+  case 'check_failed':
+  case 'register_failed':
+    return 'Could not register a publisher handle. Try again from Open Prompt Database settings.';
+  case 'turnstile_failed':
+    return 'Share verification failed. Try again in a moment.';
+  case 'unauthorized':
+    return 'Publisher identity is missing. Toggle sharing off and on in settings, then retry.';
+  case 'rate_limited':
+    return 'Too many shares. Wait a bit and try again.';
+  case 'validation_failed':
+    return 'That prompt could not be published. Check the title and content.';
   default:
     return 'Could not share this prompt. Try again.';
   }

@@ -49,6 +49,15 @@ export function buildCatalogPromptUrl(catalogId, apiBase) {
 }
 
 /**
+ * True when this local row is already tied to a catalog prompt (published or imported).
+ * @param {object} local
+ */
+function hasKnownCatalogLink(local) {
+  if (typeof local?.opdPublicId === 'string' && local.opdPublicId.length > 0) return true;
+  return String(local?.uuid || '').startsWith('opd:');
+}
+
+/**
  * Share flow: reuse an existing catalog row when possible, otherwise create/update in place.
  * @param {string} localUuid
  * @param {string} [turnstileToken]
@@ -74,7 +83,8 @@ export async function shareLocalPrompt(localUuid, turnstileToken = '') {
   const apiBase = await getOpdApiBaseUrl();
   const catalogId = resolveCatalogClientId(local);
 
-  if (catalogId) {
+  // COMMENT: Local UUIDs look like catalog ids — only GET when this row was already published/imported
+  if (hasKnownCatalogLink(local) && catalogId) {
     const existing = await getCatalogPrompt(catalogId);
     if (existing.ok && existing.data?.prompt) {
       const remote = existing.data.prompt;
