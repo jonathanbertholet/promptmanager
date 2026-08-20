@@ -69,6 +69,18 @@ export default [
     rules: classicScriptRules,
   },
   {
+    files: ['src/utils/promptInsertUtils.js'],
+    languageOptions: {
+      globals: {
+        ...globals.browser,
+        module: 'writable',
+      },
+      ecmaVersion: 2022,
+      sourceType: 'script',
+    },
+    rules: classicScriptRules,
+  },
+  {
     files: ['src/content.styles.js', 'src/handlers/inputBoxHandler.js'],
     languageOptions: {
       globals: {
@@ -76,6 +88,7 @@ export default [
         ...globals.webextensions,
         chrome: 'readonly',
         PromptUIManager: 'readonly',
+        PromptInsertUtils: 'readonly',
       },
       ecmaVersion: 2022,
       sourceType: 'script',

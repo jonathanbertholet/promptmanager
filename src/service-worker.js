@@ -18,6 +18,7 @@ import { resolveProviderIconUrl } from './utils/providerIcons.js';
 
 // COMMENT: Single source of truth for dynamically injected content-script bundles
 const CONTENT_SCRIPT_FILES = [
+  'utils/promptInsertUtils.js',
   'handlers/inputBoxHandler.js',
   'content.styles.js',
   'content.shared.js',

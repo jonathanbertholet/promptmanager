@@ -5,7 +5,7 @@
       "pattern": "*://chatgpt.com/*",
       "url": "https://chatgpt.com",
       "icon_url": "https://cdn.oaistatic.com/assets/favicon-miwirzcw.ico",
-      "element_selector": "#prompt-textarea, textarea[data-id='root-textarea'], textarea[placeholder*='Message'], textarea"
+      "element_selector": "#prompt-textarea, [data-testid='prompt-textarea'], div.ProseMirror[contenteditable='true'], textarea[data-id='root-textarea'], textarea[placeholder*='Message']"
     },
     {
       "name": "NotebookLM",
@@ -110,7 +110,7 @@
       "pattern": "*://www.perplexity.ai/*",
       "url": "https://www.perplexity.ai",
       "icon_url": "../icons/perplexity-icon.png",
-      "element_selector": "#ask-input"
+      "element_selector": "#ask-input, [data-lexical-editor='true'][contenteditable='true']"
     },
     {
       "name": "LMArena",

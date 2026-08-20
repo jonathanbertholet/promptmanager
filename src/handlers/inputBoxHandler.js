@@ -324,76 +324,289 @@ class InputBoxHandler {
   }
 
   /**
-   * COMMENT: Shared execCommand insert path for rich-text editors (Lexical, Quill, ProseMirror).
+   * COMMENT: Read visible editor text across textarea and contenteditable inputs.
+   * @param {HTMLElement} inputBox
+   * @returns {string}
+   */
+  static _readPlainText(inputBox) {
+    if (!inputBox) return '';
+    const tag = inputBox.tagName?.toLowerCase();
+    if (tag === 'textarea' || tag === 'input') return inputBox.value || '';
+    return (inputBox.innerText || inputBox.textContent || '').replace(/\u00a0/g, ' ');
+  }
+
+  /**
+   * COMMENT: ChatGPT/Perplexity turn synthetic paste into a quote card or paste.txt.
+   * @returns {boolean}
+   */
+  static _avoidSyntheticPaste() {
+    const utils = (typeof PromptInsertUtils !== 'undefined' && PromptInsertUtils)
+      || (typeof window !== 'undefined' && window.PromptInsertUtils);
+    if (utils?.siteConvertsPasteToAttachment) {
+      return utils.siteConvertsPasteToAttachment(window.location.hostname);
+    }
+    return /(?:^|\.)chatgpt\.com$|(?:^|\.)chat\.openai\.com$|(?:^|\.)perplexity\.ai$/i
+      .test(window.location.hostname || '');
+  }
+
+  /**
+   * COMMENT: Prefer the nested Lexical/ProseMirror/Quill node when the selector hits a wrapper.
+   * @param {HTMLElement} inputBox
+   * @returns {HTMLElement}
+   */
+  static _resolveRichEditor(inputBox) {
+    if (!(inputBox instanceof HTMLElement)) return inputBox;
+    const nested = inputBox.querySelector?.(
+      '[data-lexical-editor="true"], .ProseMirror[contenteditable="true"], .ql-editor[contenteditable="true"]'
+    );
+    if (nested instanceof HTMLElement && nested !== inputBox) return nested;
+    return inputBox;
+  }
+
+  /**
+   * COMMENT: Detect rich editors, including nested nodes and ChatGPT/Perplexity hosts.
+   * @param {HTMLElement} inputBox
+   * @returns {boolean}
+   */
+  static _isRichEditor(inputBox) {
+    if (!(inputBox instanceof HTMLElement)) return false;
+    if (inputBox.id === 'ask-input' || inputBox.id === 'prompt-textarea') return true;
+    if (InputBoxHandler._avoidSyntheticPaste()) return true;
+    return Boolean(
+      inputBox.getAttribute('data-lexical-editor') === 'true'
+      || inputBox.classList.contains('ProseMirror')
+      || inputBox.classList.contains('ql-editor')
+      || inputBox.closest?.('[data-lexical-editor="true"], .ProseMirror, .ql-container, rich-textarea')
+      || inputBox.querySelector?.('[data-lexical-editor="true"], .ProseMirror, .ql-editor')
+    );
+  }
+
+  /**
+   * COMMENT: Place the caret in the editor. collapseToEnd keeps existing text for append mode.
+   * @param {HTMLElement} inputBox
+   * @param {boolean} collapseToEnd
+   */
+  static _focusAndSelect(inputBox, collapseToEnd) {
+    inputBox.focus();
+    const selection = window.getSelection();
+    if (!selection || typeof document.createRange !== 'function') return;
+    const range = document.createRange();
+    range.selectNodeContents(inputBox);
+    if (collapseToEnd) range.collapse(false);
+    selection.removeAllRanges();
+    selection.addRange(range);
+  }
+
+  /**
+   * COMMENT: True when the editor gained the inserted text.
+   * @param {string} before
+   * @param {string} after
+   * @param {string} inserted
+   * @returns {boolean}
+   */
+  static _textGained(before, after, inserted) {
+    if (!inserted) return after !== before;
+    if (after === before) return false;
+    const utils = (typeof PromptInsertUtils !== 'undefined' && PromptInsertUtils)
+      || (typeof window !== 'undefined' && window.PromptInsertUtils);
+    const haystack = utils?.normalizeEditorText ? utils.normalizeEditorText(after) : after.trim();
+    const needle = utils?.normalizeEditorText ? utils.normalizeEditorText(inserted) : inserted.trim();
+    return haystack.includes(needle) && after.length > before.length;
+  }
+
+  /**
+   * COMMENT: Insert once — beforeinput first so Lexical/ProseMirror can preventDefault, then execCommand.
+   * @param {HTMLElement} inputBox
+   * @param {string} text
+   * @returns {boolean}
+   */
+  static _insertTextOnce(inputBox, text) {
+    if (!text) return true;
+    const before = InputBoxHandler._readPlainText(inputBox);
+
+    try {
+      inputBox.dispatchEvent(new InputEvent('beforeinput', {
+        inputType: 'insertText',
+        data: text,
+        bubbles: true,
+        cancelable: true,
+      }));
+    } catch (_) {
+      // COMMENT: InputEvent may be rejected in older editor contexts
+    }
+
+    let after = InputBoxHandler._readPlainText(inputBox);
+    if (InputBoxHandler._textGained(before, after, text)) return true;
+
+    try {
+      if (document.execCommand('insertText', false, text)) {
+        after = InputBoxHandler._readPlainText(inputBox);
+        if (InputBoxHandler._textGained(before, after, text)) return true;
+      }
+    } catch (_) {
+      // COMMENT: execCommand may be unavailable in some editor contexts
+    }
+
+    return false;
+  }
+
+  /**
+   * COMMENT: Preserve newlines without a paste event (paste becomes a quote/attachment on some hosts).
+   * @param {HTMLElement} inputBox
+   * @returns {boolean}
+   */
+  static _insertLineBreak(inputBox) {
+    try {
+      if (document.execCommand('insertLineBreak', false, null)) return true;
+    } catch (_) {
+      // ignore
+    }
+    try {
+      if (document.execCommand('insertParagraph', false, null)) return true;
+    } catch (_) {
+      // ignore
+    }
+    try {
+      const before = InputBoxHandler._readPlainText(inputBox);
+      inputBox.dispatchEvent(new InputEvent('beforeinput', {
+        inputType: 'insertLineBreak',
+        bubbles: true,
+        cancelable: true,
+      }));
+      const after = InputBoxHandler._readPlainText(inputBox);
+      if (after !== before) return true;
+    } catch (_) {
+      // ignore
+    }
+    return InputBoxHandler._insertTextOnce(inputBox, '\n');
+  }
+
+  /**
+   * COMMENT: Last-resort paste. Never combine this with a second text write.
+   * @param {HTMLElement} inputBox
+   * @param {string} text
+   * @returns {boolean}
+   */
+  static _insertViaPaste(inputBox, text) {
+    if (InputBoxHandler._avoidSyntheticPaste()) return false;
+    const before = InputBoxHandler._readPlainText(inputBox);
+    try {
+      const dataTransfer = new DataTransfer();
+      dataTransfer.setData('text/plain', text);
+      const pasteEvent = new ClipboardEvent('paste', {
+        clipboardData: dataTransfer,
+        bubbles: true,
+        cancelable: true,
+      });
+      inputBox.dispatchEvent(pasteEvent);
+      const after = InputBoxHandler._readPlainText(inputBox);
+      return InputBoxHandler._textGained(before, after, text);
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /**
+   * COMMENT: If ChatGPT/Perplexity echoed the prompt as a quote card, keep a single copy.
+   * @param {HTMLElement} inputBox
+   * @param {string} content
+   * @param {string} beforeText
+   * @param {boolean} disableOverwrite
+   */
+  static _collapseDuplicateIfNeeded(inputBox, content, beforeText, disableOverwrite) {
+    const utils = (typeof PromptInsertUtils !== 'undefined' && PromptInsertUtils)
+      || (typeof window !== 'undefined' && window.PromptInsertUtils);
+    if (!utils?.collapseDuplicatedPromptText) return;
+
+    const after = InputBoxHandler._readPlainText(inputBox);
+    const collapsed = utils.collapseDuplicatedPromptText(after, content, {
+      beforeText,
+      append: disableOverwrite,
+    });
+    if (collapsed === after || utils.normalizeEditorText(collapsed) === utils.normalizeEditorText(after)) {
+      return;
+    }
+
+    InputBoxHandler._focusAndSelect(inputBox, false);
+    try { document.execCommand('delete', false, null); } catch (_) { /* ignore */ }
+    InputBoxHandler._insertTextOnce(inputBox, collapsed);
+
+    const repaired = InputBoxHandler._readPlainText(inputBox);
+    if (utils.isQuotedDuplicatePrompt?.(repaired, content)
+      || utils.normalizeEditorText(repaired) !== utils.normalizeEditorText(collapsed)) {
+      // COMMENT: Repair insert also doubled — write once through the DOM as a last resort
+      if (inputBox.isContentEditable) {
+        inputBox.textContent = collapsed + '  ';
+        inputBox.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+    }
+  }
+
+  /**
+   * COMMENT: Shared insert path for Lexical, Quill, and ProseMirror. Avoids paste+insertText doubles.
    * @param {HTMLElement} inputBox
    * @param {string} content
    * @param {boolean} disableOverwrite
    */
   static _insertViaExecCommand(inputBox, content, disableOverwrite) {
-    const selection = window.getSelection();
-    const range = document.createRange();
-    range.selectNodeContents(inputBox);
-    if (disableOverwrite) {
-      range.collapse(false);
-    }
-    selection.removeAllRanges();
-    selection.addRange(range);
+    const editor = InputBoxHandler._resolveRichEditor(inputBox) || inputBox;
+    const beforeInsertionText = InputBoxHandler._readPlainText(editor);
+    InputBoxHandler._focusAndSelect(editor, disableOverwrite);
 
     if (!disableOverwrite) {
-      document.execCommand('delete', false, null);
+      try { document.execCommand('delete', false, null); } catch (_) { /* ignore */ }
     }
 
-    const textToInsert = content + '  ';
-    // COMMENT: Multiline prompts need a paste-style event in Lexical editors (e.g. Perplexity).
-    // COMMENT: insertText can flatten newlines into a single paragraph.
-    const getPlainEditorText = () => inputBox.innerText || inputBox.textContent || '';
-    const beforeInsertionText = getPlainEditorText();
+    const trailing = '  ';
     let inserted = false;
 
     if (content.includes('\n')) {
+      inserted = true;
+      const lines = content.split('\n');
+      for (let i = 0; i < lines.length; i += 1) {
+        if (lines[i]) {
+          if (!InputBoxHandler._insertTextOnce(editor, lines[i])) inserted = false;
+        }
+        if (i < lines.length - 1) {
+          InputBoxHandler._insertLineBreak(editor);
+        }
+      }
+      InputBoxHandler._insertTextOnce(editor, trailing);
+      if (!InputBoxHandler._textGained(beforeInsertionText, InputBoxHandler._readPlainText(editor), content)) {
+        inserted = false;
+      }
+    } else {
+      inserted = InputBoxHandler._insertTextOnce(editor, content + trailing);
+    }
+
+    // COMMENT: Paste is a last resort and is skipped on ChatGPT/Perplexity (quote/attachment hosts)
+    if (!inserted) {
+      inserted = InputBoxHandler._insertViaPaste(editor, content + trailing);
+    }
+
+    if (!inserted) {
       try {
-        const dataTransfer = new DataTransfer();
-        dataTransfer.setData('text/plain', textToInsert);
-        const pasteEvent = new ClipboardEvent('paste', {
-          clipboardData: dataTransfer,
+        editor.dispatchEvent(new InputEvent('beforeinput', {
+          inputType: 'insertText',
+          data: content + trailing,
           bubbles: true,
           cancelable: true,
-        });
-        inputBox.dispatchEvent(pasteEvent);
-        const afterPasteText = getPlainEditorText();
-        inserted = afterPasteText.length > beforeInsertionText.length;
+        }));
+        editor.dispatchEvent(new Event('input', { bubbles: true }));
       } catch (_) {
-        inserted = false;
+        // ignore
       }
     }
 
-    // COMMENT: Primary single-line path, and fallback when synthetic paste is ignored.
-    if (!inserted) {
-      try {
-        inserted = document.execCommand('insertText', false, textToInsert);
-      } catch (_) {
-        // COMMENT: execCommand may be unavailable in some editor contexts
-        inserted = false;
-      }
-    }
-
-    if (!inserted) {
-      inputBox.dispatchEvent(new InputEvent('beforeinput', {
-        inputType: content.includes('\n') ? 'insertFromPaste' : 'insertText',
-        data: textToInsert,
-        bubbles: true,
-        cancelable: true,
-      }));
-      inputBox.dispatchEvent(new Event('input', { bubbles: true }));
-    }
+    InputBoxHandler._collapseDuplicateIfNeeded(editor, content, beforeInsertionText, disableOverwrite);
 
     const endRange = document.createRange();
-    endRange.selectNodeContents(inputBox);
+    endRange.selectNodeContents(editor);
     endRange.collapse(false);
     const sel = window.getSelection();
     sel.removeAllRanges();
     sel.addRange(endRange);
-    inputBox.dispatchEvent(new Event('change', { bubbles: true }));
+    editor.dispatchEvent(new Event('change', { bubbles: true }));
   }
 
   /**
@@ -1146,25 +1359,15 @@ class InputBoxHandler {
       });
 
       if (inputBox.isContentEditable) {
-        const isLexicalEditor = inputBox.getAttribute('data-lexical-editor') === 'true'
-          || !!inputBox.closest('[data-lexical-editor="true"]')
-          || inputBox.id === 'ask-input';
-
-        const isQuillEditor = inputBox.classList.contains('ql-editor')
-          || !!inputBox.closest('.ql-container')
-          || !!inputBox.closest('rich-textarea');
-
-        const isProseMirrorEditor =
-          (inputBox.classList && inputBox.classList.contains('ProseMirror')) ||
-          (typeof inputBox.closest === 'function' && !!inputBox.closest('.ProseMirror'));
-
-        // COMMENT: Quill (Gemini), Lexical, and ProseMirror respond reliably to execCommand insertText
-        if (isLexicalEditor || isQuillEditor || isProseMirrorEditor) {
-          InputBoxHandler._insertViaExecCommand(inputBox, content, disableOverwrite);
+        const editor = InputBoxHandler._resolveRichEditor(inputBox);
+        // COMMENT: Nested ProseMirror/Lexical (ChatGPT/Perplexity wrappers) must use the rich path
+        if (InputBoxHandler._isRichEditor(editor) || InputBoxHandler._isRichEditor(inputBox)) {
+          InputBoxHandler._insertViaExecCommand(editor, content, disableOverwrite);
           PromptUIManager.hidePromptList(promptList);
           return;
         }
 
+        const beforeInsertionText = InputBoxHandler._readPlainText(inputBox);
         if (disableOverwrite) {
           const endRange = document.createRange();
           endRange.selectNodeContents(inputBox);
@@ -1191,17 +1394,7 @@ class InputBoxHandler {
             inputBox.appendChild(document.createTextNode(prefix + content));
           }
         } else {
-          inputBox.innerHTML = '';
-
-          const dataTransfer = new DataTransfer();
-          dataTransfer.setData('text/plain', content);
-          const pasteEvent = new ClipboardEvent('paste', {
-            clipboardData: dataTransfer,
-            bubbles: true,
-            cancelable: true,
-          });
-          inputBox.dispatchEvent(pasteEvent);
-
+          // COMMENT: Write once. Do not paste then also set textContent — that duplicates on ChatGPT/Perplexity.
           if (content.includes('\n')) {
             const lines = content.split('\n');
             inputBox.innerHTML = '';
@@ -1237,6 +1430,8 @@ class InputBoxHandler {
           inputBox.innerText = content + '  ';
           inputBox.dispatchEvent(new Event('input', { bubbles: true }));
         }
+
+        InputBoxHandler._collapseDuplicateIfNeeded(inputBox, content, beforeInsertionText, disableOverwrite);
       } else if (inputBox.tagName.toLowerCase() === 'textarea' || inputBox.tagName.toLowerCase() === 'input') {
         if (disableOverwrite) {
           const existing = inputBox.value || '';

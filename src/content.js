@@ -671,7 +671,10 @@ if (window.matchMedia) {
 /* [08] Simple Event Bus */
 class EventBus {
   constructor() { this.events = {}; }
-  on(evt, listener) { (this.events[evt] = this.events[evt] || []).push(listener); }
+  on(evt, listener) {
+    const list = (this.events[evt] = this.events[evt] || []);
+    if (!list.includes(listener)) list.push(listener);
+  }
   emit(evt, ...args) { (this.events[evt] || []).forEach(fn => fn(...args)); }
 }
 
@@ -2155,6 +2158,8 @@ const PromptMediator = (() => {
     mutationObserver: null,
     storageWatcherAttached: false,
     uiRecoverInProgress: false,
+    lastPromptSelectAt: 0,
+    lastPromptSelectKey: null,
   };
 
   /**
@@ -2162,6 +2167,15 @@ const PromptMediator = (() => {
    * @param {Prompt} prompt
    */
   const handlePromptSelect = async (prompt) => {
+    // COMMENT: Ignore duplicate click/keyboard fires that would insert the same prompt twice
+    const selectKey = prompt?.uuid || prompt?.content || '';
+    const now = Date.now();
+    if (selectKey && selectKey === state.lastPromptSelectKey && now - state.lastPromptSelectAt < 400) {
+      return;
+    }
+    state.lastPromptSelectKey = selectKey;
+    state.lastPromptSelectAt = now;
+
     // COMMENT: Be resilient — if input box isn't ready yet, wait briefly before giving up
     let inputBox = await window.InputBoxHandler.getInputBox();
     if (!inputBox) {
