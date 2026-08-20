@@ -641,7 +641,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 });
 
 chrome.runtime.onInstalled.addListener(function (details) {
-  chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true });
+  // COMMENT: Firefox uses sidebar_action instead of chrome.sidePanel
+  if (chrome.sidePanel?.setPanelBehavior) {
+    chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true });
+  }
   console.log('onInstalled', details);
   // COMMENT: Rebuild providers map on install and update (but only open UI on first install)
   const shouldRebuild = ['install', 'update'].includes(details.reason);
