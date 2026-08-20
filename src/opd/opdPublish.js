@@ -99,6 +99,11 @@ export async function shareLocalPrompt(localUuid, turnstileToken = '') {
       // COMMENT: Imported someone else's prompt — publish a new catalog row for this user's copy
       return publishLocalPrompt(localUuid, turnstileToken, { forceNewCatalogRow: true });
     }
+
+    // COMMENT: Known catalog id but lookup failed — don't POST a duplicate (404 means recreate)
+    if (existing.status !== 404) {
+      return { ok: false, error: 'catalog_lookup_failed' };
+    }
   }
 
   return publishLocalPrompt(localUuid, turnstileToken);

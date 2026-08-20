@@ -44,7 +44,8 @@
     "host_permissions": [],
     "optional_host_permissions": [
         "<all_urls>",
-        "https://openpromptdatabase.com/*"
+        "https://openpromptdatabase.com/*",
+        "https://www.openpromptdatabase.com/*"
     ],
     "externally_connectable": {
         "matches": [

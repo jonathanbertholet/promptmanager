@@ -85,6 +85,8 @@
     window.TagService = TagService;
 
     const TagUI = (() => {
+      const openInputs = new Set();
+
       const createTagInput = ({ initialTags = [] } = {}) => {
         const tagsSet = new Set(Array.isArray(initialTags) ? initialTags : []);
         const row = createEl('div', { className: `opm-tag-row opm-${getMode()}` });
@@ -92,6 +94,7 @@
         const input = createEl('input', { attributes: { type: 'text', placeholder: 'Enter tags here.' }, className: `opm-tag-input opm-${getMode()}` });
         const suggestions = createEl('div', { className: `opm-tag-suggestions opm-${getMode()}`, styles: { display: 'none' } });
         let activeIndex = -1; let options = [];
+        let destroyed = false;
 
         const renderPills = () => {
           pills.innerHTML = '';
@@ -183,16 +186,39 @@
         });
         input.addEventListener('focus', () => { suggestions.style.display = 'none'; });
         input.addEventListener('blur', () => { suggestions.style.display = 'none'; });
-        document.addEventListener('click', (evt) => { if (!suggestions.contains(evt.target)) suggestions.style.display = 'none'; });
-        window.addEventListener('resize', positionSuggestions);
-        window.addEventListener('scroll', positionSuggestions, true);
+
+        // COMMENT: Named listeners so destroy() can detach them when the form is replaced
+        const onDocumentClick = (evt) => {
+          if (!suggestions.contains(evt.target)) suggestions.style.display = 'none';
+        };
+        const onWindowResize = () => positionSuggestions();
+        const onWindowScroll = () => positionSuggestions();
+        document.addEventListener('click', onDocumentClick);
+        window.addEventListener('resize', onWindowResize);
+        window.addEventListener('scroll', onWindowScroll, true);
+
+        const destroy = () => {
+          if (destroyed) return;
+          destroyed = true;
+          document.removeEventListener('click', onDocumentClick);
+          window.removeEventListener('resize', onWindowResize);
+          window.removeEventListener('scroll', onWindowScroll, true);
+          if (suggestions.parentElement) suggestions.parentElement.removeChild(suggestions);
+          openInputs.delete(api);
+        };
 
         renderPills();
         row.append(pills, input);
-        return { element: row, getTags: () => Array.from(tagsSet) };
+        const api = { element: row, getTags: () => Array.from(tagsSet), destroy };
+        openInputs.add(api);
+        return api;
       };
 
-      return { createTagInput };
+      const destroyOpenInputs = () => {
+        Array.from(openInputs).forEach((tagInput) => tagInput.destroy());
+      };
+
+      return { createTagInput, destroyOpenInputs };
     })();
     window.TagUI = TagUI;
 
@@ -201,6 +227,21 @@
         manuallyOpened: false,
         inVariableInputMode: false,
         closeTimer: null
+      };
+
+      // COMMENT: Document-level listeners that outlive a view must be aborted on remount
+      let shortcutRecordingHandler = null;
+      let abortReorderDrag = null;
+
+      const stopShortcutRecording = () => {
+        if (!shortcutRecordingHandler) return;
+        document.removeEventListener('keydown', shortcutRecordingHandler, true);
+        shortcutRecordingHandler = null;
+      };
+
+      const abortTransientListeners = () => {
+        stopShortcutRecording();
+        abortReorderDrag?.();
       };
 
       const Elements = {
@@ -490,6 +531,8 @@
 
       const Reorder = {
         attach(promptsContainer, prompts, onReorder) {
+          abortReorderDrag?.();
+
           let isDragging = false;
           let dragSrcEl = null;
           let ghost = null;
@@ -510,6 +553,7 @@
             document.body.style.cursor = '';
             document.removeEventListener('mousemove', handleMouseMove);
             document.removeEventListener('mouseup', handleMouseUp);
+            if (abortReorderDrag === cleanup) abortReorderDrag = null;
           };
 
           const handleMouseMove = (e) => {
@@ -624,6 +668,7 @@
             });
           };
 
+          abortReorderDrag = cleanup;
           return { wireItem };
         }
       };
@@ -778,7 +823,6 @@
             innerHTML: '…'
           });
           const recordShortcutBtn = createEl('button', { innerHTML: 'Record', className: `opm-button opm-${getMode()}` });
-          let recordingHandler = null;
 
           const refreshShortcutDisplay = async () => {
             const shortcut = await window.PromptStorageManager.getKeyboardShortcut();
@@ -787,21 +831,19 @@
 
           recordShortcutBtn.addEventListener('click', (e) => {
             e.stopPropagation();
-            if (recordingHandler) {
-              document.removeEventListener('keydown', recordingHandler, true);
-              recordingHandler = null;
+            if (shortcutRecordingHandler) {
+              stopShortcutRecording();
               recordShortcutBtn.innerHTML = 'Record';
               refreshShortcutDisplay().catch(() => {});
               return;
             }
             recordShortcutBtn.innerHTML = 'Press keys…';
             shortcutDisplay.innerHTML = 'Listening…';
-            recordingHandler = async (event) => {
+            shortcutRecordingHandler = async (event) => {
               event.preventDefault();
               event.stopPropagation();
               if (event.key === 'Escape') {
-                document.removeEventListener('keydown', recordingHandler, true);
-                recordingHandler = null;
+                stopShortcutRecording();
                 recordShortcutBtn.innerHTML = 'Record';
                 refreshShortcutDisplay().catch(() => {});
                 return;
@@ -815,12 +857,11 @@
                 requiresShift: event.shiftKey,
                 key: event.key.length === 1 ? event.key.toLowerCase() : event.key.toLowerCase()
               });
-              document.removeEventListener('keydown', recordingHandler, true);
-              recordingHandler = null;
+              stopShortcutRecording();
               recordShortcutBtn.innerHTML = 'Record';
               refreshShortcutDisplay().catch(() => {});
             };
-            document.addEventListener('keydown', recordingHandler, true);
+            document.addEventListener('keydown', shortcutRecordingHandler, true);
           });
           shortcutRow.append(recordShortcutBtn, shortcutDisplay);
           refreshShortcutDisplay().catch(() => {});
@@ -1296,7 +1337,7 @@
         }
       };
 
-      return Object.freeze({ State, Elements, Views, Behaviors, Events });
+      return Object.freeze({ State, Elements, Views, Behaviors, Events, abortTransientListeners });
     })();
     window.PromptUI = PromptUI;
   }

@@ -14,6 +14,7 @@ import {
 import {
   getPublishSettings,
   setOpdPendingUsername,
+  clearOpdPendingUsername,
 } from './opdPublishToken.js';
 
 /**
@@ -172,6 +173,9 @@ export function initOpdSettingsPage(root = document) {
       const handle = normalizeHandleInput(els.handleInput);
       if (handle.length >= 3) {
         await setOpdPendingUsername(handle);
+      } else {
+        // COMMENT: Don't keep a stale draft handle after the user clears the field
+        await clearOpdPendingUsername();
       }
     });
   }
@@ -195,8 +199,34 @@ export function initOpdSettingsPage(root = document) {
         els.handleStatus.classList.remove('settings-status-error');
       }
 
+      // COMMENT: Request catalog host access on the click gesture so the availability API can run
+      if (!(await hasOpdCatalogPermission())) {
+        const granted = await requestOpdCatalogPermission();
+        if (!granted) {
+          if (els.handleStatus) {
+            els.handleStatus.textContent = 'Catalog access is required to check handles.';
+            els.handleStatus.classList.add('settings-status-error');
+          }
+          els.handleConfirm.disabled = false;
+          return;
+        }
+        await syncOpdCatalogAccess();
+        await refreshCatalogAccessUi(els);
+      }
+
       const avail = await sendOpdMessage(OPD_MSG.HANDLE_AVAILABLE, { handle });
-      if (!avail?.ok || !avail.available) {
+      if (!avail?.ok) {
+        if (els.handleStatus) {
+          const permissionDenied = avail?.error === 'permission_denied';
+          els.handleStatus.textContent = permissionDenied
+            ? 'Catalog access is required to check handles.'
+            : 'Could not check that handle. Try again.';
+          els.handleStatus.classList.add('settings-status-error');
+        }
+        els.handleConfirm.disabled = false;
+        return;
+      }
+      if (!avail.available) {
         if (els.handleStatus) {
           els.handleStatus.textContent = 'Unavailable — try another.';
           els.handleStatus.classList.add('settings-status-error');
@@ -208,7 +238,9 @@ export function initOpdSettingsPage(root = document) {
       const reg = await sendOpdMessage(OPD_MSG.PUBLISH_REGISTER, { username: handle });
       if (!reg?.ok) {
         if (els.handleStatus) {
-          els.handleStatus.textContent = 'Could not confirm.';
+          els.handleStatus.textContent = reg?.error === 'permission_denied'
+            ? 'Catalog access is required to register a handle.'
+            : 'Could not confirm.';
           els.handleStatus.classList.add('settings-status-error');
         }
         els.handleConfirm.disabled = false;

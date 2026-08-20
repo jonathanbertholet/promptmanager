@@ -8,6 +8,7 @@ import { OPD_CATALOG_URL } from './opdConstants.js';
 /** Keep in sync with manifest optional_host_permissions + externally_connectable. */
 export const OPD_CATALOG_ORIGINS = [
   'https://openpromptdatabase.com/*',
+  'https://www.openpromptdatabase.com/*',
   'http://localhost:8787/*',
   'http://127.0.0.1:8787/*',
 ];
@@ -139,7 +140,8 @@ export function initOpdCatalogAccess() {
 
   chrome.permissions.onRemoved.addListener((perms) => {
     if (perms.origins?.some((o) => OPD_CATALOG_ORIGINS.includes(o))) {
-      unregisterOpdBridgeContentScript().catch(console.error);
+      // COMMENT: Re-evaluate remaining origins — don't tear down the bridge if another catalog host is still granted
+      syncOpdCatalogAccess().catch(console.error);
     }
   });
 

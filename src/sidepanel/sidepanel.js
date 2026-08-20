@@ -904,17 +904,23 @@ function createSidepanelTagInput({ initialTags = [] } = {}) {
   });
 
   input.addEventListener('blur', () => { suggestions.hidden = true; });
-  document.addEventListener('click', (evt) => {
+
+  // COMMENT: Named listeners so destroy() can detach them when the form is rebuilt
+  const onDocumentClick = (evt) => {
     if (!suggestions.contains(evt.target) && evt.target !== input) {
       suggestions.hidden = true;
     }
-  });
-  window.addEventListener('resize', positionSuggestions);
-  window.addEventListener('scroll', positionSuggestions, true);
+  };
+  const onWindowResize = () => positionSuggestions();
+  const onWindowScroll = () => positionSuggestions();
+  document.addEventListener('click', onDocumentClick);
+  window.addEventListener('resize', onWindowResize);
+  window.addEventListener('scroll', onWindowScroll, true);
 
   renderPills();
   row.append(pills, input);
 
+  let destroyed = false;
   return {
     element: row,
     getTags: () => Array.from(tagsSet),
@@ -927,6 +933,11 @@ function createSidepanelTagInput({ initialTags = [] } = {}) {
       renderPills();
     },
     destroy: () => {
+      if (destroyed) return;
+      destroyed = true;
+      document.removeEventListener('click', onDocumentClick);
+      window.removeEventListener('resize', onWindowResize);
+      window.removeEventListener('scroll', onWindowScroll, true);
       if (suggestions.parentElement) suggestions.parentElement.removeChild(suggestions);
     },
   };
