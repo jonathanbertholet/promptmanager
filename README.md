@@ -56,9 +56,21 @@ Plus any site you configure as a **custom website**.
 
 ### Load from source (development)
 
+**Chrome**
+
 1. Clone this repository
-2. Open `chrome://extensions`, enable **Developer mode**
-3. Click **Load unpacked** and select the `src/` folder
+2. Run `npm run build:chrome` (copies `src/manifest.chrome.json` → `src/manifest.json`)
+3. Open `chrome://extensions`, enable **Developer mode**
+4. Click **Load unpacked** and select the `src/` folder
+
+**Firefox (temporary add-on)**
+
+1. Run `npm run build:firefox`
+2. Open `about:debugging#/runtime/this-firefox`
+3. Click **Load Temporary Add-on...** and select `src/manifest.json`
+4. Run `npm run build:chrome` before packing a Chrome Web Store zip so `src/manifest.json` is the Chrome manifest again
+
+Firefox uses the native sidebar (`sidebar_action`) instead of Chrome's side panel. Open it from the Firefox sidebar UI; in-page launchers still work.
 
 ## Keyboard shortcuts
 
@@ -91,3 +103,4 @@ MIT License — see [LICENSE](LICENSE) if present in the repository.
 - **Hexodus** — bug reports and fixes
 - **Abdallahheidar** — ideas, contributions, and teamwork
 - **HideMaru** — extension icon ([Flaticon chatbot icons](https://www.flaticon.com/free-icons/chatbot))
+- **VolodymyrUhera** — Firefox / cross-browser manifest split ([#79](https://github.com/jonathanbertholet/promptmanager/pull/79))
