@@ -34,6 +34,8 @@
     "content_scripts": [
         {
             "matches": [
+                "https://openpromptdatabase.com/*",
+                "https://www.openpromptdatabase.com/*",
                 "http://localhost:8787/*",
                 "http://127.0.0.1:8787/*"
             ],

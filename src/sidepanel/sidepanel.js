@@ -12,6 +12,7 @@ import { OPD_CATALOG_URL, OPD_MSG } from '../opd/opdConstants.js';
 import {
   hasOpdCatalogPermission,
   requestOpdCatalogPermission,
+  syncOpdCatalogAccess,
 } from '../opd/opdCatalogAccess.js';
 import { expandOriginPatterns, hasAnyOriginPermission } from '../utils/originPatterns.js';
 import { mountSidepanelFooter } from './sidepanelFooter.js';
@@ -487,11 +488,20 @@ async function publishPromptToOpd(localUuid) {
         showSidepanelToast(mapPublishError('permission_denied'), { error: true });
         return false;
       }
+      await syncOpdCatalogAccess();
     }
 
-    const res = await chrome.runtime.sendMessage({
-      type: OPD_MSG.PUBLISH_PROMPT,
-      localUuid,
+    const res = await new Promise((resolve) => {
+      chrome.runtime.sendMessage(
+        { type: OPD_MSG.PUBLISH_PROMPT, localUuid },
+        (response) => {
+          if (chrome.runtime.lastError) {
+            resolve({ ok: false, error: chrome.runtime.lastError.message });
+            return;
+          }
+          resolve(response ?? { ok: false, error: 'no_response' });
+        }
+      );
     });
     if (res?.ok && res.url) {
       try {
@@ -502,14 +512,21 @@ async function publishPromptToOpd(localUuid) {
       return true;
     }
     showSidepanelToast(mapPublishError(res?.error), { error: true });
-  } catch (_) {
-    showSidepanelToast(mapPublishError('publish_failed'), { error: true });
+  } catch (error) {
+    showSidepanelToast(mapPublishError(error?.message || 'publish_failed'), { error: true });
   }
   return false;
 }
 
+function publishErrorCode(error) {
+  if (error == null || error === '') return '';
+  if (typeof error === 'string') return error;
+  return error.message || error.error || String(error);
+}
+
 function mapPublishError(code) {
-  switch (code) {
+  const key = publishErrorCode(code);
+  switch (key) {
   case 'not_registered':
     return 'Set a publisher handle in Open Prompt Database settings before sharing.';
   case 'permission_denied':
@@ -531,8 +548,17 @@ function mapPublishError(code) {
     return 'Too many shares. Wait a bit and try again.';
   case 'validation_failed':
     return 'That prompt could not be published. Check the title and content.';
+  case 'forbidden':
+    return 'This catalog id is owned by another publisher.';
+  case 'invalid_json':
+  case 'Failed to fetch':
+    return 'Could not reach openpromptdatabase.com. Grant catalog access and try again.';
+  case 'no_response':
+    return 'The extension background page did not respond. Reload the extension and retry.';
   default:
-    return 'Could not share this prompt. Try again.';
+    return key
+      ? `Could not share this prompt (${key}). Try again.`
+      : 'Could not share this prompt. Try again.';
   }
 }
 

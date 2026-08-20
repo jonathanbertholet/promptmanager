@@ -54,41 +54,58 @@ export function isAllowedOpdMessageOrigin(url) {
   return false;
 }
 
+/** Origins we can actually script right now (granted optional hosts or <all_urls>). */
+export async function grantedOpdCatalogOrigins() {
+  const all = await chrome.permissions.getAll();
+  const granted = new Set(all.origins || []);
+  if (granted.has('<all_urls>')) return [...OPD_CATALOG_ORIGINS];
+  return OPD_CATALOG_ORIGINS.filter((origin) => granted.has(origin));
+}
+
 /** True when optional host permission for the catalog is granted. */
 export async function hasOpdCatalogPermission() {
-  for (const origin of OPD_CATALOG_ORIGINS) {
-    if (await chrome.permissions.contains({ origins: [origin] })) {
-      return true;
-    }
-  }
-  return false;
+  return (await grantedOpdCatalogOrigins()).length > 0;
 }
 
 /** Ask for catalog host access (one-time prompt). */
 export async function requestOpdCatalogPermission() {
   return new Promise((resolve) => {
-    chrome.permissions.request({ origins: OPD_CATALOG_ORIGINS }, (granted) => {
-      resolve(Boolean(granted));
-    });
+    chrome.permissions.request(
+      { origins: ['https://openpromptdatabase.com/*', 'https://www.openpromptdatabase.com/*'] },
+      (granted) => resolve(Boolean(granted))
+    );
   });
 }
 
 /** Register bridge content script for catalog origins (after permission grant). */
 export async function registerOpdBridgeContentScript() {
+  const matches = await grantedOpdCatalogOrigins();
+  if (matches.length === 0) {
+    await unregisterOpdBridgeContentScript();
+    return;
+  }
+
+  const definition = {
+    id: OPD_BRIDGE_SCRIPT_ID,
+    matches,
+    js: ['opd/opd-bridge.js'],
+    runAt: 'document_start',
+    persistAcrossSessions: true,
+  };
+
   const existing = await chrome.scripting.getRegisteredContentScripts({
     ids: [OPD_BRIDGE_SCRIPT_ID],
   });
-  if (existing?.length) return;
+  if (existing?.length) {
+    try {
+      await chrome.scripting.updateContentScripts([definition]);
+      return;
+    } catch (_) {
+      await unregisterOpdBridgeContentScript();
+    }
+  }
 
-  await chrome.scripting.registerContentScripts([
-    {
-      id: OPD_BRIDGE_SCRIPT_ID,
-      matches: OPD_CATALOG_ORIGINS,
-      js: ['opd/opd-bridge.js'],
-      runAt: 'document_start',
-      persistAcrossSessions: true,
-    },
-  ]);
+  await chrome.scripting.registerContentScripts([definition]);
 }
 
 export async function unregisterOpdBridgeContentScript() {
@@ -118,7 +135,11 @@ export async function ensureOpdBridgeForTab(tabId) {
 /** Apply or remove dynamic bridge registration based on current permissions. */
 export async function syncOpdCatalogAccess() {
   if (await hasOpdCatalogPermission()) {
-    await registerOpdBridgeContentScript();
+    try {
+      await registerOpdBridgeContentScript();
+    } catch (error) {
+      console.warn('[PromptManager] Catalog bridge register failed:', error);
+    }
     const tabs = await chrome.tabs.query({});
     for (const tab of tabs) {
       if (tab.id && isOpdCatalogUrl(tab.url)) {
