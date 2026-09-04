@@ -37,4 +37,7 @@ coverage/
 *.temp
 
 # Open Prompt Database website (private repo — clone separately)
-opd/ 
+opd/
+
+# Graphify output
+graphify-out/ 

@@ -1,0 +1,67 @@
+{
+    "manifest_version": 3,
+    "name": "Open Prompt Manager - for AI Agents & Assistants",
+    "version": "3.0.1",
+    "description": "Open Source Prompt Manager for ChatGPT, Claude, Gemini, Grok and more.",
+    "browser_specific_settings": {
+        "gecko": {
+            "id": "open-prompt-manager@openpromptdatabase.com",
+            "strict_min_version": "128.0"
+        }
+    },
+    "permissions": [
+        "storage",
+        "tabs",
+        "scripting",
+        "activeTab",
+        "contextMenus"
+    ],
+    "sidebar_action": {
+        "default_title": "Open Sidebar",
+        "default_panel": "sidepanel/index.html",
+        "default_icon": {
+            "16": "/icons/icon16.png",
+            "48": "/icons/icon48.png",
+            "128": "/icons/icon128.png"
+        }
+    },
+    "icons": {
+        "16": "/icons/icon16.png",
+        "48": "/icons/icon48.png",
+        "128": "/icons/icon128.png"
+    },
+    "action": {
+        "default_title": "Open Sidebar",
+        "default_icon": {
+            "16": "/icons/icon16.png",
+            "48": "/icons/icon48.png",
+            "128": "/icons/icon128.png"
+        }
+    },
+    "background": {
+        "scripts": ["service-worker.js"],
+        "type": "module"
+    },
+    "host_permissions": [],
+    "optional_host_permissions": [
+        "<all_urls>",
+        "https://openpromptdatabase.com/*",
+        "https://www.openpromptdatabase.com/*"
+    ],
+    "web_accessible_resources": [
+        {
+            "resources": [
+                "icons/*",
+                "changelog.html",
+                "storage/promptStorage.js",
+                "storage/pinnedInputStorage.js",
+                "storage/learnedInputStorage.js",
+                "utils.js",
+                "llm_providers.json"
+            ],
+            "matches": [
+                "<all_urls>"
+            ]
+        }
+    ]
+}

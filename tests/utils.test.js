@@ -15,7 +15,7 @@ async function getExtensionId(browser) {
       const type = target.type();
       const url = target.url();
       return (type === 'service_worker' || type === 'background_page' || type === 'background_service_worker')
-        && url.startsWith('chrome-extension://');
+        && (url.startsWith('chrome-extension://') || url.startsWith('moz-extension://'));
     });
 
     if (extensionTarget) {

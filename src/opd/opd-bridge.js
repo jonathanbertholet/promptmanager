@@ -6,6 +6,8 @@
 const OPD_REQUEST_IMPORT = 'OPD_REQUEST_IMPORT';
 const OPD_IMPORT_RESULT = 'OPD_IMPORT_RESULT';
 
+const browserAPI = globalThis.browser ?? globalThis.chrome;
+
 window.addEventListener('message', (event) => {
   if (event.source !== window || !event.data || event.data.type !== OPD_REQUEST_IMPORT) {
     return;
@@ -14,8 +16,8 @@ window.addEventListener('message', (event) => {
   const { requestId, prompt } = event.data;
   if (!requestId || !prompt) return;
 
-  chrome.runtime.sendMessage({ type: 'OPD_IMPORT_PROMPT', prompt }, (response) => {
-    const lastError = chrome.runtime.lastError?.message;
+  browserAPI.runtime.sendMessage({ type: 'OPD_IMPORT_PROMPT', prompt }, (response) => {
+    const lastError = browserAPI.runtime.lastError?.message;
     window.postMessage(
       {
         type: OPD_IMPORT_RESULT,
