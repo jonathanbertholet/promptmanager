@@ -4,9 +4,9 @@ English and Simplified Chinese use explicit semantic keys. The extension does no
 
 ## Resources and preferences
 
-- `src/locales/en.json` is the default catalog. `zh-CN.json` contains the same keys and parameter names.
+- `src/locales/en.json` is the default catalog. `es.json`, `fr.json`, `pt.json` and `zh-CN.json` contain the same keys and parameter names.
 - `src/_locales/*/messages.json` supplies Chrome's native extension name, description and toolbar default. These follow the browser's language; the app's toolbar title follows its own preference after initialization.
-- The `uiLanguage` local-storage preference accepts `auto`, `en` and `zh-CN`. Automatic uses Chrome's interface language, then navigator language. Other languages fall back to English.
+- The `uiLanguage` local-storage preference accepts `auto`, `en`, `es`, `fr`, `pt` and `zh-CN`. Automatic uses Chrome's interface language, then navigator language. Other languages fall back to English.
 - `OPMI18n.ready` completes initial catalog loading. Page and content entrypoints await it before constructing dynamic UI. Concurrent language loads cannot overwrite a newer choice; writes from one page are serialized.
 - Missing translated keys fall back to English. Failed locale reads are retryable and time-limited; a failed Chinese catalog uses English and reports `lang="en"`. When neither resource is available, marked static HTML retains its English fallback. Normal page initialization reveals content after translation; a CSS fail-open also prevents permanent blank pages if scripts are unavailable.
 
@@ -32,7 +32,7 @@ The changelog is packaged static HTML, not user data or a catalog string contain
 
 ## Adding a language or message
 
-Choose a stable key that describes the UI's meaning rather than its English wording. Add matching keys/parameters to both catalogs. Keep product names unchanged; variable examples use `#name#` because the parser accepts ASCII letters, digits and underscores. Add the locale to preference resolution and the selector when adding a new language.
+Choose a stable key that describes the UI's meaning rather than its English wording. Add matching keys/parameters to every catalog. Keep product names unchanged; variable examples use `#name#` because the parser accepts ASCII letters, digits and underscores. Add the locale to preference resolution and the selector when adding a new language.
 
 Changing wording must not change layout, event destinations, permissions, prompt storage or business logic. On a language switch, update bindings rather than reconstructing editors or lists: drafts, selection and open action menus must survive.
 

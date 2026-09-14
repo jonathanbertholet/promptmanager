@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning].
 
 ## [Unreleased]
 
+## [3.0.6] - 2026-09-14
+
+### Added
+
+- Interface language: English, Spanish, French, Portuguese, and Simplified Chinese, with an Automatic option that follows the browser. Thanks to [snownico0722](https://github.com/snownico0722) for the localization framework and Chinese catalog.
+
 ### Fixed
 
 - Perplexity's Lexical composer no longer inserts the same prompt three times. The extension now writes once with `execCommand('insertText')`, waits for Lexical to flush before retrying, and collapses 3+ copies if they still appear.

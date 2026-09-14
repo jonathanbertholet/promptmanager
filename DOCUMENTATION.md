@@ -1,4 +1,4 @@
-## Open Prompt Manager — Architecture and Developer Guide (v3.0.5)
+## Open Prompt Manager — Architecture and Developer Guide (v3.0.6)
 
 This document explains how the Chrome extension in `src` is structured and how the main flows work.
 

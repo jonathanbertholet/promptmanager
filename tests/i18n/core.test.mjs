@@ -3,7 +3,7 @@ import test from 'node:test';
 import fs from 'node:fs';
 import vm from 'node:vm';
 const source = fs.readFileSync(new URL('../../src/i18n.js', import.meta.url), 'utf8');
-const catalogs = Object.fromEntries(['en', 'zh-CN'].map(locale => [locale, JSON.parse(fs.readFileSync(new URL(`../../src/locales/${locale}.json`, import.meta.url), 'utf8'))]));
+const catalogs = Object.fromEntries(['en', 'es', 'fr', 'pt', 'zh-CN'].map(locale => [locale, JSON.parse(fs.readFileSync(new URL(`../../src/locales/${locale}.json`, import.meta.url), 'utf8'))]));
 const flush = () => new Promise(resolve => setImmediate(resolve));
 const deferred = () => { let resolve; const promise = new Promise(r => { resolve = r; }); return { promise, resolve }; };
 function runtime({ stored = 'auto', browser = 'en-US', get, fetch: fetcher, set } = {}) {
@@ -32,6 +32,18 @@ test('automatic browser language and explicit overrides; locales are cached', as
   await r.api.setLanguage('en'); assert.equal(r.api.t('prompt.create'), 'Create Prompt');
   await r.api.setLanguage('zh-CN'); assert.equal(r.requests.length, 2);
   assert.equal(r.writes.length, 2);
+});
+
+test('automatic Spanish, French and Portuguese follow the browser language', async () => {
+  const spanish = runtime({ browser: 'es-MX' }); await spanish.api.ready;
+  assert.equal(spanish.api.getLanguage(), 'es');
+  assert.equal(spanish.api.t('prompt.create'), 'Crear prompt');
+  const french = runtime({ browser: 'fr-CA' }); await french.api.ready;
+  assert.equal(french.api.getLanguage(), 'fr');
+  assert.equal(french.api.t('prompt.create'), 'Créer un prompt');
+  const portuguese = runtime({ browser: 'pt-BR' }); await portuguese.api.ready;
+  assert.equal(portuguese.api.getLanguage(), 'pt');
+  assert.equal(portuguese.api.t('prompt.create'), 'Criar prompt');
 });
 
 test('only semantic keys are translated; interpolation is literal and prototype-safe', async () => {

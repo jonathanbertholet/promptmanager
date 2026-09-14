@@ -6,16 +6,20 @@ import { fileURLToPath } from 'node:url';
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const src = path.join(root, 'src');
 const read = name => fs.readFileSync(path.join(src, name), 'utf8');
-const catalogs = Object.fromEntries(['en', 'zh-CN'].map(lang => [lang, JSON.parse(read(`locales/${lang}.json`))]));
+const locales = ['en', 'es', 'fr', 'pt', 'zh-CN'];
+const catalogs = Object.fromEntries(locales.map(lang => [lang, JSON.parse(read(`locales/${lang}.json`))]));
 const files = dir => fs.readdirSync(dir, { withFileTypes: true }).flatMap(entry => entry.isDirectory() ? files(path.join(dir, entry.name)) : [path.join(dir, entry.name)]);
 const parameters = text => [...text.matchAll(/\{([\w.-]+)\}/g)].map(match => match[1]).sort();
 
-test('English/Chinese keys and named interpolation parameters agree', () => {
-  assert.deepEqual(Object.keys(catalogs.en).sort(), Object.keys(catalogs['zh-CN']).sort());
-  for (const key of Object.keys(catalogs.en)) {
-    assert.match(key, /^[a-z][\w]*(?:\.[\w]+)+$/);
-    assert.ok(catalogs['zh-CN'][key].trim(), key);
-    assert.deepEqual(parameters(catalogs.en[key]), parameters(catalogs['zh-CN'][key]), key);
+test('locale keys and named interpolation parameters agree', () => {
+  const englishKeys = Object.keys(catalogs.en).sort();
+  for (const lang of locales) {
+    assert.deepEqual(Object.keys(catalogs[lang]).sort(), englishKeys, lang);
+    for (const key of englishKeys) {
+      assert.match(key, /^[a-z][\w]*(?:\.[\w]+)+$/);
+      assert.ok(catalogs[lang][key].trim(), `${lang}: ${key}`);
+      assert.deepEqual(parameters(catalogs.en[key]), parameters(catalogs[lang][key]), `${lang}: ${key}`);
+    }
   }
 });
 
@@ -46,7 +50,7 @@ test('translation runtime does not inspect English text or observe host DOM', ()
 test('all native locale keys, entry pages, scripts and icons exist', () => {
   const m = JSON.parse(read('manifest.json'));
   assert.equal(m.manifest_version, 3);
-  for (const lang of ['en', 'zh_CN']) {
+  for (const lang of ['en', 'es', 'fr', 'pt', 'zh_CN']) {
     const native = JSON.parse(read(`_locales/${lang}/messages.json`));
     for (const [, key] of JSON.stringify(m).matchAll(/__MSG_(\w+)__/g)) assert.ok(native[key]?.message, key);
   }

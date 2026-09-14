@@ -41,7 +41,7 @@ globalThis.installMockChrome = function ({ baseUrl = 'chrome-extension://local-t
   globalThis.chrome = {
     i18n: { getUILanguage: () => 'en-US' },
     runtime: {
-      id: 'local-test', getURL: path => baseUrl + path, getManifest: () => ({ version: '3.0.5' }),
+      id: 'local-test', getURL: path => baseUrl + path, getManifest: () => ({ version: '3.0.6' }),
       connect: () => ({ postMessage() {}, onMessage: event(), onDisconnect: event() }),
       sendMessage: dual({ ok: true }), onMessage: event(),
     },

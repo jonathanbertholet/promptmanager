@@ -6,7 +6,8 @@
 
   const STORAGE_KEY = 'uiLanguage';
   const DEFAULT_LANGUAGE = 'en';
-  const SUPPORTED = new Set(['auto', 'en', 'zh-CN']);
+  const LOCALES = ['en', 'es', 'fr', 'pt', 'zh-CN'];
+  const SUPPORTED = new Set(['auto', ...LOCALES]);
   const ATTRIBUTES = { textContent: 'i18n', placeholder: 'i18nPlaceholder', title: 'i18nTitle', 'aria-label': 'i18nAriaLabel', alt: 'i18nAlt' };
   const SELECTOR = '[data-i18n],[data-i18n-placeholder],[data-i18n-title],[data-i18n-aria-label],[data-i18n-alt],[data-i18n-rich]';
   const loaded = new Map(), listeners = new Set(), roots = new Set(), missing = new Set();
@@ -21,11 +22,16 @@
   let revision = 0, activation = Promise.resolve(), writes = Promise.resolve();
 
   function resolveLanguage(value) {
-    if (value === 'en' || value === 'zh-CN') return value;
+    if (LOCALES.includes(value)) return value;
     let browser = '';
     try { browser = globalThis.chrome?.i18n?.getUILanguage?.() || ''; } catch (_) { /* use navigator */ }
     browser ||= globalThis.navigator?.language || DEFAULT_LANGUAGE;
-    return String(browser).toLowerCase().startsWith('zh') ? 'zh-CN' : DEFAULT_LANGUAGE;
+    const lower = String(browser).toLowerCase().replace(/_/g, '-');
+    if (lower.startsWith('zh')) return 'zh-CN';
+    if (lower.startsWith('es')) return 'es';
+    if (lower.startsWith('fr')) return 'fr';
+    if (lower.startsWith('pt')) return 'pt';
+    return DEFAULT_LANGUAGE;
   }
 
   function loadMessages(locale) {

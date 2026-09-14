@@ -138,7 +138,7 @@
     await PanelRouter.mount(PanelView.CHANGELOG); await wait(150);
     let log = document.getElementById('opm-changelog-content'); assert(log, 'Changelog missing');
     await OPMI18n.setLanguage('zh-CN'); await wait(150);
-    assert(log.innerText.includes('版本 3.0.5'), 'Chinese changelog missing');
+    assert(log.innerText.includes('版本 3.0.6'), 'Chinese changelog missing');
     const nativeFetch = fetch; const pending = [];
     globalThis.fetch = url => String(url).includes('changelog') ? new Promise(resolve => pending.push({ url, resolve })) : nativeFetch(url);
     try {

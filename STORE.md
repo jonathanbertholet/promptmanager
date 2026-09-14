@@ -1,9 +1,9 @@
-# Chrome Web Store listing (3.0.5)
+# Chrome Web Store listing (3.0.6)
 
 ## What's new
 
 ```
-Inserting the same prompt again from the side panel with append off no longer shows a false error toast.
+Choose the interface language: English, Spanish, French, Portuguese, or Simplified Chinese (or Automatic). Perplexity no longer inserts the same prompt three times.
 ```
 
 Paste these into the [Developer Dashboard](https://chrome.google.com/webstore/devconsole) listing. The short description also lives in `src/manifest.json` (132-character limit). The long description is plain text — Chrome strips Markdown.
