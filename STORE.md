@@ -8,6 +8,10 @@ Choose the interface language: English, Spanish, French, Portuguese, or Simplifi
 
 Paste these into the [Developer Dashboard](https://chrome.google.com/webstore/devconsole) listing. The short description also lives in `src/manifest.json` (132-character limit). The long description is plain text — Chrome strips Markdown.
 
+## Catalog discovery update
+
+The detailed description below includes the free web catalog and guide links. This source update is ready to paste into the store listing; it does not change the extension version or its release notes.
+
 ## Short description
 
 ```
@@ -41,6 +45,13 @@ Whether you are a prompt engineer, researcher, or just an AI enthusiast, Open Pr
 - Works on the assistants you already use, plus any site you pin.
 - Privacy-first: your library stays in the browser until you explicitly share a prompt.
 - Built for reuse: organize once, insert anywhere.
+
+📚 Free AI prompt library
+
+Open Prompt Database is the companion web catalog: https://openpromptdatabase.com
+Browse and copy prompt templates for writing, coding, marketing, project planning, and travel without an account or extension. Install Open Prompt Manager when you want to save templates in your own browser library and reuse them on assistant sites.
+
+The prompt guides include instructions and worked examples for adding context and reviewing results: https://openpromptdatabase.com/guides
 
 💡 Use cases
 

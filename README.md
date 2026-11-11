@@ -30,7 +30,9 @@ A lightweight, open-source extension for Chrome and Firefox desktop, for saving,
 
 ### Open Prompt Database
 
-Browse community prompts on the [Open Prompt Database](https://openpromptdatabase.com/) and add them to your library with one click. Share your own prompts from the **side panel**.
+[Open Prompt Database](https://openpromptdatabase.com/) is a free AI prompt library for ChatGPT, Claude, Gemini, and other assistants. You can read and copy templates on the website without installing the extension, or add them to your Open Prompt Manager library with one click. Share your own prompts from the **side panel**.
+
+Start with [writing prompts](https://openpromptdatabase.com/t/writing), [coding prompts](https://openpromptdatabase.com/t/code), [project planning prompts](https://openpromptdatabase.com/t/project-planning), or [travel planning prompts](https://openpromptdatabase.com/t/travel). The [prompt guides](https://openpromptdatabase.com/guides) explain how to add context and review the result, with worked examples for writing, code review, project briefs, and meeting notes.
 
 - Stable `opd:` ids — re-import updates the same prompt when the catalog entry changes
 - Duplicate detection — already in your library? The site shows “Already in library”
