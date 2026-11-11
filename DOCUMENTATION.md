@@ -1,5 +1,7 @@
 ## Open Prompt Manager — Architecture and Developer Guide (v3.0.6)
 
+For the full system architecture, dependencies, data model, message reference, and catalog flows, see [ARCHITECTURE.md](ARCHITECTURE.md).
+
 This document explains how the Chrome extension in `src` is structured and how the main flows work.
 
 - Target: Chrome MV3

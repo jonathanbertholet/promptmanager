@@ -81,6 +81,12 @@ You can add or remove sites later from Settings → **Permissions**.
 
 You can change the open/close shortcut in Settings → **Record shortcut**. The recorded combo is exact — `Ctrl+M` does not also match `Ctrl+Shift+M`.
 
+## Documentation
+
+- [Architecture](ARCHITECTURE.md) — runtime components, dependencies, permissions, storage, prompt insertion, and community catalog integration
+- [Localization](docs/localization.md) — translation resources and UI conventions
+- [Contributing](CONTRIBUTING.md) — contribution guidelines
+
 ## Testing
 
 ```bash
