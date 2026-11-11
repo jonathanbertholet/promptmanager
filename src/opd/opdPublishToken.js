@@ -1,5 +1,6 @@
+import '../platform.js';
 /**
- * Per-profile publish secret in chrome.storage.sync (pseudonymous publisher id).
+ * Per-profile publish secret in OPMApi.storage.sync (pseudonymous publisher id).
  */
 import { OPD_CATALOG_URL } from './opdConstants.js';
 
@@ -13,27 +14,27 @@ export const OPD_API_BASE_URL_KEY = 'opdApiBaseUrl';
 export const OPD_PUBLISHER_SYNCED_AT_KEY = 'opdPublisherSyncedAt';
 
 function syncGet(keys) {
-  return new Promise((resolve) => chrome.storage.sync.get(keys, resolve));
+  return new Promise((resolve) => OPMApi.storage.sync.get(keys, resolve));
 }
 
 function syncSet(obj) {
-  return new Promise((resolve) => chrome.storage.sync.set(obj, resolve));
+  return new Promise((resolve) => OPMApi.storage.sync.set(obj, resolve));
 }
 
 function syncRemove(keys) {
-  return new Promise((resolve) => chrome.storage.sync.remove(keys, resolve));
+  return new Promise((resolve) => OPMApi.storage.sync.remove(keys, resolve));
 }
 
 function localGet(keys) {
-  return new Promise((resolve) => chrome.storage.local.get(keys, resolve));
+  return new Promise((resolve) => OPMApi.storage.local.get(keys, resolve));
 }
 
 function localSet(obj) {
-  return new Promise((resolve) => chrome.storage.local.set(obj, resolve));
+  return new Promise((resolve) => OPMApi.storage.local.set(obj, resolve));
 }
 
 function localRemove(keys) {
-  return new Promise((resolve) => chrome.storage.local.remove(keys, resolve));
+  return new Promise((resolve) => OPMApi.storage.local.remove(keys, resolve));
 }
 
 /**
@@ -81,7 +82,7 @@ export async function getPublishSettings() {
     : Boolean(data[OPD_PUBLISH_ENABLED_KEY]);
 
   return {
-    enabled,
+    enabled: enabled && await OPMPlatform.hasPublishDataPermission(),
     username: data[OPD_USERNAME_KEY] || null,
     token: data[OPD_PUBLISH_TOKEN_KEY] || null,
     pendingUsername: data[OPD_PENDING_USERNAME_KEY] || null,

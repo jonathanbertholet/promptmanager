@@ -1,3 +1,4 @@
+import '../platform.js';
 /**
  * Shared side panel footer — main side panel + settings subpages.
  */
@@ -28,7 +29,7 @@ export function mountSidepanelFooter({ active = null, root = document.body } = {
       <a class="footer-icon-link" href="https://buymeacoffee.com/jonathanbertholet" target="_blank" rel="noopener" data-i18n-title="support.coffeeTitle" title="Buy me a coffee">
         <svg class="footer-md-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M20 3H4v10c0 2.21 1.79 4 4 4h6c2.21 0 4-1.79 4-4v-3h2c1.11 0 2-.9 2-2V5c0-1.11-.9-2-2-2zm0 5h-2V5h2v3zM4 19h16v2H4v-2z"/></svg>
       </a>
-      <a class="footer-icon-link" href="https://chromewebstore.google.com/detail/open-prompt-manager/gmhaghdbihgenofhnmdbglbkbplolain" target="_blank" rel="noopener" data-i18n-title="support.reviewTitle" title="Review me">
+      <a class="footer-icon-link" href="${OPMPlatform.storeUrl}" target="_blank" rel="noopener" data-i18n-title="support.reviewTitle" title="Review me">
         <svg class="footer-md-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 17.27 18.18 21l-1.64-7.03L22 9.24l-7.19-.62L12 2 9.19 8.62 2 9.24l5.46 4.73L5.82 21 12 17.27z"/></svg>
       </a>
       <a class="footer-icon-link${active === 'settings' ? ' footer-icon-link-active' : ''}" data-footer-page="settings" href="${prefix}settings.html" data-i18n-title="settings.title" title="Settings">
@@ -41,5 +42,5 @@ export function mountSidepanelFooter({ active = null, root = document.body } = {
   `;
 
   root.appendChild(footer);
-  window.OPMI18n.apply(footer);
+  globalThis.OPMI18n.apply(footer);
 }

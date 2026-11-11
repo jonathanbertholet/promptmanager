@@ -96,7 +96,7 @@
   "settings.pressKeys": "Pressione as teclas…",
   "settings.listening": "Ouvindo…",
   "settings.launcherMode": "Modo de abertura",
-  "settings.launcherHelp": "Escolha como os prompts abrem nas páginas de assistentes. Barra lateral ou atalho usa só o painel lateral do Chrome ou seu atalho de teclado.",
+  "settings.launcherHelp": "Escolha como os prompts abrem nas páginas de assistentes. Barra lateral ou atalho usa só o painel lateral do navegador ou seu atalho de teclado.",
   "settings.floatingButton": "Botão flutuante",
   "settings.hotCorner": "Canto ativo",
   "settings.sidebarOrShortcut": "Barra lateral ou atalho",
@@ -139,7 +139,7 @@
   "onboarding.launcherLead": "Escolha o modo de abertura. Você pode mudar isso a qualquer momento em Configurações.",
   "onboarding.floatingDesc": "Seus prompts aparecem ao passar o cursor sobre o botão flutuante.",
   "onboarding.hotCornerDesc": "Mova o cursor para o canto inferior direito para abrir os prompts na hora.",
-  "onboarding.sidebarDesc": "Abra o painel lateral do Chrome ou use seu atalho de teclado — sem botão na página.",
+  "onboarding.sidebarDesc": "Abra o painel lateral do navegador ou use seu atalho de teclado — sem botão na página.",
   "onboarding.features": "Recursos",
   "onboarding.featureOneTitle": "Seus prompts, em um clique",
   "onboarding.featureOneDesc": "Passe o cursor para começar.",
@@ -164,7 +164,7 @@
   "onboarding.anotherWebsiteHint": "Para adicionar um site que não está na lista, abra-o no navegador, abra a barra lateral do {manager} e clique em {customWebsite} em Assistentes. Depois clique no campo de chat da página.",
   "onboarding.removeAllPermissions": "Remover todas as permissões",
   "onboarding.noProviderData": "Nenhum dado de provedor encontrado no armazenamento.",
-  "onboarding.permissionDenied": "Permissão negada para {provider}. Permita o acesso ao site no aviso do Chrome para continuar.",
+  "onboarding.permissionDenied": "Permissão negada para {provider}. Permita o acesso ao site no aviso do navegador para continuar.",
   "onboarding.permissionRequestFailed": "Não foi possível solicitar permissão para {provider}: {error}",
   "onboarding.removePermissionsFailed": "Não foi possível remover todas as permissões. Tente de novo em Configurações.",
   "opd.title": "Open Prompt Database",
@@ -263,5 +263,6 @@
   "settings.removeAllAccessConfirm": "Remover acesso a todos os sites?",
   "prompt.dragHandle": "Alça para arrastar",
   "prompt.dragReorder": "Arraste para reordenar",
-  "prompt.drag": "Arrastar"
+  "prompt.drag": "Arrastar",
+  "links.extensionStore": "Página da extensão"
 }

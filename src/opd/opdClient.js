@@ -8,8 +8,16 @@ import { getOpdApiBaseUrl, getPublishToken } from './opdPublishToken.js';
  * @param {RequestInit} [init]
  */
 export async function opdFetch(path, init = {}) {
+  const mayPublish = await OPMPlatform.hasPublishDataPermission();
+  const importCounter = /^\/v1\/prompts\/[^/]+\/import$/.test(path);
+  const needsConsent = path.startsWith('/v1/publishers') || path.startsWith('/v1/handles')
+    || (!importCounter && ['POST', 'DELETE'].includes(String(init.method || 'GET').toUpperCase()));
+  if (!mayPublish && needsConsent) {
+    return { ok: false, status: 403, data: { error: 'permission_denied' } };
+  }
   const base = await getOpdApiBaseUrl();
-  const token = await getPublishToken();
+  // Revoking Firefox's consent stops identifier transmission, including import counters.
+  const token = mayPublish ? await getPublishToken() : null;
   const headers = new Headers(init.headers || {});
   if (!headers.has('Content-Type') && init.body) {
     headers.set('Content-Type', 'application/json');

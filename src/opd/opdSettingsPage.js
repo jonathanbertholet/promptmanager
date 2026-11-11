@@ -1,3 +1,4 @@
+import '../platform.js';
 /**
  * Open Prompt Database settings page (handle, publish toggle, catalog import).
  */
@@ -26,7 +27,7 @@ const clearText = element => { delete element.dataset.i18n; element.textContent 
  */
 function sendOpdMessage(type, payload = {}) {
   return new Promise((resolve) => {
-    chrome.runtime.sendMessage({ type, ...payload }, (response) => {
+    OPMApi.runtime.sendMessage({ type, ...payload }, (response) => {
       resolve(response ?? { ok: false, error: 'no_response' });
     });
   });
@@ -203,7 +204,7 @@ export function initOpdSettingsPage(root = document) {
       }
 
       // COMMENT: Request catalog host access on this click (already-granted returns true, no prompt)
-      const granted = await requestOpdCatalogPermission();
+      const granted = await requestOpdCatalogPermission({ publish: true });
       if (!granted) {
         if (els.handleStatus) {
           bindText(els.handleStatus, 'opd.checkNeedsAccess');
@@ -255,7 +256,7 @@ export function initOpdSettingsPage(root = document) {
     els.publishToggle.addEventListener('change', async () => {
       const enabled = els.publishToggle.checked;
       if (enabled) {
-        const granted = await requestOpdCatalogPermission();
+        const granted = await requestOpdCatalogPermission({ publish: true });
         if (!granted) {
           els.publishToggle.checked = false;
           return;
@@ -294,7 +295,7 @@ export function initOpdSettingsPage(root = document) {
 
   refreshCatalogAccessUi(els).catch(console.error);
 
-  chrome.storage.onChanged.addListener((changes, area) => {
+  OPMApi.storage.onChanged.addListener((changes, area) => {
     if (area !== 'sync') return;
     if (
       changes.opdUsername ||

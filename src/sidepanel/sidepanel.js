@@ -1,3 +1,4 @@
+import '../platform.js';
 // sidepanel.js
 
 // COMMENT: Use unified prompt storage for all prompt operations
@@ -18,8 +19,8 @@ import { expandOriginPatterns, hasAnyOriginPermission } from '../utils/originPat
 import { normalizeTag, uniqueNormalizedTags } from '../utils/tags.js';
 import { mountSidepanelFooter } from './sidepanelFooter.js';
 
-const t = (key, params) => window.OPMI18n.t(key, params);
-const bind = (element, key, params, attribute) => window.OPMI18n.bind(element, key, params, attribute);
+const t = (key, params) => globalThis.OPMI18n.t(key, params);
+const bind = (element, key, params, attribute) => globalThis.OPMI18n.bind(element, key, params, attribute);
 
 /** @type {ReturnType<typeof collectPromptFormRefs>|null} */
 let promptFormEls = null;
@@ -33,14 +34,7 @@ function isExpandedTabView() {
  * COMMENT: Keep a port open while the Chrome side panel is visible so tabs can hide in-page UI.
  */
 function maintainSidePanelPresence() {
-  if (isExpandedTabView()) return;
-
-  chrome.windows.getCurrent()
-    .then((win) => {
-      const port = chrome.runtime.connect({ name: 'opm-sidepanel' });
-      port.postMessage({ type: 'OPM_SIDEPANEL_HELLO', windowId: win.id });
-    })
-    .catch(() => {});
+  OPMPlatform.maintainSidebarPresence();
 }
 
 function collectPromptFormRefs() {
@@ -301,12 +295,12 @@ const scheduleActiveTabAssistantsRefresh = debounceSidepanel(refreshActiveTabAss
 
 /**
  * COMMENT: Get the currently focused browser tab for pin/status actions.
- * @returns {Promise<chrome.tabs.Tab|null>}
+ * @returns {Promise<OPMApi.tabs.Tab|null>}
  */
 async function getActiveBrowserTab() {
-  const current = await chrome.tabs.query({ active: true, currentWindow: true });
+  const current = await OPMApi.tabs.query({ active: true, currentWindow: true });
   if (current[0]) return current[0];
-  const lastFocused = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+  const lastFocused = await OPMApi.tabs.query({ active: true, lastFocusedWindow: true });
   return lastFocused[0] || null;
 }
 
@@ -317,14 +311,14 @@ async function getActiveBrowserTab() {
  */
 function sendPinInputAction(action, tabId, extras = {}) {
   return new Promise(resolve => {
-    chrome.runtime.sendMessage({
+    OPMApi.runtime.sendMessage({
       type: 'OPM_PIN_INPUT',
       action,
       tabId,
       pendingPrompt: extras.pendingPrompt,
     }, response => {
-      if (chrome.runtime.lastError) {
-        resolve({ ok: false, error: chrome.runtime.lastError.message });
+      if (OPMApi.runtime.lastError) {
+        resolve({ ok: false, error: OPMApi.runtime.lastError.message });
         return;
       }
       resolve(response || { ok: false, error: 'empty_response' });
@@ -334,7 +328,7 @@ function sendPinInputAction(action, tabId, extras = {}) {
 
 /**
  * COMMENT: Start (or retry after permission) the input-field picker on the active tab.
- * @param {chrome.tabs.Tab} tab
+ * @param {OPMApi.tabs.Tab} tab
  * @param {{ pendingPrompt?: object }} [options]
  * @returns {Promise<object>}
  */
@@ -351,7 +345,7 @@ async function startInputPickerForTab(tab, { pendingPrompt } = {}) {
 
 /**
  * COMMENT: Clear saved detection and reopen the field-pointer picker on the active tab.
- * @param {chrome.tabs.Tab} tab
+ * @param {OPMApi.tabs.Tab} tab
  * @param {{ pendingPrompt?: object }} [options]
  * @returns {Promise<object>}
  */
@@ -386,11 +380,11 @@ async function insertPromptIntoActiveTab(prompt) {
   };
 
   const result = await new Promise(resolve => {
-    chrome.runtime.sendMessage(
+    OPMApi.runtime.sendMessage(
       { type: 'OPM_INSERT_PROMPT', localUuid: prompt.uuid, tabId: tab.id, prompt: pendingPrompt },
       response => {
-        if (chrome.runtime.lastError) {
-          resolve({ ok: false, error: chrome.runtime.lastError.message });
+        if (OPMApi.runtime.lastError) {
+          resolve({ ok: false, error: OPMApi.runtime.lastError.message });
           return;
         }
         resolve(response || { ok: false, error: 'empty_response' });
@@ -436,7 +430,7 @@ async function insertPromptIntoActiveTab(prompt) {
 
 /**
  * COMMENT: Optional pin overlay after a known assistant's built-in selector missed.
- * @param {chrome.tabs.Tab} tab
+ * @param {OPMApi.tabs.Tab} tab
  * @param {object} pendingPrompt
  */
 async function startKnownSiteInputPicker(tab, pendingPrompt) {
@@ -492,7 +486,7 @@ async function requestPermissionForUrl(url) {
     const { hostname } = new URL(url);
     const pattern = `*://${hostname}/*`;
     return await new Promise(resolve => {
-      chrome.permissions.request({ origins: [pattern] }, granted => resolve(Boolean(granted)));
+      OPMApi.permissions.request({ origins: [pattern] }, granted => resolve(Boolean(granted)));
     });
   } catch (_) {
     return false;
@@ -665,7 +659,7 @@ async function hasAnyGrantedProviderPermission() {
     const [stored, pinnedInputs] = await Promise.all([
       new Promise(resolve => {
         try {
-          chrome.storage.local.get(['aiProvidersMap'], resolve);
+          OPMApi.storage.local.get(['aiProvidersMap'], resolve);
         } catch (_) {
           resolve({});
         }
@@ -696,7 +690,7 @@ async function loadInitSnapshot() {
     PromptStorage.getPrompts(),
     new Promise(resolve => {
       try {
-        chrome.storage.local.get(settingsKeys, resolve);
+        OPMApi.storage.local.get(settingsKeys, resolve);
       } catch (_) {
         resolve({});
       }
@@ -781,7 +775,7 @@ function promptListDisplaySignature(prompts = []) {
 
 async function refreshOpdPublishStatus() {
   try {
-    const settings = await chrome.storage.sync.get(['opdPublishEnabled']);
+    const settings = await OPMApi.storage.sync.get(['opdPublishEnabled']);
     // COMMENT: Default publish on for new users (key absent) — registration happens on first share
     cachedOpdPublishEnabled = settings.opdPublishEnabled !== false;
   } catch (_) {
@@ -793,7 +787,7 @@ async function refreshOpdPublishStatus() {
 async function publishPromptToOpd(localUuid) {
   try {
     // COMMENT: Request catalog host access on the click gesture (SW cannot prompt reliably)
-    const granted = await requestOpdCatalogPermission();
+    const granted = await requestOpdCatalogPermission({ publish: true });
     if (!granted) {
       showSidepanelToast(mapPublishError('permission_denied'), { error: true });
       return false;
@@ -801,11 +795,11 @@ async function publishPromptToOpd(localUuid) {
     await syncOpdCatalogAccess();
 
     const res = await new Promise((resolve) => {
-      chrome.runtime.sendMessage(
+      OPMApi.runtime.sendMessage(
         { type: OPD_MSG.PUBLISH_PROMPT, localUuid },
         (response) => {
-          if (chrome.runtime.lastError) {
-            resolve({ ok: false, error: chrome.runtime.lastError.message });
+          if (OPMApi.runtime.lastError) {
+            resolve({ ok: false, error: OPMApi.runtime.lastError.message });
             return;
           }
           resolve(response ?? { ok: false, error: 'no_response' });
@@ -1081,7 +1075,7 @@ function buildPromptListItemActions(prompt) {
 
 async function getLocalSetting(key, defaultValue) {
   try {
-    const data = await chrome.storage.local.get([key]);
+    const data = await OPMApi.storage.local.get([key]);
     return data[key] !== undefined ? data[key] : defaultValue;
   } catch (_) {
     return defaultValue;
@@ -1090,7 +1084,7 @@ async function getLocalSetting(key, defaultValue) {
 
 async function setLocalSetting(key, value) {
   try {
-    await chrome.storage.local.set({ [key]: value });
+    await OPMApi.storage.local.set({ [key]: value });
   } catch (_) {
     // Ignore storage errors
   }
@@ -1440,8 +1434,8 @@ const debouncedSearchRefresh = debounceSidepanel(() => {
 /** COMMENT: Close the expanded tab via the service worker (sender.tab.id) */
 async function closeExpandedView() {
   const closedViaWorker = await new Promise(resolve => {
-    chrome.runtime.sendMessage({ type: 'OPM_CLOSE_EXPANDED_TAB' }, (response) => {
-      if (chrome.runtime.lastError) {
+    OPMApi.runtime.sendMessage({ type: 'OPM_CLOSE_EXPANDED_TAB' }, (response) => {
+      if (OPMApi.runtime.lastError) {
         resolve(false);
         return;
       }
@@ -1453,13 +1447,13 @@ async function closeExpandedView() {
   // COMMENT: Fallback — getCurrent uses callbacks in MV3, not bare await
   const tab = await new Promise(resolve => {
     try {
-      chrome.tabs.getCurrent(currentTab => resolve(currentTab || null));
+      OPMApi.tabs.getCurrent(currentTab => resolve(currentTab || null));
     } catch (_) {
       resolve(null);
     }
   });
   if (tab?.id) {
-    await chrome.tabs.remove(tab.id);
+    await OPMApi.tabs.remove(tab.id);
     return;
   }
   window.close();
@@ -1526,7 +1520,7 @@ async function getProvidersMapOrFallback() {
 
   try {
     const stored = await new Promise(resolve => {
-      chrome.storage.local.get(['aiProvidersMap'], resolve);
+      OPMApi.storage.local.get(['aiProvidersMap'], resolve);
     });
     if (stored?.aiProvidersMap && Object.keys(stored.aiProvidersMap).length > 0) {
       cachedProvidersMap = stored.aiProvidersMap;
@@ -1537,7 +1531,7 @@ async function getProvidersMapOrFallback() {
   }
 
   try {
-    const response = await fetch(chrome.runtime.getURL('llm_providers.json'));
+    const response = await fetch(OPMApi.runtime.getURL('llm_providers.json'));
     const data = await response.json();
     const list = Array.isArray(data?.llm_providers) ? data.llm_providers : [];
     const computedEntries = await Promise.all(list.map(async (p) => {
@@ -1618,11 +1612,11 @@ async function renderLLMsSectionBody({ pinnedInputs: pinnedInputsOverride } = {}
         const pattern = a.getAttribute('data-url-pattern');
         if (!pattern) return;
         const origins = expandOriginPatterns(pattern);
-        chrome.permissions.request({ origins }, (granted) => {
+        OPMApi.permissions.request({ origins }, (granted) => {
           if (granted) {
             // Update storage map so both this UI and the permissions page stay in sync
             // Read, mutate, and write the aiProvidersMap
-            chrome.storage.local.get(['aiProvidersMap'], (res) => {
+            OPMApi.storage.local.get(['aiProvidersMap'], (res) => {
               const map = res && res.aiProvidersMap ? res.aiProvidersMap : providersMap;
               if (!map[name]) {
                 map[name] = { hasPermission: 'Yes', urlPattern: pattern, url, iconUrl };
@@ -1632,7 +1626,7 @@ async function renderLLMsSectionBody({ pinnedInputs: pinnedInputsOverride } = {}
                 map[name].url = url || map[name].url;
                 map[name].iconUrl = iconUrl || map[name].iconUrl;
               }
-              chrome.storage.local.set({ aiProvidersMap: map });
+              OPMApi.storage.local.set({ aiProvidersMap: map });
             });
           }
         });
@@ -1800,7 +1794,7 @@ async function refreshPromptListView(force = false) {
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
-  await window.OPMI18n.ready;
+  await globalThis.OPMI18n.ready;
   maintainSidePanelPresence();
 
   if (isExpandedTabView()) {
@@ -1885,15 +1879,15 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   try {
-    chrome.tabs.onActivated.addListener(() => {
+    OPMApi.tabs.onActivated.addListener(() => {
       scheduleActiveTabAssistantsRefresh();
     });
-    chrome.tabs.onUpdated.addListener((_tabId, changeInfo) => {
+    OPMApi.tabs.onUpdated.addListener((_tabId, changeInfo) => {
       if (changeInfo.status === 'complete' || changeInfo.url) {
         scheduleActiveTabAssistantsRefresh();
       }
     });
-    chrome.storage.onChanged.addListener((changes, area) => {
+    OPMApi.storage.onChanged.addListener((changes, area) => {
       if (area === 'sync' && (changes.opdPublishEnabled || changes.opdUsername || changes.opdPublishToken)) {
         refreshOpdPublishStatus()
           .then(() => refreshPromptListView())
@@ -1948,13 +1942,13 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // COMMENT: Refresh UI whenever prompts change in storage
   PromptStorage.onPromptsChanged(refreshPromptListView);
-  window.OPMI18n.subscribe(() => {
+  globalThis.OPMI18n.subscribe(() => {
     refreshCustomWebsiteButton(document.getElementById('custom-website-btn')).catch(console.error);
   });
 
   // COMMENT: React to permissions updates live (permissions page writes aiProvidersMap)
   try {
-    chrome.storage.onChanged.addListener((changes, area) => {
+    OPMApi.storage.onChanged.addListener((changes, area) => {
       if (area === 'local' && changes.aiProvidersMap) {
         cachedProvidersMap = changes.aiProvidersMap.newValue || null;
         cachedPermissionAllowed = null;

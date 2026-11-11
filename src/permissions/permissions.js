@@ -1,3 +1,4 @@
+import '../platform.js';
 // COMMENT: Install onboarding — launcher choice, unified LLM shortcuts, sidebar launch
 import { OPM_DEV_FORCE_ONBOARDING_STORAGE_KEY } from '../devFlags.js';
 import { attachProviderIconFallback } from '../utils/providerIcons.js';
@@ -9,20 +10,20 @@ import {
 } from '../opd/opdCatalogAccess.js';
 import { getPublishSettings } from '../opd/opdPublishToken.js';
 
-const t = (key, params) => window.OPMI18n.t(key, params);
+const t = (key, params) => globalThis.OPMI18n.t(key, params);
 
 /** COMMENT: ?reset=1 clears onboarding state so the in-page tooltip shows again (dev only). */
 async function maybeResetOnboardingFromQuery() {
   const params = new URLSearchParams(window.location.search);
   if (!params.has('reset')) return;
-  await chrome.storage.local.set({
+  await OPMApi.storage.local.set({
     onboardingCompleted: false,
     [OPM_DEV_FORCE_ONBOARDING_STORAGE_KEY]: true,
   });
 }
 
 document.addEventListener('DOMContentLoaded', async function () {
-  await window.OPMI18n.ready;
+  await globalThis.OPMI18n.ready;
   maybeResetOnboardingFromQuery().catch(console.error);
   const DISPLAY_MODE_KEY = 'displayMode';
   const DEFAULT_DISPLAY_MODE = 'hotCorner';
@@ -30,7 +31,7 @@ document.addEventListener('DOMContentLoaded', async function () {
 
   // COMMENT: Cached so sidePanel.open can run on the click gesture (windows.getCurrent is async)
   let onboardingWindowId = null;
-  chrome.windows.getCurrent((win) => {
+  OPMApi.windows.getCurrent((win) => {
     onboardingWindowId = win?.id ?? null;
   });
 
@@ -51,11 +52,11 @@ document.addEventListener('DOMContentLoaded', async function () {
       });
     };
 
-    chrome.storage.local.get([DISPLAY_MODE_KEY], (result) => {
+    OPMApi.storage.local.get([DISPLAY_MODE_KEY], (result) => {
       const storedMode = result[DISPLAY_MODE_KEY];
       const mode = ALLOWED_DISPLAY_MODES.has(storedMode) ? storedMode : DEFAULT_DISPLAY_MODE;
       if (!ALLOWED_DISPLAY_MODES.has(storedMode)) {
-        chrome.storage.local.set({ [DISPLAY_MODE_KEY]: DEFAULT_DISPLAY_MODE });
+        OPMApi.storage.local.set({ [DISPLAY_MODE_KEY]: DEFAULT_DISPLAY_MODE });
       }
       radios.forEach((radio) => {
         radio.checked = radio.value === mode;
@@ -66,7 +67,7 @@ document.addEventListener('DOMContentLoaded', async function () {
     radios.forEach((radio) => {
       radio.addEventListener('change', () => {
         if (!radio.checked || !ALLOWED_DISPLAY_MODES.has(radio.value)) return;
-        chrome.storage.local.set({ [DISPLAY_MODE_KEY]: radio.value });
+        OPMApi.storage.local.set({ [DISPLAY_MODE_KEY]: radio.value });
         updateSelectedUI(radio.value);
       });
     });
@@ -90,7 +91,7 @@ document.addEventListener('DOMContentLoaded', async function () {
           })
           .catch(console.error)
           .finally(() => {
-            chrome.tabs.create({ url: `${OPD_CATALOG_URL}/`, active: true });
+            OPMApi.tabs.create({ url: `${OPD_CATALOG_URL}/`, active: true });
           });
       });
     }
@@ -108,7 +109,7 @@ document.addEventListener('DOMContentLoaded', async function () {
     shareToggle.addEventListener('change', async () => {
       const enabled = shareToggle.checked;
       if (enabled) {
-        const granted = await requestOpdCatalogPermission();
+        const granted = await requestOpdCatalogPermission({ publish: true });
         if (!granted) {
           applyShareState(false);
           return;
@@ -117,14 +118,14 @@ document.addEventListener('DOMContentLoaded', async function () {
       }
 
       const res = await new Promise((resolve) => {
-        chrome.runtime.sendMessage({ type: OPD_MSG.PUBLISH_ENABLE, enabled }, (response) => {
+        OPMApi.runtime.sendMessage({ type: OPD_MSG.PUBLISH_ENABLE, enabled }, (response) => {
           resolve(response ?? { ok: false });
         });
       });
       if (!res?.ok) applyShareState(!enabled);
     });
 
-    chrome.storage.onChanged.addListener((changes, area) => {
+    OPMApi.storage.onChanged.addListener((changes, area) => {
       if (area !== 'sync' || !changes.opdPublishEnabled) return;
       applyShareState(changes.opdPublishEnabled.newValue !== false);
     });
@@ -164,13 +165,13 @@ document.addEventListener('DOMContentLoaded', async function () {
         return;
       }
 
-      // COMMENT: sidePanel.open requires this click — do not await contains() first
-      if (onboardingWindowId != null && chrome.sidePanel?.open) {
-        chrome.sidePanel.open({ windowId: onboardingWindowId }).catch(() => {});
+      // Both browsers require the original click; Firefox opens the active window's sidebar.
+      if (onboardingWindowId != null || OPMPlatform.isFirefox) {
+        OPMPlatform.openSidebar({ windowId: onboardingWindowId }).catch(() => {});
       }
 
       const finishLaunch = (permissionGranted) => {
-        chrome.runtime.sendMessage(
+        OPMApi.runtime.sendMessage(
           {
             type: 'OPM_LAUNCH_PROVIDER_ONBOARDING',
             providerKey,
@@ -179,8 +180,8 @@ document.addEventListener('DOMContentLoaded', async function () {
             permissionAlreadyGranted: permissionGranted,
           },
           (response) => {
-            if (chrome.runtime.lastError) {
-              resolve({ ok: false, error: chrome.runtime.lastError.message });
+            if (OPMApi.runtime.lastError) {
+              resolve({ ok: false, error: OPMApi.runtime.lastError.message });
               return;
             }
             if (response?.error === 'permission_denied') {
@@ -193,19 +194,19 @@ document.addEventListener('DOMContentLoaded', async function () {
 
       const syncGrantedState = (granted) => {
         if (!granted) return;
-        chrome.storage.local.get(['aiProvidersMap'], (res) => {
+        OPMApi.storage.local.get(['aiProvidersMap'], (res) => {
           const map = res?.aiProvidersMap || {};
           if (map[providerKey]) {
             map[providerKey].hasPermission = 'Yes';
-            chrome.storage.local.set({ aiProvidersMap: map });
+            OPMApi.storage.local.set({ aiProvidersMap: map });
           }
         });
       };
 
-      chrome.permissions.request({ origins }, (granted) => {
-        if (chrome.runtime.lastError) {
-          alert(t('onboarding.permissionRequestFailed', { provider: providerKey, error: chrome.runtime.lastError.message }));
-          resolve({ ok: false, error: chrome.runtime.lastError.message });
+      OPMApi.permissions.request({ origins }, (granted) => {
+        if (OPMApi.runtime.lastError) {
+          alert(t('onboarding.permissionRequestFailed', { provider: providerKey, error: OPMApi.runtime.lastError.message }));
+          resolve({ ok: false, error: OPMApi.runtime.lastError.message });
           return;
         }
         if (!granted) {
@@ -237,7 +238,7 @@ document.addEventListener('DOMContentLoaded', async function () {
       icon.src = iconUrl;
       icon.width = 32; icon.height = 32;
       icon.className = 'custom-rounded-circle';
-      window.OPMI18n.bind(icon, 'provider.icon', { name: key }, 'alt');
+      globalThis.OPMI18n.bind(icon, 'provider.icon', { name: key }, 'alt');
       const label = document.createElement('span');
       label.className = 'custom-mb-0';
       label.textContent = key;
@@ -261,7 +262,7 @@ document.addEventListener('DOMContentLoaded', async function () {
     }
   }
 
-  chrome.storage.onChanged.addListener((changes, areaName) => {
+  OPMApi.storage.onChanged.addListener((changes, areaName) => {
     if (areaName === 'local' && changes.aiProvidersMap?.newValue) {
       populateProviders(changes.aiProvidersMap.newValue);
     }
@@ -269,18 +270,18 @@ document.addEventListener('DOMContentLoaded', async function () {
 
 
 
-  chrome.storage.local.get(['aiProvidersMap'], function (result) {
+  OPMApi.storage.local.get(['aiProvidersMap'], function (result) {
     if (result.aiProvidersMap) {
       populateProviders(result.aiProvidersMap);
       return;
     }
-    providerShortcutsContainer.replaceChildren(window.OPMI18n.bind(document.createElement('p'), 'onboarding.noProviderData'));
+    providerShortcutsContainer.replaceChildren(globalThis.OPMI18n.bind(document.createElement('p'), 'onboarding.noProviderData'));
   });
 
   // COMMENT: Remove all permissions handler — revokes all optional origins and resets providers map
   if (removeAllBtn) {
     removeAllBtn.addEventListener('click', () => {
-      chrome.storage.local.get(['aiProvidersMap'], (res) => {
+      OPMApi.storage.local.get(['aiProvidersMap'], (res) => {
         const currentMap = res && res.aiProvidersMap ? res.aiProvidersMap : {};
         const allPatterns = Array.from(new Set(
           Object.values(currentMap)
@@ -295,7 +296,7 @@ document.addEventListener('DOMContentLoaded', async function () {
               hasPermission: 'No',
             };
           }
-          chrome.storage.local.set({
+          OPMApi.storage.local.set({
             aiProvidersMap: updated,
             pinned_inputs_v1: {},
             learned_inputs_v1: {},
@@ -307,9 +308,9 @@ document.addEventListener('DOMContentLoaded', async function () {
           return;
         }
 
-        chrome.permissions.remove({ origins: allPatterns }, () => {
-          if (chrome.runtime.lastError) {
-            console.error('Failed to remove permissions:', chrome.runtime.lastError);
+        OPMApi.permissions.remove({ origins: allPatterns }, () => {
+          if (OPMApi.runtime.lastError) {
+            console.error('Failed to remove permissions:', OPMApi.runtime.lastError);
             alert(t('onboarding.removePermissionsFailed'));
             return;
           }

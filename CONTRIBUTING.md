@@ -1,6 +1,6 @@
 ## 🛠️ Contribution Guidelines
 
-Thanks for your interest in contributing! This Chrome extension is a **prompt manager for LLM services**, and we're happy to have contributors help make it better.
+Thanks for your interest in contributing! This Chrome and Firefox extension is a **prompt manager for LLM services**, and we're happy to have contributors help make it better.
 
 ### ✅ What You Can Contribute
 

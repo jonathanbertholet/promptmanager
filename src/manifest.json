@@ -1,7 +1,7 @@
 {
     "manifest_version": 3,
     "name": "__MSG_extensionName__",
-    "version": "3.0.6",
+    "version": "3.1.0",
     "description": "__MSG_extensionDescription__",
     "permissions": [
         "sidePanel",
@@ -46,6 +46,7 @@
     "web_accessible_resources": [
         {
             "resources": [
+                "platform.js",
                 "icons/*",
                 "changelog.html",
                 "storage/promptStorage.js",

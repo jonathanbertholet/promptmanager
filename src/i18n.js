@@ -13,7 +13,7 @@
   const loaded = new Map(), listeners = new Set(), roots = new Set(), missing = new Set();
   const hasDOM = typeof document !== 'undefined';
   const extensionDocument = hasDOM && (() => {
-    const url = new URL(chrome.runtime.getURL(''));
+    const url = new URL(OPMApi.runtime.getURL(''));
     return location.protocol === url.protocol && location.host === url.host;
   })();
   const owns = (object, key) => Object.prototype.hasOwnProperty.call(object, key);
@@ -24,7 +24,7 @@
   function resolveLanguage(value) {
     if (LOCALES.includes(value)) return value;
     let browser = '';
-    try { browser = globalThis.chrome?.i18n?.getUILanguage?.() || ''; } catch (_) { /* use navigator */ }
+    try { browser = globalThis.OPMApi?.i18n?.getUILanguage?.() || ''; } catch (_) { /* use navigator */ }
     browser ||= globalThis.navigator?.language || DEFAULT_LANGUAGE;
     const lower = String(browser).toLowerCase().replace(/_/g, '-');
     if (lower.startsWith('zh')) return 'zh-CN';
@@ -41,7 +41,7 @@
       const timeout = new Promise((_, reject) => {
         timer = setTimeout(() => { controller.abort(); reject(new Error(`Locale ${locale} timed out`)); }, 3000);
       });
-      const request = fetch(chrome.runtime.getURL(`locales/${locale}.json`), { signal: controller.signal })
+      const request = fetch(OPMApi.runtime.getURL(`locales/${locale}.json`), { signal: controller.signal })
         .then(response => {
           if (!response.ok) throw new Error(`Locale ${locale} HTTP ${response.status}`);
           return response.json();
@@ -186,7 +186,7 @@
     // Serialize writes from this page. Storage events remain the source of cross-page changes.
     writes = writes.catch(() => {}).then(async () => {
       const before = revision;
-      await chrome.storage.local.set({ [STORAGE_KEY]: next });
+      await OPMApi.storage.local.set({ [STORAGE_KEY]: next });
       if (revision === before) await activate(next);
       else await activation; // Do not overwrite a newer event when an older write finishes.
     });
@@ -194,12 +194,12 @@
   }
 
   const initialRevision = revision;
-  chrome.storage.onChanged.addListener((changes, area) => {
+  OPMApi.storage.onChanged.addListener((changes, area) => {
     if (area === 'local' && owns(changes, STORAGE_KEY)) activate(changes[STORAGE_KEY].newValue);
   });
   const ready = (async () => {
     let stored = 'auto';
-    try { stored = (await chrome.storage.local.get([STORAGE_KEY]))?.[STORAGE_KEY]; }
+    try { stored = (await OPMApi.storage.local.get([STORAGE_KEY]))?.[STORAGE_KEY]; }
     catch (error) { console.warn('[OPM i18n] Using browser language:', error); }
     if (revision === initialRevision) await activate(stored, false);
     // A storage event may have overtaken the initial read or locale fetch.

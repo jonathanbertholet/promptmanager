@@ -1,33 +1,29 @@
-/**
- * COMMENT: Relays import postMessage to the service worker on the catalog origin.
- * Store builds also accept externally_connectable sendMessage; this bridge covers
- * unpacked installs whose extension id differs from the Web Store id.
- */
-const OPD_REQUEST_IMPORT = 'OPD_REQUEST_IMPORT';
-const OPD_IMPORT_RESULT = 'OPD_IMPORT_RESULT';
+// Catalog bridge for Firefox and unpacked Chrome builds. Safe to inject repeatedly.
+(() => {
+  if (window.__OPM_CATALOG_BRIDGE__) return;
+  const allowed = new Set(['https://openpromptdatabase.com', 'https://www.openpromptdatabase.com']);
+  if (!allowed.has(location.origin)) return;
+  window.__OPM_CATALOG_BRIDGE__ = true;
 
-window.addEventListener('message', (event) => {
-  if (event.source !== window || !event.data || event.data.type !== OPD_REQUEST_IMPORT) {
-    return;
-  }
-
-  const { requestId, prompt } = event.data;
-  if (!requestId || !prompt) return;
-
-  chrome.runtime.sendMessage({ type: 'OPD_IMPORT_PROMPT', prompt }, (response) => {
-    const lastError = chrome.runtime.lastError?.message;
-    window.postMessage(
-      {
-        type: OPD_IMPORT_RESULT,
-        requestId,
-        ok: !lastError && !!response?.ok,
+  window.addEventListener('message', event => {
+    if (event.source !== window || event.origin !== location.origin) return;
+    const { type, requestId, prompt } = event.data || {};
+    if (type !== 'OPD_REQUEST_IMPORT' || typeof requestId !== 'string' || !prompt) return;
+    OPMApi.runtime.sendMessage({ type: 'OPD_IMPORT_PROMPT', prompt }, response => {
+      const lastError = OPMApi.runtime.lastError?.message;
+      window.postMessage({
+        type: 'OPD_IMPORT_RESULT', requestId,
+        ok: !lastError && Boolean(response?.ok),
         error: lastError || response?.error || null,
         response: response || null,
-      },
-      '*'
-    );
+      }, location.origin);
+    });
   });
-});
 
-// COMMENT: Page scripts detect the bridge without needing chrome.* in page context.
-document.documentElement.dataset.opmBridge = '1';
+  const announce = () => {
+    document.documentElement.dataset.opmBridge = '1';
+    window.dispatchEvent(new Event('opm-bridge-ready'));
+  };
+  if (document.documentElement) announce();
+  else document.addEventListener('DOMContentLoaded', announce, { once: true });
+})();

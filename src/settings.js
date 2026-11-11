@@ -1,3 +1,4 @@
+import './platform.js';
 import { exportPrompts, importPrompts } from './importExport.js';
 import { getPrompts, setPrompts } from './storage/promptStorage.js';
 import { getAllPinnedInputs, removePinnedForHostname } from './storage/pinnedInputStorage.js';
@@ -11,7 +12,7 @@ import { expandOriginPatterns } from './utils/originPatterns.js';
 import { uniqueNormalizedTags } from './utils/tags.js';
 import { mountSidepanelFooter } from './sidepanel/sidepanelFooter.js';
 
-const t = (key, params) => window.OPMI18n.t(key, params);
+const t = (key, params) => globalThis.OPMI18n.t(key, params);
 
 // COMMENT: Storage keys shared with the in-page panel and side panel
 const DISPLAY_MODE_KEY = 'displayMode';
@@ -25,12 +26,7 @@ const TAGS_ORDER_KEY = 'tagsOrder';
 
 /** COMMENT: Default open-panel shortcut per platform (matches content.js KeyboardManager). */
 function getDefaultKeyboardShortcut() {
-  const isMac = navigator.platform.toUpperCase().includes('MAC');
-  return {
-    key: isMac ? 'p' : 'm',
-    modifier: isMac ? 'metaKey' : 'ctrlKey',
-    requiresShift: isMac,
-  };
+  return OPMPlatform.getDefaultShortcut();
 }
 
 /** COMMENT: Human-readable label for a stored shortcut object. */
@@ -41,22 +37,22 @@ function formatKeyboardShortcut(shortcut) {
   else if (shortcut.modifier === 'ctrlKey') parts.push(isMac ? '⌃' : 'Ctrl');
   else if (shortcut.modifier === 'altKey') parts.push(isMac ? '⌥' : 'Alt');
   if (shortcut.requiresShift) parts.push(isMac ? '⇧' : 'Shift');
-  parts.push(String(shortcut.key || '').toUpperCase());
+  parts.push(shortcut.key === ' ' ? 'Space' : String(shortcut.key || '').toUpperCase());
   return parts.join(' + ');
 }
 
 function storageGet(keys) {
-  return new Promise(resolve => chrome.storage.local.get(keys, resolve));
+  return new Promise(resolve => OPMApi.storage.local.get(keys, resolve));
 }
 
 function storageSet(obj) {
-  return new Promise(resolve => chrome.storage.local.set(obj, resolve));
+  return new Promise(resolve => OPMApi.storage.local.set(obj, resolve));
 }
 
 function setImportExportStatus(key, isError = false) {
   const el = document.getElementById('import-export-status');
   if (!el) return;
-  window.OPMI18n.bind(el, key);
+  globalThis.OPMI18n.bind(el, key);
   el.classList.toggle('settings-status-error', isError);
 }
 
@@ -77,7 +73,7 @@ function initDisplayModePicker() {
     });
   };
 
-  chrome.storage.local.get([DISPLAY_MODE_KEY], (result) => {
+  OPMApi.storage.local.get([DISPLAY_MODE_KEY], (result) => {
     const storedMode = result[DISPLAY_MODE_KEY];
     const mode = ALLOWED_DISPLAY_MODES.has(storedMode) ? storedMode : DEFAULT_DISPLAY_MODE;
     radios.forEach((radio) => {
@@ -89,13 +85,13 @@ function initDisplayModePicker() {
   radios.forEach((radio) => {
     radio.addEventListener('change', () => {
       if (!radio.checked || !ALLOWED_DISPLAY_MODES.has(radio.value)) return;
-      chrome.storage.local.set({ [DISPLAY_MODE_KEY]: radio.value });
+      OPMApi.storage.local.set({ [DISPLAY_MODE_KEY]: radio.value });
       updateSelectedUI(radio.value);
     });
   });
 }
 
-/** COMMENT: Sync checkbox toggles with chrome.storage.local preference keys. */
+/** COMMENT: Sync checkbox toggles with OPMApi.storage.local preference keys. */
 function initPreferenceToggles() {
   const appendToggle = document.getElementById('toggle-append-mode');
   const tagsToggle = document.getElementById('toggle-enable-tags');
@@ -152,7 +148,7 @@ function initKeyboardShortcutRecorder() {
 
   const stopRecording = () => {
     recording = false;
-    window.OPMI18n.bind(recordBtn, 'settings.recordShortcut');
+    globalThis.OPMI18n.bind(recordBtn, 'settings.recordShortcut');
     recordBtn.classList.remove('is-recording');
     if (handler) {
       document.removeEventListener('keydown', handler, true);
@@ -168,9 +164,9 @@ function initKeyboardShortcutRecorder() {
     }
 
     recording = true;
-    window.OPMI18n.bind(recordBtn, 'settings.pressKeysCancel');
+    globalThis.OPMI18n.bind(recordBtn, 'settings.pressKeysCancel');
     recordBtn.classList.add('is-recording');
-    window.OPMI18n.bind(display, 'settings.listening');
+    globalThis.OPMI18n.bind(display, 'settings.listening');
 
     handler = async (event) => {
       event.preventDefault();
@@ -274,8 +270,8 @@ async function renderTagManagement() {
       handle.type = 'button';
       handle.className = 'settings-tag-drag';
       handle.setAttribute('draggable', 'true');
-      window.OPMI18n.bind(handle, 'tags.reorderNamed', { tag }, 'aria-label');
-      handle.innerHTML = `<img src="${chrome.runtime.getURL('icons/drag_indicator.svg')}" width="14" height="14" alt="">`;
+      globalThis.OPMI18n.bind(handle, 'tags.reorderNamed', { tag }, 'aria-label');
+      handle.innerHTML = `<img src="${OPMApi.runtime.getURL('icons/drag_indicator.svg')}" width="14" height="14" alt="">`;
 
       handle.addEventListener('dragstart', (event) => {
         event.dataTransfer.effectAllowed = 'move';
@@ -297,7 +293,7 @@ async function renderTagManagement() {
       const removeBtn = document.createElement('button');
       removeBtn.type = 'button';
       removeBtn.className = 'settings-tag-remove';
-      window.OPMI18n.bind(removeBtn, 'tags.removeNamed', { tag }, 'aria-label');
+      globalThis.OPMI18n.bind(removeBtn, 'tags.removeNamed', { tag }, 'aria-label');
       removeBtn.textContent = '×';
       removeBtn.addEventListener('click', async () => {
         if (!confirm(t('tags.removeConfirm', { tag }))) return;
@@ -376,7 +372,7 @@ function patternToHostname(pattern) {
  */
 async function loadProviderMetadata() {
   const stored = await new Promise(resolve => {
-    chrome.storage.local.get(['aiProvidersMap'], resolve);
+    OPMApi.storage.local.get(['aiProvidersMap'], resolve);
   });
 
   let providersMap = stored?.aiProvidersMap || {};
@@ -391,7 +387,7 @@ async function loadProviderMetadata() {
 
   if (providersByPattern.size === 0) {
     try {
-      const response = await fetch(chrome.runtime.getURL('llm_providers.json'));
+      const response = await fetch(OPMApi.runtime.getURL('llm_providers.json'));
       const data = await response.json();
       const list = Array.isArray(data?.llm_providers) ? data.llm_providers : [];
       list.forEach((provider) => {
@@ -419,7 +415,7 @@ async function loadProviderMetadata() {
  * @returns {Promise<Array<{ pattern: string, label: string, url: string, iconUrl: string }>>}
  */
 async function getGrantedSiteEntries() {
-  const permissions = await chrome.permissions.getAll();
+  const permissions = await OPMApi.permissions.getAll();
   const origins = Array.isArray(permissions?.origins) ? permissions.origins : [];
   if (origins.length === 0) return [];
 
@@ -434,7 +430,7 @@ async function getGrantedSiteEntries() {
         pattern,
         label: t('settings.allWebsites'),
         url: 'https://example.com',
-        iconUrl: chrome.runtime.getURL('icons/language.svg'),
+        iconUrl: OPMApi.runtime.getURL('icons/language.svg'),
       };
     }
 
@@ -491,7 +487,7 @@ function markProviderRevoked(providersMap, pattern) {
  */
 async function syncStorageAfterRevoke(patterns) {
   const stored = await new Promise(resolve => {
-    chrome.storage.local.get(['aiProvidersMap'], resolve);
+    OPMApi.storage.local.get(['aiProvidersMap'], resolve);
   });
   let providersMap = stored?.aiProvidersMap || {};
 
@@ -505,7 +501,7 @@ async function syncStorageAfterRevoke(patterns) {
   });
 
   await new Promise(resolve => {
-    chrome.storage.local.set({ aiProvidersMap: providersMap }, resolve);
+    OPMApi.storage.local.set({ aiProvidersMap: providersMap }, resolve);
   });
 }
 
@@ -538,19 +534,19 @@ async function renderWebsitePermissions() {
     const label = document.createElement('span');
     label.className = 'settings-permission-label';
     label.textContent = entry.label;
-    if (entry.pattern === '<all_urls>') window.OPMI18n.bind(label, 'settings.allWebsites');
+    if (entry.pattern === '<all_urls>') globalThis.OPMI18n.bind(label, 'settings.allWebsites');
 
     const removeBtn = document.createElement('button');
     removeBtn.type = 'button';
     removeBtn.className = 'settings-permission-remove';
-    window.OPMI18n.bind(removeBtn, entry.pattern === '<all_urls>' ? 'settings.removeAllAccess' : 'settings.removeAccess', { site: entry.label }, 'aria-label');
+    globalThis.OPMI18n.bind(removeBtn, entry.pattern === '<all_urls>' ? 'settings.removeAllAccess' : 'settings.removeAccess', { site: entry.label }, 'aria-label');
     removeBtn.innerHTML = '<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M18.3 5.71a1 1 0 0 0-1.41 0L12 10.59 7.11 5.7A1 1 0 0 0 5.7 7.11L10.59 12l-4.89 4.89a1 1 0 1 0 1.41 1.41L12 13.41l4.89 4.89a1 1 0 0 0 1.41-1.41L13.41 12l4.89-4.89a1 1 0 0 0 0-1.4z"/></svg>';
     removeBtn.addEventListener('click', async () => {
       const confirmed = confirm(t(entry.pattern === '<all_urls>' ? 'settings.removeAllAccessConfirm' : 'settings.removeAccessConfirm', { site: entry.label }));
       if (!confirmed) return;
 
       await new Promise(resolve => {
-        chrome.permissions.remove({ origins: [entry.pattern] }, resolve);
+        OPMApi.permissions.remove({ origins: [entry.pattern] }, resolve);
       });
       await syncStorageAfterRevoke([entry.pattern]);
       await renderWebsitePermissions();
@@ -565,7 +561,7 @@ async function renderWebsitePermissions() {
 function initWebsitePermissions() {
   renderWebsitePermissions().catch(console.error);
 
-  chrome.storage.onChanged.addListener((changes, area) => {
+  OPMApi.storage.onChanged.addListener((changes, area) => {
     if (area !== 'local') return;
     if (changes.aiProvidersMap || changes.pinned_inputs_v1) {
       renderWebsitePermissions().catch(console.error);
@@ -579,19 +575,19 @@ function initWebsitePermissions() {
 function initLanguagePicker() {
   const select = document.getElementById('ui-language-select');
   if (!select) return;
-  const sync = () => { select.value = window.OPMI18n.getPreference(); };
+  const sync = () => { select.value = globalThis.OPMI18n.getPreference(); };
   sync();
   select.addEventListener('change', async () => {
-    const previous = window.OPMI18n.getPreference();
+    const previous = globalThis.OPMI18n.getPreference();
     try {
-      await window.OPMI18n.setLanguage(select.value);
+      await globalThis.OPMI18n.setLanguage(select.value);
     } catch (error) {
       select.value = previous;
       window.alert(t('settings.languageSaveFailed'));
       console.error(error);
     }
   });
-  window.OPMI18n.subscribe(sync);
+  globalThis.OPMI18n.subscribe(sync);
 }
 
 async function deleteAllPrompts() {
@@ -603,7 +599,7 @@ async function deleteAllPrompts() {
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
-  await window.OPMI18n.ready;
+  await globalThis.OPMI18n.ready;
   const shell = document.querySelector('.settings-page-shell');
   mountSidepanelFooter({ active: 'settings', root: shell || document.body });
 

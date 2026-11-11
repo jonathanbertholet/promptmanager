@@ -263,5 +263,6 @@
   "settings.removeAllAccessConfirm": "移除所有网站的访问权限？",
   "prompt.dragHandle": "拖动以调整顺序",
   "prompt.dragReorder": "拖动以调整顺序",
-  "prompt.drag": "拖动"
+  "prompt.drag": "拖动",
+  "links.extensionStore": "扩展页面"
 }

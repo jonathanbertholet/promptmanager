@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning].
 
 ## [Unreleased]
 
+## [3.1.0] - 2026-11-11
+
+### Added
+
+- Firefox desktop support (140+) from the same application source as Chrome, with native sidebar and module background scripts.
+- Separate Chrome and Firefox unpacked builds and ZIP packages through `npm run build`.
+- Firefox catalog imports through the existing website bridge, optional publishing consent, and browser-specific extension links.
+
+### Changed
+
+- Shared browser API dispatch preserves callbacks and promises without changing Chrome's native API behavior.
+- In-page localization uses the content-script global consistently; input detection supports Firefox's closed shadow root accessor.
+- Firefox uses Ctrl+Shift+Space by default and local assistant icons. Existing Chrome shortcuts and remote icon behavior are retained.
+
 ## [3.0.6] - 2026-09-14
 
 ### Added

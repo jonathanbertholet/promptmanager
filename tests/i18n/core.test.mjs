@@ -3,6 +3,7 @@ import test from 'node:test';
 import fs from 'node:fs';
 import vm from 'node:vm';
 const source = fs.readFileSync(new URL('../../src/i18n.js', import.meta.url), 'utf8');
+const platform = fs.readFileSync(new URL('../../src/platform.js', import.meta.url), 'utf8');
 const catalogs = Object.fromEntries(['en', 'es', 'fr', 'pt', 'zh-CN'].map(locale => [locale, JSON.parse(fs.readFileSync(new URL(`../../src/locales/${locale}.json`, import.meta.url), 'utf8'))]));
 const flush = () => new Promise(resolve => setImmediate(resolve));
 const deferred = () => { let resolve; const promise = new Promise(r => { resolve = r; }); return { promise, resolve }; };
@@ -21,6 +22,7 @@ function runtime({ stored = 'auto', browser = 'en-US', get, fetch: fetcher, set 
     console: { log() {}, warn() {}, error() {} },
     fetch: fetcher || (async url => { const locale = url.match(/\/([^/]+)\.json$/)[1]; requests.push(locale); return { ok: true, json: async () => catalogs[locale] }; }),
   });
+  vm.runInContext(platform, context);
   vm.runInContext(source, context);
   return { api: context.OPMI18n, emit, requests, writes, context };
 }

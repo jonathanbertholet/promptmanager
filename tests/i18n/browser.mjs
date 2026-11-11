@@ -48,7 +48,7 @@ async function run(name, isHost = false) {
   try {
     await page.goto(isHost ? `${base}/host.html` : `${base}/src/${name}`, { waitUntil: 'load' });
     if (isHost) {
-      for (const file of ['content.boot.js', 'i18n.js', 'utils/promptInsertUtils.js', 'handlers/inputBoxHandler.js', 'content.styles.js', 'content.shared.js', 'content.js']) {
+      for (const file of ['platform.js', 'content.boot.js', 'i18n.js', 'utils/promptInsertUtils.js', 'handlers/inputBoxHandler.js', 'content.styles.js', 'content.shared.js', 'content.js']) {
         await page.addScriptTag({ url: `${other}/src/${file}` });
       }
       await page.waitForSelector('#opm-root');

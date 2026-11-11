@@ -96,7 +96,7 @@
   "settings.pressKeys": "Appuyez sur les touches…",
   "settings.listening": "Écoute…",
   "settings.launcherMode": "Mode de lancement",
-  "settings.launcherHelp": "Choisissez comment ouvrir les prompts sur les pages d’assistants. Panneau latéral ou raccourci n’utilise que le panneau Chrome ou votre raccourci clavier.",
+  "settings.launcherHelp": "Choisissez comment ouvrir les prompts sur les pages d’assistants. Panneau latéral ou raccourci n’utilise que le panneau du navigateur ou votre raccourci clavier.",
   "settings.floatingButton": "Bouton flottant",
   "settings.hotCorner": "Coin actif",
   "settings.sidebarOrShortcut": "Panneau latéral ou raccourci",
@@ -139,7 +139,7 @@
   "onboarding.launcherLead": "Choisissez votre mode de lancement. Vous pourrez le modifier à tout moment dans Paramètres.",
   "onboarding.floatingDesc": "Vos prompts apparaissent lorsque vous survolez le bouton flottant.",
   "onboarding.hotCornerDesc": "Placez le curseur dans le coin inférieur droit pour ouvrir les prompts instantanément.",
-  "onboarding.sidebarDesc": "Ouvrez le panneau latéral Chrome ou utilisez votre raccourci clavier — sans bouton sur la page.",
+  "onboarding.sidebarDesc": "Ouvrez le panneau latéral du navigateur ou utilisez votre raccourci clavier — sans bouton sur la page.",
   "onboarding.features": "Fonctionnalités",
   "onboarding.featureOneTitle": "Vos prompts, en un clic",
   "onboarding.featureOneDesc": "Survolez pour commencer.",
@@ -164,7 +164,7 @@
   "onboarding.anotherWebsiteHint": "Pour ajouter un site absent de la liste, ouvrez-le dans le navigateur, ouvrez le panneau {manager}, puis cliquez sur {customWebsite} sous Assistants. Cliquez ensuite dans le champ de chat de la page.",
   "onboarding.removeAllPermissions": "Retirer toutes les autorisations",
   "onboarding.noProviderData": "Aucune donnée de fournisseur dans le stockage.",
-  "onboarding.permissionDenied": "Autorisation refusée pour {provider}. Autorisez l’accès au site dans l’invite Chrome pour continuer.",
+  "onboarding.permissionDenied": "Autorisation refusée pour {provider}. Autorisez l’accès au site dans l’invite du navigateur pour continuer.",
   "onboarding.permissionRequestFailed": "Impossible de demander l’autorisation pour {provider} : {error}",
   "onboarding.removePermissionsFailed": "Impossible de retirer toutes les autorisations. Réessayez depuis Paramètres.",
   "opd.title": "Open Prompt Database",
@@ -263,5 +263,6 @@
   "settings.removeAllAccessConfirm": "Retirer l’accès à tous les sites ?",
   "prompt.dragHandle": "Poignée de glissement",
   "prompt.dragReorder": "Glisser pour réordonner",
-  "prompt.drag": "Glisser"
+  "prompt.drag": "Glisser",
+  "links.extensionStore": "Page de l’extension"
 }

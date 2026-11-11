@@ -1,3 +1,4 @@
+import '../platform.js';
 /**
  * Shared info banner copy for the side panel and in-page prompt list.
  * Keep in sync with PromptUIManager.BANNER_CONFIG in content.js.
@@ -27,7 +28,7 @@ export async function mountSidepanelInfoBanner(hostEl) {
   if (!hostEl || !OPM_INFO_BANNER.active) return;
 
   try {
-    const stored = await chrome.storage.local.get([OPM_INFO_BANNER.storageKey]);
+    const stored = await OPMApi.storage.local.get([OPM_INFO_BANNER.storageKey]);
     const dismissed = stored?.[OPM_INFO_BANNER.storageKey] || [];
     if (dismissed.includes(OPM_INFO_BANNER.id)) return;
   } catch (_) {
@@ -45,11 +46,11 @@ export async function mountSidepanelInfoBanner(hostEl) {
   closeBtn?.addEventListener('click', async () => {
     banner.remove();
     try {
-      const stored = await chrome.storage.local.get([OPM_INFO_BANNER.storageKey]);
+      const stored = await OPMApi.storage.local.get([OPM_INFO_BANNER.storageKey]);
       const dismissed = stored?.[OPM_INFO_BANNER.storageKey] || [];
       if (!dismissed.includes(OPM_INFO_BANNER.id)) {
         dismissed.push(OPM_INFO_BANNER.id);
-        await chrome.storage.local.set({ [OPM_INFO_BANNER.storageKey]: dismissed });
+        await OPMApi.storage.local.set({ [OPM_INFO_BANNER.storageKey]: dismissed });
       }
     } catch (_) { /* ignore */ }
   });

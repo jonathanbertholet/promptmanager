@@ -1,8 +1,8 @@
 # Open Prompt Manager architecture
 
-Open Prompt Manager (OPM) is a Chrome Manifest V3 extension that stores a personal prompt library and inserts selected prompts into website chat inputs. It uses plain JavaScript, HTML, CSS, Chrome extension APIs, and the browser DOM. The extension does not run a language model or call an AI provider's inference API: it writes text into the assistant website the user already has open.
+Open Prompt Manager (OPM) is a Chrome and Firefox desktop Manifest V3 extension that stores a personal prompt library and inserts selected prompts into website chat inputs. It uses plain JavaScript, HTML, CSS, Chrome extension APIs, and the browser DOM. The extension does not run a language model or call an AI provider's inference API: it writes text into the assistant website the user already has open.
 
-This document describes the checked-in extension, whose [manifest](src/manifest.json) currently declares version **3.0.6**. Links point to implementation files in this repository. The optional community catalog, Open Prompt Database (OPD), has a separate website and backend repository.
+This document describes the checked-in extension, whose [manifest](src/manifest.json) currently declares version **3.1.0**. Links point to implementation files in this repository. The optional community catalog, Open Prompt Database (OPD), has a separate website and backend repository.
 
 ## Contents
 
@@ -23,7 +23,9 @@ This document describes the checked-in extension, whose [manifest](src/manifest.
 
 ## System overview
 
-OPM runs in three main extension contexts. Extension pages own the side panel, settings, and onboarding. A background service worker coordinates browser operations and catalog requests. Content scripts own the interface injected into permitted websites and interact with their chat inputs.
+Chrome and Firefox share `src/`. `platform.js` exposes `OPMApi` and `OPMPlatform`, preserving native Chrome behavior while adapting Firefox promises, callbacks, sidebar controls, and publishing consent. `npm run build` creates separate target manifests and packages; see [Firefox and shared browser builds](docs/firefox.md) for the Firefox 140+ target, release configuration, and catalog bridge.
+
+OPM runs in three main extension contexts. Extension pages own the side panel, settings, and onboarding. A background service worker on Chrome, or a module event page on Firefox, coordinates browser operations and catalog requests. Content scripts own the interface injected into permitted websites and interact with their chat inputs.
 
 These contexts communicate through Chrome messages, ports, and storage events. Extension pages and content scripts can use the shared storage modules directly; ordinary library edits do not have to pass through the worker.
 
@@ -111,7 +113,7 @@ promptmanager/
 
 ### Application technology
 
-The shipped UI has no JavaScript framework, component library, database server, or npm runtime bundle. Chrome loads the files under `src/` directly. There is no required compilation or bundling step for the extension source.
+The shipped UI has no JavaScript framework, component library, database server, or npm runtime bundle. Chrome loads the files under `src/` directly. Chrome can load `src/` directly. The dependency-free packaging script copies the shared application and generates the target manifest for each browser.
 
 The worker and extension-page controllers use ES modules. The injected application uses ordered classic scripts that expose shared classes and helpers on `window` in the extension's isolated content-script world. Content scripts dynamically import the storage modules using `import(chrome.runtime.getURL(...))`. The manifest lists the required imported resources under `web_accessible_resources`.
 
@@ -134,7 +136,7 @@ This mixed loading model matters when moving code: an ES-module export is not au
 
 The manifest declares `sidePanel`, `storage`, `tabs`, `scripting`, `activeTab`, and `contextMenus` permissions. It declares no required host permissions. `activeTab` is present, but the normal insertion coordinator explicitly checks granted website origins before injecting the full application.
 
-The manifest does not declare a `minimum_chrome_version`. Compatibility depends on the Chrome extension APIs and web APIs actually used; native side-panel lifecycle events are feature-detected. This architecture is centered on Chrome's side-panel and Manifest V3 implementation.
+The manifest does not declare a `minimum_chrome_version`. Compatibility depends on the Chrome extension APIs and web APIs actually used; native side-panel lifecycle events are feature-detected. Firefox uses `sidebarAction` and a module background script through its generated manifest; Chrome retains its side-panel and service-worker implementation.
 
 ### Browser and external dependencies
 
@@ -174,13 +176,14 @@ There is no static `content_scripts` block in the manifest. The worker registers
 
 The file order is explicit and significant:
 
-1. `content.boot.js`
-2. `i18n.js`
-3. `utils/promptInsertUtils.js`
-4. `handlers/inputBoxHandler.js`
-5. `content.styles.js`
-6. `content.shared.js`
-7. `content.js`
+1. `platform.js`
+2. `content.boot.js`
+3. `i18n.js`
+4. `utils/promptInsertUtils.js`
+5. `handlers/inputBoxHandler.js`
+6. `content.styles.js`
+7. `content.shared.js`
+8. `content.js`
 
 The boot file sets `__openPromptManagerInjected` before the rest of the application loads. Other guards distinguish script loading, listener readiness, and application bootstrap:
 
@@ -234,7 +237,7 @@ The launcher modes share the same underlying panel:
 | `hotCorner` | Bottom-right hover zone and indicator. This is the first-install default. |
 | `invisible` | Hidden anchor for keyboard access; the browser side panel remains available. |
 
-The shortcut is handled by a page `keydown` listener, not a manifest `commands` entry. Defaults are Command+Shift+P on macOS and Ctrl+M elsewhere. A recorded shortcut replaces that preference and modifier matching is exact.
+The shortcut is handled by a page `keydown` listener, not a manifest `commands` entry. Chrome defaults are Command+Shift+P on macOS and Ctrl+M elsewhere. Firefox defaults to Ctrl+Shift+Space. A recorded shortcut replaces that preference and modifier matching is exact.
 
 ### Settings and context menus
 

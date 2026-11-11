@@ -42,3 +42,7 @@ opd/
 # Localization test output
 i18n-browser-results.json
 i18n-screenshots/
+
+# Generated browser packages
+dist/
+artifacts/

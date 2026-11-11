@@ -1,3 +1,25 @@
+import '../platform.js';
+
+// Firefox can show assistants before catalog data consent. Keep icon requests local.
+const BUNDLED_PROVIDER_ICONS = {
+  'chatgpt.com': 'openai-pg-icon.png',
+  'chat.openai.com': 'openai-pg-icon.png',
+  'platform.openai.com': 'openai-pg-icon.png',
+  'chat.deepseek.com': 'deepseek-icon.png',
+  'copilot.microsoft.com': 'copilot.png',
+  'github.com': 'github-icon.png',
+  'chat.mistral.ai': 'mistral.png',
+  'apps.abacus.ai': 'chatllm.png',
+  'perplexity.ai': 'perplexity-icon.png',
+  'chat.qwen.ai': 'qwen-icon.png',
+  'lmarena.ai': 'lmarena-icon.png',
+};
+
+function bundledProviderIcon(providerUrl) {
+  let name;
+  try { name = BUNDLED_PROVIDER_ICONS[new URL(providerUrl).hostname.replace(/^www\./, '')]; } catch (_) { /* generic icon */ }
+  return OPMApi.runtime.getURL(`icons/${name || 'language.svg'}`);
+}
 // providerIcons.js — resolve assistant favicons with safe fallbacks
 
 /**
@@ -7,7 +29,10 @@
  * @returns {string}
  */
 export function resolveProviderIconUrl(rawIconUrl, providerUrl) {
-  if (rawIconUrl && /^(https?:|data:|chrome-extension:)/i.test(rawIconUrl)) {
+  if (OPMPlatform.isFirefox && /^(https?:|chrome-extension:)/i.test(rawIconUrl || '')) {
+    return bundledProviderIcon(providerUrl);
+  }
+  if (rawIconUrl && /^(https?:|data:|chrome-extension:|moz-extension:)/i.test(rawIconUrl)) {
     return rawIconUrl;
   }
 
@@ -15,7 +40,7 @@ export function resolveProviderIconUrl(rawIconUrl, providerUrl) {
     const normalized = String(rawIconUrl)
       .replace(/^(\.\.\/)+/, '')
       .replace(/^\.\//, '');
-    return chrome.runtime.getURL(normalized);
+    return OPMApi.runtime.getURL(normalized);
   }
 
   return getFaviconFallbackForUrl(providerUrl);
@@ -27,11 +52,12 @@ export function resolveProviderIconUrl(rawIconUrl, providerUrl) {
  * @returns {string}
  */
 export function getFaviconFallbackForUrl(providerUrl) {
+  if (OPMPlatform.isFirefox) return bundledProviderIcon(providerUrl);
   try {
     const { hostname } = new URL(providerUrl);
     return `https://www.google.com/s2/favicons?domain=${encodeURIComponent(hostname)}&sz=32`;
   } catch (_) {
-    return chrome.runtime.getURL('icons/language.svg');
+    return OPMApi.runtime.getURL('icons/language.svg');
   }
 }
 

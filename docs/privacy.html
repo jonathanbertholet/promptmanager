@@ -145,7 +145,7 @@
     </nav>
 
     <header class="opd-about-hero settings-section-first">
-      <p class="opd-about-eyebrow">Effective 24 August 2026</p>
+      <p class="opd-about-eyebrow">Effective 11 November 2026</p>
       <h1 class="opd-about-title">Privacy policy</h1>
       <p class="opd-about-lead">
         <strong>Open Prompt Manager</strong> keeps your prompt library on your computer.
@@ -153,7 +153,7 @@
         The extension does not use analytics, advertising, or an account for its core features.
       </p>
       <p class="opd-about-lead">
-        This policy covers the Chrome extension and this website (Open Prompt Database).
+        This policy covers the Chrome and Firefox extension and this website (Open Prompt Database).
         Both are made by the same independent developer,
         <a href="https://github.com/jonathanbertholet" target="_blank" rel="noopener noreferrer">Jonathan Bertholet</a>.
       </p>
@@ -184,7 +184,7 @@
       <section class="opd-about-card">
         <h2 class="opd-about-card-title">Who this covers</h2>
         <p class="opd-about-card-text">
-          <strong>Open Prompt Manager</strong> is the Chrome extension that stores prompts locally and can insert them into AI chat sites you enable.
+          <strong>Open Prompt Manager</strong> is the Chrome and Firefox extension that stores prompts locally and can insert them into AI chat sites you enable.
           Source:
           <a href="https://github.com/jonathanbertholet/promptmanager" target="_blank" rel="noopener noreferrer">github.com/jonathanbertholet/promptmanager</a>.
           Store listing:
@@ -201,7 +201,7 @@
         <h2 class="opd-about-card-title">What the extension stores locally</h2>
         <p class="opd-about-card-text">
           Core use does <strong>not</strong> require an account, email address, or sign-in.
-          Data lives in Chrome’s extension storage on your profile.
+          Data lives in your browser’s extension storage on your profile.
         </p>
         <ul class="opd-about-list">
           <li><strong>Library</strong> — titles, content, tags, folders, local ids, and optional catalog ids (<code>opd:</code>) for prompts you imported or published.</li>
@@ -209,7 +209,7 @@
           <li><strong>Site helpers</strong> — CSS selectors and hostnames for custom websites you pin, and for inputs the extension has successfully used. These find the chat box. They are not a copy of the page, your chats, or your browsing history.</li>
         </ul>
         <p class="opd-about-card-text">
-          If you use sharing, a few keys may be stored in Chrome sync so they follow your Chrome profile: a random publish token, your public handle, and whether publishing is enabled.
+          If you use sharing, a few keys may be stored in Chrome Sync or Firefox Sync so they follow your browser profile: a random publish token, your public handle, and whether publishing is enabled.
           Your <strong>prompt library is not synced</strong> this way. Use export / import to copy prompts to another device.
         </p>
         <p class="opd-about-card-note">Uninstalling the extension deletes this storage from that browser profile.</p>
@@ -232,7 +232,7 @@
           <li>Optional host access — assistant sites you enable, and (if you grant it) this catalog for one-click import</li>
         </ul>
         <p class="opd-about-card-text">
-          Optional <code>&lt;all_urls&gt;</code> in the manifest only lets Chrome <strong>ask</strong> for a specific site when you pin a custom website.
+          Optional <code>&lt;all_urls&gt;</code> in the manifest only lets your browser <strong>ask</strong> for a specific site when you pin a custom website.
           The extension does not receive access to every site unless you grant origins yourself.
         </p>
         <p class="opd-about-card-note">
@@ -274,7 +274,9 @@
           <li>Cloudflare Turnstile may run to block bots</li>
         </ul>
         <p class="opd-about-card-text">
-          Published prompts are <strong>public</strong>. Do not publish API keys, passwords, private documents, or personal data.
+          Firefox requests optional consent before sending publisher identity or a prompt for publication. You can revoke this in Firefox’s add-on permissions without losing local library features or catalog imports. Chrome and Firefox sync services are separate, so publisher identity does not transfer automatically.</p>
+        <p>Chrome may load assistant icons from provider sites or Google’s favicon service, which receives the requested hostname. Firefox uses bundled icons and a local generic fallback.</p>
+        <p>Published prompts are <strong>public</strong>. Do not publish API keys, passwords, private documents, or personal data.
           You can unpublish a prompt you uploaded. Sharing an imported community prompt publishes <strong>your copy</strong>, not the original author’s row.
         </p>
         <h3 class="opd-changelog-heading">Handle</h3>
@@ -309,6 +311,7 @@
         <h2 class="opd-about-card-title">Processors</h2>
         <ul class="opd-about-list">
           <li><strong>Your browser</strong> — holds the local library</li>
+          <li><strong>Mozilla Firefox / Mozilla Add-ons</strong> — runs and signs the Firefox extension; optional Firefox Sync for publisher keys</li>
           <li><strong>Google Chrome / Chrome Web Store</strong> — runs the extension; optional Chrome Sync for publisher keys</li>
           <li><strong>Cloudflare</strong> — hosts the catalog, API, Turnstile, and infrastructure logs</li>
           <li><strong>AI assistant sites</strong> — receive prompt text only after you insert or paste it there</li>
@@ -334,7 +337,7 @@
           <li>Export or delete prompts in the extension; uninstall to remove local storage for that profile</li>
           <li>Turn off catalog publishing in Open Prompt Database settings</li>
           <li>Unpublish prompts you uploaded</li>
-          <li>Revoke site permissions in Settings → Permissions (or Chrome’s extension details)</li>
+          <li>Revoke site permissions in Settings → Permissions (or your browser’s extension details)</li>
           <li>Ask us to help with a published prompt or handle using the contacts below</li>
         </ul>
         <p class="opd-about-card-text">

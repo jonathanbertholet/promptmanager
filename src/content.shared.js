@@ -29,7 +29,7 @@
     const PanelView = window.PanelView;
     const PromptUIManager = window.PromptUIManager;
     const PromptStorageManager = window.PromptStorageManager;
-    const t = (key, params, fallback) => window.OPMI18n.t(key, params, fallback);
+    const t = (key, params, fallback) => globalThis.OPMI18n.t(key, params, fallback);
     if (!createEl || !getMode || !showEl || !hideEl || !SELECTORS || !PanelRouter || !PanelView || !PromptUIManager || !PromptStorageManager) {
       window.__OPM_PROMPT_SHARED__ = false;
       console.warn('[PromptManager] Shared helpers unavailable; deferring initialization.');
@@ -55,12 +55,12 @@
     };
 
     const ICON_SVGS = {
-      list: `<img src="${chrome.runtime.getURL('icons/list.svg')}" width="16" height="16" data-i18n-alt="prompt.list" alt="List Prompts" data-i18n-title="prompt.list" title="List Prompts" style="filter: ${iconFilter()}">`,
-      add: `<img src="${chrome.runtime.getURL('icons/new.svg')}" width="16" height="16" data-i18n-alt="prompt.add" alt="Add Prompt" data-i18n-title="prompt.add" title="Add Prompt" style="filter: ${iconFilter()}">`,
-      delete: `<img src="${chrome.runtime.getURL('icons/delete.svg')}" width="16" height="16" data-i18n-alt="common.delete" alt="Delete" data-i18n-title="common.delete" title="Delete" style="filter: ${iconFilter()}">`,
-      edit: `<img src="${chrome.runtime.getURL('icons/edit.svg')}" width="16" height="16" data-i18n-alt="common.edit" alt="Edit" data-i18n-title="common.edit" title="Edit" style="filter: ${iconFilter()}">`,
-      settings: `<img src="${chrome.runtime.getURL('icons/settings.svg')}" width="16" height="16" data-i18n-alt="settings.title" alt="Settings" data-i18n-title="settings.title" title="Settings" style="filter: ${iconFilter()}">`,
-      changelog: `<img src="${chrome.runtime.getURL('icons/notes.svg')}" width="16" height="16" data-i18n-alt="changelog.title" alt="Changelog" data-i18n-title="changelog.title" title="Changelog" style="filter: ${iconFilter()}">`,
+      list: `<img src="${OPMApi.runtime.getURL('icons/list.svg')}" width="16" height="16" data-i18n-alt="prompt.list" alt="List Prompts" data-i18n-title="prompt.list" title="List Prompts" style="filter: ${iconFilter()}">`,
+      add: `<img src="${OPMApi.runtime.getURL('icons/new.svg')}" width="16" height="16" data-i18n-alt="prompt.add" alt="Add Prompt" data-i18n-title="prompt.add" title="Add Prompt" style="filter: ${iconFilter()}">`,
+      delete: `<img src="${OPMApi.runtime.getURL('icons/delete.svg')}" width="16" height="16" data-i18n-alt="common.delete" alt="Delete" data-i18n-title="common.delete" title="Delete" style="filter: ${iconFilter()}">`,
+      edit: `<img src="${OPMApi.runtime.getURL('icons/edit.svg')}" width="16" height="16" data-i18n-alt="common.edit" alt="Edit" data-i18n-title="common.edit" title="Edit" style="filter: ${iconFilter()}">`,
+      settings: `<img src="${OPMApi.runtime.getURL('icons/settings.svg')}" width="16" height="16" data-i18n-alt="settings.title" alt="Settings" data-i18n-title="settings.title" title="Settings" style="filter: ${iconFilter()}">`,
+      changelog: `<img src="${OPMApi.runtime.getURL('icons/notes.svg')}" width="16" height="16" data-i18n-alt="changelog.title" alt="Changelog" data-i18n-title="changelog.title" title="Changelog" style="filter: ${iconFilter()}">`,
     };
 
     const TagService = (() => {
@@ -357,7 +357,7 @@
             className: 'opm-drag-handle opm-edit-only',
             innerHTML: `
             <img 
-              src="${chrome.runtime.getURL('icons/drag_indicator.svg')}" 
+              src="${OPMApi.runtime.getURL('icons/drag_indicator.svg')}" 
               width="16" 
               height="16" 
               data-i18n-alt="tags.dragHandle" alt="Drag handle"
@@ -830,7 +830,7 @@
             else if (shortcut.modifier === 'ctrlKey') parts.push(isMac ? '⌃' : 'Ctrl');
             else if (shortcut.modifier === 'altKey') parts.push(isMac ? '⌥' : 'Alt');
             if (shortcut.requiresShift) parts.push(isMac ? '⇧' : 'Shift');
-            parts.push(String(shortcut.key || '').toUpperCase());
+            parts.push(shortcut.key === ' ' ? 'Space' : String(shortcut.key || '').toUpperCase());
             return parts.join(' + ');
           };
 
@@ -1075,7 +1075,7 @@
                     styles: { display: 'inline-flex', alignItems: 'center', marginRight: '6px', cursor: 'grab' },
                     innerHTML: `
                     <img 
-                      src="${chrome.runtime.getURL('icons/drag_indicator.svg')}" 
+                      src="${OPMApi.runtime.getURL('icons/drag_indicator.svg')}" 
                       width="14"
                       height="14"
                       data-i18n-alt="tags.dragHandle" alt="Drag"
@@ -1180,7 +1180,7 @@
             }),
             createCommunityLink({
               labelKey: 'support.review',
-              href: 'https://chromewebstore.google.com/detail/open-prompt-manager/gmhaghdbihgenofhnmdbglbkbplolain',
+              href: OPMPlatform.storeUrl,
               svgPath: 'M12 17.27 18.18 21l-1.64-7.03L22 9.24l-7.19-.62L12 2 9.19 8.62 2 9.24l5.46 4.73L5.82 21 12 17.27z'
             }),
             createCommunityLink({
@@ -1218,7 +1218,7 @@
               className: 'opm-drag-handle',
               innerHTML: `
               <img 
-                src="${chrome.runtime.getURL('icons/drag_indicator.svg')}" 
+                src="${OPMApi.runtime.getURL('icons/drag_indicator.svg')}" 
                 width="16" 
                 height="16" 
                 data-i18n-alt="tags.dragHandle" alt="Drag handle"

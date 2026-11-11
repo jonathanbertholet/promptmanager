@@ -42,7 +42,7 @@ ensureStylesInjected();
 
 /* ---------------------------------------------------------------------------
  * [01] Chrome bridge helpers
- * COMMENT: Centralizes chrome.* guards so storage calls stay reliable.
+ * COMMENT: Centralizes OPMApi.* guards so storage calls stay reliable.
  * -------------------------------------------------------------------------*/
 const ChromeBridge = (() => {
   /**
@@ -63,17 +63,17 @@ const ChromeBridge = (() => {
 
   const storage = {
     /**
-     * COMMENT: Read from chrome.storage.local with consistent error handling.
+     * COMMENT: Read from OPMApi.storage.local with consistent error handling.
      * @param {string} key
      * @param {any} fallback
      * @returns {Promise<any>}
      */
     async get(key, fallback) {
-      if (!chrome?.storage?.local) return fallback;
+      if (!OPMApi?.storage?.local) return fallback;
       return safeAsync(() => new Promise(resolve => {
-        chrome.storage.local.get(key, data => {
-          if (chrome.runtime?.lastError) {
-            console.warn(`[PromptManager] chrome.storage.get failed for ${key}:`, chrome.runtime.lastError.message);
+        OPMApi.storage.local.get(key, data => {
+          if (OPMApi.runtime?.lastError) {
+            console.warn(`[PromptManager] OPMApi.storage.get failed for ${key}:`, OPMApi.runtime.lastError.message);
             resolve(fallback);
             return;
           }
@@ -86,17 +86,17 @@ const ChromeBridge = (() => {
       }), fallback);
     },
     /**
-     * COMMENT: Write to chrome.storage.local and surface boolean success.
+     * COMMENT: Write to OPMApi.storage.local and surface boolean success.
      * @param {string} key
      * @param {any} value
      * @returns {Promise<boolean>}
      */
     async set(key, value) {
-      if (!chrome?.storage?.local) return false;
+      if (!OPMApi?.storage?.local) return false;
       return safeAsync(() => new Promise(resolve => {
-        chrome.storage.local.set({ [key]: value }, () => {
-          if (chrome.runtime?.lastError) {
-            console.warn(`[PromptManager] chrome.storage.set failed for ${key}:`, chrome.runtime.lastError.message);
+        OPMApi.storage.local.set({ [key]: value }, () => {
+          if (OPMApi.runtime?.lastError) {
+            console.warn(`[PromptManager] OPMApi.storage.set failed for ${key}:`, OPMApi.runtime.lastError.message);
             resolve(false);
             return;
           }
@@ -123,7 +123,7 @@ const SCROLLBAR_PERSIST_MS = 900;
 // Hot corner indicator sizes (px)
 const HOT_CORNER_INDICATOR_SMALL_PX = 20;
 const HOT_CORNER_INDICATOR_LARGE_PX = 30;
-const t = (key, params, fallback) => window.OPMI18n.t(key, params, fallback);
+const t = (key, params, fallback) => globalThis.OPMI18n.t(key, params, fallback);
 
 /* ---------------------------------------------------------------------------
  * [02] Types (JSDoc typedefs)
@@ -181,7 +181,7 @@ const createEl = (tag, { id, className, styles, attributes, innerHTML, textConte
   if (attributes) Object.entries(attributes).forEach(([k, v]) => el.setAttribute(k, v));
   if (innerHTML) el.innerHTML = innerHTML;
   if (textContent !== undefined) el.textContent = textContent;
-  window.OPMI18n.apply(el);
+  globalThis.OPMI18n.apply(el);
   if (eventListeners) Object.entries(eventListeners).forEach(([evt, handler]) => el.addEventListener(evt, handler));
   return el;
 };
@@ -372,10 +372,10 @@ const PanelRouter = (() => {
     let generation = 0;
     const loadInfo = async () => {
       const ticket = ++generation;
-      const path = window.OPMI18n.localizedResource(sourcePath);
+      const path = globalThis.OPMI18n.localizedResource(sourcePath);
       info.textContent = t('changelog.loading');
       const read = async resource => {
-        const response = await fetch(chrome.runtime.getURL(resource));
+        const response = await fetch(OPMApi.runtime.getURL(resource));
         if (!response.ok) throw new Error(`Changelog HTTP ${response.status}`);
         return response.text();
       };
@@ -389,7 +389,7 @@ const PanelRouter = (() => {
         }
         if (ticket !== generation) return;
         info.innerHTML = html; // Packaged extension HTML only; never translation parameters.
-        info.lang = fallback ? 'en' : window.OPMI18n.getLanguage();
+        info.lang = fallback ? 'en' : globalThis.OPMI18n.getLanguage();
         if (fallback) info.prepend(createEl('p', { textContent: t('changelog.englishFallback') }));
       } catch (error) {
         if (ticket !== generation) return;
@@ -567,7 +567,7 @@ const PanelRouter = (() => {
       PromptUIManager.replacePanelMainContent(node);
       applyViewChrome(definition);
       PromptUIManager.showPromptList(listEl);
-      window.OPMI18n.apply(listEl);
+      globalThis.OPMI18n.apply(listEl);
     };
 
     if (shouldAnimate) {
@@ -584,7 +584,7 @@ const PanelRouter = (() => {
   return { mount, reset };
 })();
 window.PanelRouter = PanelRouter;
-window.OPMI18n.subscribe(() => {
+globalThis.OPMI18n.subscribe(() => {
   const changelog = document.getElementById(SELECTORS.CHANGELOG_CONTENT);
   changelog?.__opmReloadLocalized?.();
 });
@@ -640,10 +640,9 @@ class KeyboardManager {
    */
   static _shortcutMatches(e, shortcut) {
     if (!shortcut?.key || !shortcut?.modifier) return false;
-    if (!e[shortcut.modifier]) return false;
-    if (e.altKey) return false;
-    const otherMod = shortcut.modifier === 'metaKey' ? 'ctrlKey' : 'metaKey';
-    if (e[otherMod]) return false;
+    for (const modifier of ['ctrlKey', 'altKey', 'metaKey']) {
+      if (Boolean(e[modifier]) !== (shortcut.modifier === modifier)) return false;
+    }
     if (Boolean(e.shiftKey) !== Boolean(shortcut.requiresShift)) return false;
     return e.key.toLowerCase() === String(shortcut.key).toLowerCase();
   }
@@ -701,8 +700,8 @@ class KeyboardManager {
   }
 
   static _attachShortcutWatcher() {
-    if (!chrome || !chrome.storage || !chrome.storage.onChanged) return;
-    chrome.storage.onChanged.addListener((changes, area) => {
+    if (!OPMApi || !OPMApi.storage || !OPMApi.storage.onChanged) return;
+    OPMApi.storage.onChanged.addListener((changes, area) => {
       if (area !== 'local') return;
       if (changes && changes.keyboardShortcut && changes.keyboardShortcut.newValue) {
         KeyboardManager.shortcutCache = changes.keyboardShortcut.newValue;
@@ -762,7 +761,7 @@ class PromptStorageManager {
     if (this.__ps) return this.__ps;
 
     // COMMENT: Dynamically import the web-accessible module so content-scripts can use it
-    const mod = await import(chrome.runtime.getURL('storage/promptStorage.js'));
+    const mod = await import(OPMApi.runtime.getURL('storage/promptStorage.js'));
 
     // COMMENT: Build a thin adapter to keep current call-sites unchanged
     this.__ps = {
@@ -811,12 +810,7 @@ class PromptStorageManager {
     return await PromptStorageManager.setData('buttonPosition', pos);
   }
   static async getKeyboardShortcut() {
-    const isMac = navigator.platform.toUpperCase().includes('MAC');
-    return await PromptStorageManager.getData('keyboardShortcut', {
-      key: isMac ? 'p' : 'm',
-      modifier: isMac ? 'metaKey' : 'ctrlKey',
-      requiresShift: isMac
-    });
+    return await PromptStorageManager.getData('keyboardShortcut', OPMPlatform.getDefaultShortcut());
   }
   static async saveKeyboardShortcut(shortcut) { return await PromptStorageManager.setData('keyboardShortcut', shortcut); }
   static async getOnboardingCompleted() { return await PromptStorageManager.getData('onboardingCompleted', false); }
@@ -906,7 +900,7 @@ class PromptUIManager {
       root = createEl('div', { id: SELECTORS.ROOT });
       document.body.appendChild(root);
       root.classList.add(`opm-${getMode()}`);
-      window.OPMI18n.registerRoot(root);
+      globalThis.OPMI18n.registerRoot(root);
     }
     PromptUIManager.state.root = root;
     return root;
@@ -1079,7 +1073,7 @@ class PromptUIManager {
     try {
       await animation.finished;
     } catch (_) {
-      // COMMENT: Cancelled by a rapid successive view change — still apply final list chrome.
+      // COMMENT: Cancelled by a rapid successive view change — still apply final list OPMApi.
     } finally {
       finishList();
     }
@@ -1153,7 +1147,7 @@ class PromptUIManager {
     try {
       await animation.finished;
     } catch (_) {
-      // COMMENT: Animation was cancelled by a rapid successive view change — still apply final chrome.
+      // COMMENT: Animation was cancelled by a rapid successive view change — still apply final OPMApi.
     } finally {
       finish();
     }
@@ -1504,7 +1498,7 @@ class PromptUIManager {
           const bannerText = createEl('span', { attributes: { 'data-i18n': 'banner.newSiteText' }, textContent: t('banner.newSiteText') });
           const bannerBreak = document.createElement('br');
           const bannerReview = createEl('a', {
-            attributes: { 'data-i18n': 'banner.leaveReview', href: 'https://chromewebstore.google.com/detail/open-prompt-manager/gmhaghdbihgenofhnmdbglbkbplolain', target: '_blank', rel: 'noopener noreferrer' },
+            attributes: { 'data-i18n': 'banner.leaveReview', href: OPMPlatform.storeUrl, target: '_blank', rel: 'noopener noreferrer' },
             styles: { color: '#3674B5', textDecoration: 'underline' },
             textContent: t('banner.leaveReview')
           });
@@ -2372,9 +2366,9 @@ const PromptMediator = (() => {
     return { ok: true, needsVariables: true };
   };
 
-  if (typeof chrome !== 'undefined' && chrome.runtime?.onMessage && !window.__OPM_INSERT_LISTENER__) {
+  if (typeof OPMApi !== 'undefined' && OPMApi.runtime?.onMessage && !window.__OPM_INSERT_LISTENER__) {
     window.__OPM_INSERT_LISTENER__ = true;
-    chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+    OPMApi.runtime.onMessage.addListener((message, _sender, sendResponse) => {
       if (message?.type === 'OPM_SIDE_PANEL_STATE') {
         PromptUIManager.setSidePanelOpen(message.open)
           .then(() => {
@@ -2444,8 +2438,8 @@ const PromptMediator = (() => {
   };
 
   const setupDisplayModeWatcher = () => {
-    if (!chrome?.storage?.onChanged) return;
-    chrome.storage.onChanged.addListener((changes, area) => {
+    if (!OPMApi?.storage?.onChanged) return;
+    OPMApi.storage.onChanged.addListener((changes, area) => {
       if (area !== 'local') return;
       if (changes.displayMode) {
         PromptUIManager.refreshDisplayMode().catch((err) => {
@@ -2464,7 +2458,7 @@ const PromptMediator = (() => {
     state.storageWatcherAttached = true;
     (async () => {
       try {
-        const { onPromptsChanged } = await import(chrome.runtime.getURL('storage/promptStorage.js'));
+        const { onPromptsChanged } = await import(OPMApi.runtime.getURL('storage/promptStorage.js'));
         onPromptsChanged((prompts) => {
           // COMMENT: Only refresh items when the list view is active to avoid polluting non-list views
           PromptUIManager.refreshItemsIfListActive(prompts);
@@ -2486,7 +2480,7 @@ const PromptMediator = (() => {
     window.__OPM_INITIALIZED__ = true;
     state.initialized = true;
 
-    await window.OPMI18n.ready;
+    await globalThis.OPMI18n.ready;
 
     // COMMENT: Load theme preference before UI injection
     try {

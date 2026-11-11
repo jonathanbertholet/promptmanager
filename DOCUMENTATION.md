@@ -1,10 +1,13 @@
-## Open Prompt Manager — Architecture and Developer Guide (v3.0.6)
+## Open Prompt Manager — Architecture and Developer Guide (v3.1.0)
 
 For the full system architecture, dependencies, data model, message reference, and catalog flows, see [ARCHITECTURE.md](ARCHITECTURE.md).
 
-This document explains how the Chrome extension in `src` is structured and how the main flows work.
+This document explains how the shared Chrome and Firefox extension in `src` is structured and how the main flows work.
 
-- Target: Chrome MV3
+- Targets: Chrome MV3 and Firefox desktop 140+
+- Shared browser adapter: `src/platform.js` (`OPMApi` and `OPMPlatform`)
+- Packages: `npm run build` → `dist/chrome/`, `dist/firefox/`, and ZIPs in `artifacts/`
+- Firefox integration and release setup: [docs/firefox.md](docs/firefox.md)
 - Core features: side-panel prompt library, in-page launcher (button / hot-corner / invisible), insert into chat composers, `#variable#` fill-in, optional Open Prompt Database catalog, per-site optional host permissions.
 
 ### Directory overview

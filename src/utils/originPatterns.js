@@ -1,3 +1,4 @@
+import '../platform.js';
 /**
  * Split comma-separated Chrome origin patterns used in llm_providers.json.
  * @param {string} pattern
@@ -61,7 +62,7 @@ export async function hasAnyOriginPermission(patternOrList) {
     : expandOriginPatterns(patternOrList);
   for (const origin of origins) {
     try {
-      const granted = await chrome.permissions.contains({ origins: [origin] });
+      const granted = await OPMApi.permissions.contains({ origins: [origin] });
       if (granted) return true;
     } catch (_) {
       // Invalid pattern — skip

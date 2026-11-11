@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import vm from 'node:vm';
 const catalogs = Object.fromEntries(['en', 'es', 'fr', 'pt', 'zh-CN'].map(lang => [lang, JSON.parse(fs.readFileSync(new URL(`../../src/locales/${lang}.json`, import.meta.url), 'utf8'))]));
 const core = fs.readFileSync(new URL('../../src/i18n.js', import.meta.url), 'utf8');
+const platform = fs.readFileSync(new URL('../../src/platform.js', import.meta.url), 'utf8');
 // Execute the real worker, supplying browser/storage imports through the harness.
 const worker = fs.readFileSync(new URL('../../src/service-worker.js', import.meta.url), 'utf8')
   .replace(/\r\n/g, '\n')
@@ -46,6 +47,7 @@ function setup({ prompts = [{ uuid: 'a', title: 'Settings', content: 'Copy' }, {
     initOpdCatalogAccess() {}, getPrompts: getPrompts || (async () => prompts),
     onPromptsChanged: f => changes.push(f), savePrompt: async data => saves.push(data),
   });
+  vm.runInContext(platform, context);
   vm.runInContext(core, context);
   vm.runInContext(worker + '\n globalThis.drainMenu = createPromptContextMenu;', context);
   return { context, chrome, items, errors, saves, scripts, answers, changes, get removes() { return removes; } };

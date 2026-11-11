@@ -1,8 +1,8 @@
 # Open Prompt Manager
 
-A lightweight, open-source Chrome extension for saving, organizing, and inserting prompts across AI chatbots — ChatGPT, Claude, Gemini, Grok, and 14 other built-in assistants.
+A lightweight, open-source extension for Chrome and Firefox desktop, for saving, organizing, and inserting prompts across AI chatbots — ChatGPT, Claude, Gemini, Grok, and 14 other built-in assistants.
 
-**Current version:** 3.0.6 · [Chrome Web Store](https://chromewebstore.google.com/detail/open-prompt-manager/gmhaghdbihgenofhnmdbglbkbplolain) · [Open Prompt Database](https://openpromptdatabase.com/) · [Release notes](https://github.com/jonathanbertholet/promptmanager/releases/tag/3.0.6)
+**Source version:** 3.1.0 · [Chrome Web Store](https://chromewebstore.google.com/detail/open-prompt-manager/gmhaghdbihgenofhnmdbglbkbplolain) · [Open Prompt Database](https://openpromptdatabase.com/) · [Releases](https://github.com/jonathanbertholet/promptmanager/releases)
 
 ## Features
 
@@ -23,7 +23,7 @@ A lightweight, open-source Chrome extension for saving, organizing, and insertin
 - Three launchers (choose on first run or in Settings): **floating button**, **hot corner**, or **sidebar / shortcut** only
 - One-click insert into the chat input, with optional append mode
 - **Custom keyboard shortcut** — record your own open/close combo (default: ⌘⇧P on Mac, Ctrl+M on Windows/Linux)
-- The in-page launcher hides while the Chrome side panel is open
+- The in-page launcher hides while the browser sidebar is open
 - **Custom websites** — pin any site’s chat input from the side panel
 - Remembers the last successful chat input per site
 - Light and dark themes, with optional force-dark mode
@@ -66,15 +66,19 @@ You can add or remove sites later from Settings → **Permissions**.
 
 ### Load from source (development)
 
-1. Clone this repository
-2. Open `chrome://extensions`, enable **Developer mode**
-3. Click **Load unpacked** and select the `src/` folder
+Run `npm run build` to generate both browsers from the same `src/` tree. No npm dependencies are needed for extension packaging; Node.js 18+ and `zip` are required.
+
+- **Chrome:** open `chrome://extensions`, enable **Developer mode**, click **Load unpacked**, and select `dist/chrome/`. Loading `src/` directly also remains supported.
+- **Firefox 140+:** open `about:debugging#/runtime/this-firefox`, click **Load Temporary Add-on**, and select `dist/firefox/manifest.json`. Temporary add-ons are removed when Firefox restarts; normal installation requires Mozilla signing.
+
+Packages are written to `artifacts/`. See [Firefox and shared browser builds](docs/firefox.md) for signing, catalog access, and release configuration. The Firefox store listing is not yet configured.
 
 ## Keyboard shortcuts
 
 | Shortcut | Action |
 |----------|--------|
 | **⌘ + Shift + P** (Mac) / **Ctrl + M** (Win/Linux) | Open or close the in-page prompt panel |
+| **Ctrl + Shift + Space** (Firefox, all desktop platforms) | Firefox default for opening or closing the in-page panel |
 | **↑ / ↓** | Navigate the prompt list |
 | **Enter** | Select a prompt |
 | **Esc** | Close the panel |

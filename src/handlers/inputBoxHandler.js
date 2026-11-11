@@ -72,7 +72,7 @@ class InputBoxHandler {
 
     InputBoxHandler._providersPromise = (async () => {
       try {
-        const response = await fetch(chrome.runtime.getURL('llm_providers.json'));
+        const response = await fetch(OPMApi.runtime.getURL('llm_providers.json'));
         if (response.ok) {
           const data = await response.json();
           InputBoxHandler._providersCache = data.llm_providers || [];
@@ -97,14 +97,14 @@ class InputBoxHandler {
   static _getShadowRoot(element) {
     if (!(element instanceof HTMLElement)) return null;
     try {
-      if (typeof chrome !== 'undefined' && chrome.dom?.openOrClosedShadowRoot) {
-        const root = chrome.dom.openOrClosedShadowRoot(element);
+      if (typeof OPMApi !== 'undefined' && OPMApi.dom?.openOrClosedShadowRoot) {
+        const root = OPMApi.dom.openOrClosedShadowRoot(element);
         if (root) return root;
       }
     } catch (_) {
-      // COMMENT: Fall back to the open shadowRoot property when chrome.dom is unavailable
+      // COMMENT: Fall back to the open shadowRoot property when OPMApi.dom is unavailable
     }
-    return element.shadowRoot || null;
+    return element.openOrClosedShadowRoot || element.shadowRoot || null;
   }
 
   /**
@@ -756,7 +756,7 @@ class InputBoxHandler {
    */
   static async _pinnedStorage() {
     if (!InputBoxHandler._pinnedStorageModule) {
-      InputBoxHandler._pinnedStorageModule = await import(chrome.runtime.getURL('storage/pinnedInputStorage.js'));
+      InputBoxHandler._pinnedStorageModule = await import(OPMApi.runtime.getURL('storage/pinnedInputStorage.js'));
     }
     return InputBoxHandler._pinnedStorageModule;
   }
@@ -767,7 +767,7 @@ class InputBoxHandler {
    */
   static async _learnedStorage() {
     if (!InputBoxHandler._learnedStorageModule) {
-      InputBoxHandler._learnedStorageModule = await import(chrome.runtime.getURL('storage/learnedInputStorage.js'));
+      InputBoxHandler._learnedStorageModule = await import(OPMApi.runtime.getURL('storage/learnedInputStorage.js'));
     }
     return InputBoxHandler._learnedStorageModule;
   }
@@ -1083,7 +1083,7 @@ class InputBoxHandler {
 
     const toast = document.createElement('div');
     toast.id = 'opm-pin-toast';
-    window.OPMI18n.bind(toast, key, params);
+    globalThis.OPMI18n.bind(toast, key, params);
     toast.setAttribute('role', 'status');
     toast.style.cssText = [
       'position:fixed',
@@ -1100,7 +1100,7 @@ class InputBoxHandler {
       'pointer-events:none',
     ].join(';');
     document.documentElement.appendChild(toast);
-    const dispose = window.OPMI18n.registerRoot(toast);
+    const dispose = globalThis.OPMI18n.registerRoot(toast);
     toast.__opmDisposeI18n = dispose;
     window.setTimeout(() => { dispose(); toast.remove(); }, 2200);
   }
@@ -1146,12 +1146,12 @@ class InputBoxHandler {
 
     const pillText = document.createElement('span');
     pillText.className = 'opm-pin-picker-pill-text';
-    window.OPMI18n.bind(pillText, 'inputPicker.title');
+    globalThis.OPMI18n.bind(pillText, 'inputPicker.title');
 
     const closeBtn = document.createElement('button');
     closeBtn.type = 'button';
     closeBtn.className = 'opm-pin-picker-close';
-    window.OPMI18n.bind(closeBtn, 'inputPicker.cancel', {}, 'aria-label');
+    globalThis.OPMI18n.bind(closeBtn, 'inputPicker.cancel', {}, 'aria-label');
     closeBtn.innerHTML = '&times;';
 
     pill.appendChild(pillText);
@@ -1159,7 +1159,7 @@ class InputBoxHandler {
     root.appendChild(spotlight);
     root.appendChild(pill);
     document.documentElement.appendChild(root);
-    const disposeI18n = window.OPMI18n.registerRoot(root);
+    const disposeI18n = globalThis.OPMI18n.registerRoot(root);
 
     const styleId = 'opm-pin-picker-style';
     let style = document.getElementById(styleId);
@@ -1376,7 +1376,7 @@ class InputBoxHandler {
         try {
           await InputBoxHandler.insertPrompt(
             editable,
-            queuedPrompt?.content || window.OPMI18n.t('inputPicker.examplePrompt'),
+            queuedPrompt?.content || globalThis.OPMI18n.t('inputPicker.examplePrompt'),
             null,
           );
         } catch (insertError) {
@@ -1656,8 +1656,8 @@ class InputBoxHandler {
 
     const disableOverwrite = await new Promise(resolve => {
       try {
-        chrome.storage.local.get('disableOverwrite', data => {
-          if (chrome.runtime?.lastError) { resolve(false); return; }
+        OPMApi.storage.local.get('disableOverwrite', data => {
+          if (OPMApi.runtime?.lastError) { resolve(false); return; }
           resolve(Boolean(data?.disableOverwrite));
         });
       } catch (_) { resolve(false); }
@@ -1802,9 +1802,9 @@ class InputBoxHandler {
 window.InputBoxHandler = InputBoxHandler;
 
 // COMMENT: Route pin-picker actions from the service worker through the content-script world
-if (typeof chrome !== 'undefined' && chrome.runtime?.onMessage && !window.__OPM_PIN_LISTENER__) {
+if (typeof OPMApi !== 'undefined' && OPMApi.runtime?.onMessage && !window.__OPM_PIN_LISTENER__) {
   window.__OPM_PIN_LISTENER__ = true;
-  chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+  OPMApi.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     if (message?.type !== 'OPM_PIN_INPUT_CONTENT') return undefined;
 
     (async () => {

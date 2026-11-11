@@ -1,12 +1,12 @@
 # Privacy Policy
 
-**Open Prompt Manager** (the Chrome extension) and **Open Prompt Database** (the community catalog at [openpromptdatabase.com](https://openpromptdatabase.com/))
+**Open Prompt Manager** (the Chrome and Firefox extension) and **Open Prompt Database** (the community catalog at [openpromptdatabase.com](https://openpromptdatabase.com/))
 
-Effective date: **24 August 2026**
+Effective date: **11 November 2026**
 
 **Your prompt library stays on your computer unless you choose to publish a prompt.** The extension does not use analytics, advertising, or an account for its core features.
 
-This policy covers the Chrome extension and this website. Both are made by the same independent developer, [Jonathan Bertholet](https://github.com/jonathanbertholet).
+This policy covers the Chrome and Firefox extension and this website. Both are made by the same independent developer, [Jonathan Bertholet](https://github.com/jonathanbertholet).
 
 The same text is published at [openpromptdatabase.com/privacy](https://openpromptdatabase.com/privacy).
 
@@ -14,7 +14,7 @@ The same text is published at [openpromptdatabase.com/privacy](https://openpromp
 
 ## Who this covers
 
-- **Open Prompt Manager** — a Chrome extension that stores prompts locally and can insert them into AI chat sites you enable. [Chrome Web Store listing](https://chromewebstore.google.com/detail/open-prompt-manager/gmhaghdbihgenofhnmdbglbkbplolain). Source: [github.com/jonathanbertholet/promptmanager](https://github.com/jonathanbertholet/promptmanager).
+- **Open Prompt Manager** — a Chrome and Firefox extension that stores prompts locally and can insert them into AI chat sites you enable. [Chrome Web Store listing](https://chromewebstore.google.com/detail/open-prompt-manager/gmhaghdbihgenofhnmdbglbkbplolain). Source: [github.com/jonathanbertholet/promptmanager](https://github.com/jonathanbertholet/promptmanager).
 - **Open Prompt Database** — this public catalog at openpromptdatabase.com.
 
 ---
@@ -27,7 +27,9 @@ Core use does **not** require an account, email address, or sign-in. Your librar
 - **Settings** — theme, shortcut, launcher mode, and which assistant sites you enabled
 - JSON backups you export yourself
 
-If you use sharing, your public handle and a random publish token may follow your Chrome profile. Your **prompt library is not synced** that way — use export / import to copy prompts to another device.
+If you use sharing, your public handle and a random publish token may follow your browser profile through Chrome Sync or Firefox Sync. Your **prompt library is not synced** that way — use export / import to copy prompts to another device.
+
+Chrome and Firefox use separate sync services. Publisher identity does not automatically transfer between them.
 
 Uninstalling the extension deletes this storage from that browser profile.
 
@@ -65,6 +67,10 @@ None of this happens unless you use Open Prompt Database.
 - **Share** publishes a prompt you chose under a public handle. It is not tied to your Google account
 - **Report** sends a reason (and optional detail) so we can review the listing
 
+Firefox asks for optional consent before transmitting publisher identity or a prompt for publication. You can revoke that consent in Firefox’s add-on permissions; local library features and catalog imports remain available.
+
+Chrome may load assistant icons from provider sites or Google’s favicon service, which receives the requested hostname. Firefox uses bundled icons and a local generic fallback.
+
 Published prompts are **public**. Do not publish API keys, passwords, or personal data. You can unpublish a prompt you uploaded.
 
 You do not need an account to browse. Community entries are unverified — review them before pasting into any assistant.
@@ -75,7 +81,7 @@ You do not need an account to browse. Community entries are unverified — revie
 
 - Export or delete prompts in the extension; uninstall to remove local data for that profile
 - Turn off catalog sharing, or unpublish prompts you uploaded
-- Revoke site access in the extension or in Chrome’s extension details
+- Revoke site access in the extension or in your browser’s extension details
 
 If you want help with a published prompt or handle, email us. We do not sell personal information.
 

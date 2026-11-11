@@ -1,3 +1,4 @@
+import './platform.js';
 import { expandOriginPatterns } from './utils/originPatterns.js';
 
 let providersDataCache = null;
@@ -12,7 +13,7 @@ async function loadProvidersData() {
   if (providersDataCache) return providersDataCache;
   if (!providersDataPromise) {
     providersDataPromise = (async () => {
-      const response = await fetch(chrome.runtime.getURL('llm_providers.json'));
+      const response = await fetch(OPMApi.runtime.getURL('llm_providers.json'));
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }

@@ -96,7 +96,7 @@
   "settings.pressKeys": "Press keys…",
   "settings.listening": "Listening…",
   "settings.launcherMode": "Launcher mode",
-  "settings.launcherHelp": "Choose how prompts open on assistant pages. Sidebar or shortcut uses the Chrome side panel or your keyboard shortcut only.",
+  "settings.launcherHelp": "Choose how prompts open on assistant pages. Sidebar or shortcut uses the browser sidebar or your keyboard shortcut only.",
   "settings.floatingButton": "Floating button",
   "settings.hotCorner": "Hot corner",
   "settings.sidebarOrShortcut": "Sidebar or shortcut",
@@ -139,7 +139,7 @@
   "onboarding.launcherLead": "Choose your preferred launcher. You can change this anytime in Settings.",
   "onboarding.floatingDesc": "Your prompts appear when you hover over the floating button.",
   "onboarding.hotCornerDesc": "Move your cursor to the bottom-right corner to open prompts instantly.",
-  "onboarding.sidebarDesc": "Open the Chrome side panel or use your keyboard shortcut — no on-page launcher.",
+  "onboarding.sidebarDesc": "Open the browser sidebar or use your keyboard shortcut — no on-page launcher.",
   "onboarding.features": "Features",
   "onboarding.featureOneTitle": "Your prompts, in a single click",
   "onboarding.featureOneDesc": "Just hover to get started.",
@@ -164,7 +164,7 @@
   "onboarding.anotherWebsiteHint": "To add a site that isn't listed above, open that website in your browser, open the {manager} sidebar, and click {customWebsite} under Assistants. Then click the chat input on the page.",
   "onboarding.removeAllPermissions": "Remove all permissions",
   "onboarding.noProviderData": "No provider data found in storage.",
-  "onboarding.permissionDenied": "Permission denied for {provider}. Allow site access in the Chrome prompt to continue.",
+  "onboarding.permissionDenied": "Permission denied for {provider}. Allow site access in the browser prompt to continue.",
   "onboarding.permissionRequestFailed": "Could not request permission for {provider}: {error}",
   "onboarding.removePermissionsFailed": "Could not remove all permissions. Try again from Settings.",
   "opd.title": "Open Prompt Database",
@@ -263,5 +263,6 @@
   "settings.removeAllAccessConfirm": "Remove access to all websites?",
   "prompt.dragHandle": "Drag handle",
   "prompt.dragReorder": "Drag to reorder",
-  "prompt.drag": "Drag"
+  "prompt.drag": "Drag",
+  "links.extensionStore": "Extension page"
 }

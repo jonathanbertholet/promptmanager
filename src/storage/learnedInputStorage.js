@@ -1,13 +1,14 @@
+import '../platform.js';
 // learnedInputStorage.js — auto-learned chat/input selectors from successful inserts
 
 const LEARNED_INPUTS_KEY = 'learned_inputs_v1';
 
 function storageGet(keys) {
-  return new Promise(resolve => chrome.storage.local.get(keys, resolve));
+  return new Promise(resolve => OPMApi.storage.local.get(keys, resolve));
 }
 
 function storageSet(obj) {
-  return new Promise(resolve => chrome.storage.local.set(obj, resolve));
+  return new Promise(resolve => OPMApi.storage.local.set(obj, resolve));
 }
 
 /**
