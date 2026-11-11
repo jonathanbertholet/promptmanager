@@ -37,7 +37,16 @@ API calls continue to originate in the background context, using catalog host pe
 
 ## Release configuration
 
-The stable Firefox add-on ID is `open-prompt-manager@openpromptdatabase.com`. Keep it unchanged: Firefox sync storage depends on it. Submit the Firefox ZIP to Mozilla for signing and distribution. An AMO account and listing have not been created by this port.
+The stable Firefox add-on ID is `open-prompt-manager@openpromptdatabase.com`. Keep it unchanged: Firefox sync storage depends on it. Submit the Firefox ZIP to Mozilla for signing and distribution. The first public listing metadata is in `amo/listing.json`.
+
+Create API credentials in the [AMO Developer Hub](https://addons.mozilla.org/developers/addon/api/key/) and make them available as `WEB_EXT_API_KEY` and `WEB_EXT_API_SECRET`. Then build and submit from the repository root:
+
+```sh
+npm run build:firefox
+npx --yes web-ext sign --channel=listed --source-dir=dist/firefox --amo-metadata=amo/listing.json
+```
+
+This submits the package for a public listing and Mozilla review. After creation, add the current `PRIVACY.md` text through the AMO privacy policy API or Developer Hub. The currently deployed website policy describes only the Chrome version and should be updated before using it as Firefox's policy link. Add screenshots when available.
 
 Until a Firefox listing exists, Firefox extension links point to the GitHub releases page. Once Mozilla supplies the listing URL, build with it:
 

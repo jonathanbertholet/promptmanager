@@ -1,0 +1,23 @@
+{
+  "summary": {
+    "en-US": "Save, organize, and reuse AI prompts across ChatGPT, Claude, Gemini, and other assistants."
+  },
+  "description": {
+    "en-US": "Open Prompt Manager is a free, open-source prompt library for Firefox. Save the prompts you use most and insert them into the AI assistant websites you choose.\n\n• Save, edit, search, tag, and reorder prompts in the Firefox sidebar or an in-page panel.\n• Fill in reusable #variables# before inserting a prompt.\n• Use built-in assistant shortcuts or pin an input on a custom website.\n• Import and export your prompt library as JSON.\n• Browse community prompts from Open Prompt Database and add them to your library. Optionally share a prompt you choose under a public handle.\n• Choose a floating button, hot corner, or keyboard shortcut for the in-page panel.\n\nYour prompt library is stored locally in your browser profile. Website access is optional and can be granted for the sites you choose. Publishing to the community catalog is optional and requires consent to send your publisher identity and selected prompt. The extension does not use analytics or advertising.\n\nFirefox desktop 140 or later is required. The browser sidebar and website access can be configured in the extension. Community catalog imports require enabling catalog access in the extension settings."
+  },
+  "categories": ["other"],
+  "homepage": {
+    "en-US": "https://github.com/jonathanbertholet/promptmanager"
+  },
+  "support_email": {
+    "en-US": "jbappstore459@gmail.com"
+  },
+  "requires_payment": false,
+  "version": {
+    "license": "MIT",
+    "release_notes": {
+      "en-US": "First Firefox desktop release, with a shared prompt library, sidebar, in-page tools, and optional community catalog."
+    },
+    "approval_notes": "The extension source is included as readable JavaScript, HTML, and CSS in the submitted package. Core prompt management works without an account. To try an assistant site, use the onboarding page to grant that site access. To try catalog import, enable catalog access in extension settings and visit openpromptdatabase.com. Publishing requires optional data consent."
+  }
+}
