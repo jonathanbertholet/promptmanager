@@ -2,6 +2,7 @@
  * HTTP client for Open Prompt Database /v1 API (service worker only).
  */
 import { getOpdApiBaseUrl, getPublishToken } from './opdPublishToken.js';
+import { verifyPublisher } from './opdVerification.js';
 
 /**
  * @param {string} path — e.g. /v1/prompts
@@ -52,13 +53,18 @@ export async function checkHandleAvailable(handle) {
  * @param {string} [turnstileToken]
  */
 export async function registerPublisher(username, turnstileToken = '') {
-  return opdFetch('/v1/publishers', {
+  const request = {
     method: 'POST',
     headers: turnstileToken
       ? { 'CF-Turnstile-Response': turnstileToken }
       : undefined,
     body: JSON.stringify({ username, turnstileToken: turnstileToken || undefined }),
-  });
+  };
+  const response = await opdFetch('/v1/publishers', request);
+  if (response.status !== 403 || response.data?.error !== 'verification_required') return response;
+  const verification = await verifyPublisher(opdFetch);
+  if (!verification.ok) return { ok: false, status: 403, data: { error: verification.error } };
+  return opdFetch('/v1/publishers', request);
 }
 
 /**

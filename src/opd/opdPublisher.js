@@ -87,6 +87,7 @@ export async function ensurePublisherRegisteredForUpload() {
     if (reg.ok && reg.username) {
       return { ok: true, username: reg.username };
     }
+    if (reg.error !== 'username_taken') return { ok: false, error: reg.error || 'register_failed' };
 
     handle = suggestRandomHandle();
     await setOpdPendingUsername(handle);

@@ -68,6 +68,11 @@ You can add or remove sites later from Settings → **Permissions**.
 
 Run `npm run build` to generate both browsers from the same `src/` tree. No npm dependencies are needed for extension packaging; Node.js 18+ and `zip` are required.
 
+First-time OPD publishing opens a short verification page in the browser. Complete
+the check to finish registering a publisher identity; later uploads use that identity
+and the catalog's server-side quotas. The verification URL never contains the
+publisher token. Existing registered identities remain compatible with older builds.
+
 - **Chrome:** open `chrome://extensions`, enable **Developer mode**, click **Load unpacked**, and select `dist/chrome/`. Loading `src/` directly also remains supported.
 - **Firefox 140+:** open `about:debugging#/runtime/this-firefox`, click **Load Temporary Add-on**, and select `dist/firefox/manifest.json`. Temporary add-ons are removed when Firefox restarts; normal installation requires Mozilla signing.
 
