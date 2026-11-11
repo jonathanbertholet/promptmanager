@@ -1,4 +1,5 @@
 {
+  "homepage_url": "https://addons.mozilla.org/firefox/addon/open-prompt-manager-for-ai-age/",
   "sidebar_action": {
     "default_panel": "sidepanel/index.html",
     "default_title": "__MSG_openSidebar__",

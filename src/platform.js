@@ -39,7 +39,7 @@
   const api = isFirefox ? wrapApi(callbackApi, promiseApi) : callbackApi;
   const manifest = api.runtime.getManifest?.() || {};
   const chromeStoreUrl = 'https://chromewebstore.google.com/detail/open-prompt-manager/gmhaghdbihgenofhnmdbglbkbplolain';
-  const firefoxInstallUrl = manifest.homepage_url || 'https://github.com/jonathanbertholet/promptmanager/releases';
+  const firefoxInstallUrl = manifest.homepage_url || 'https://addons.mozilla.org/firefox/addon/open-prompt-manager-for-ai-age/';
   const publishData = ['authenticationInfo', 'websiteContent'];
   let presencePort = null;
   let presenceStopped = false;

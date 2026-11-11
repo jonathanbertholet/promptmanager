@@ -2,7 +2,7 @@
 
 A lightweight, open-source extension for Chrome and Firefox desktop, for saving, organizing, and inserting prompts across AI chatbots — ChatGPT, Claude, Gemini, Grok, and 14 other built-in assistants.
 
-**Source version:** 3.1.0 · [Chrome Web Store](https://chromewebstore.google.com/detail/open-prompt-manager/gmhaghdbihgenofhnmdbglbkbplolain) · [Open Prompt Database](https://openpromptdatabase.com/) · [Releases](https://github.com/jonathanbertholet/promptmanager/releases)
+**Source version:** 3.1.0 · [Chrome Web Store](https://chromewebstore.google.com/detail/open-prompt-manager/gmhaghdbihgenofhnmdbglbkbplolain) · [Firefox Add-ons](https://addons.mozilla.org/firefox/addon/open-prompt-manager-for-ai-age/) · [Open Prompt Database](https://openpromptdatabase.com/) · [Releases](https://github.com/jonathanbertholet/promptmanager/releases)
 
 ## Features
 
@@ -78,7 +78,7 @@ publisher token. Existing registered identities remain compatible with older bui
 - **Chrome:** open `chrome://extensions`, enable **Developer mode**, click **Load unpacked**, and select `dist/chrome/`. Loading `src/` directly also remains supported.
 - **Firefox 140+:** open `about:debugging#/runtime/this-firefox`, click **Load Temporary Add-on**, and select `dist/firefox/manifest.json`. Temporary add-ons are removed when Firefox restarts; normal installation requires Mozilla signing.
 
-Packages are written to `artifacts/`. See [Firefox and shared browser builds](docs/firefox.md) for signing, catalog access, and release configuration. The Firefox store listing is not yet configured.
+Packages are written to `artifacts/`. See [Firefox and shared browser builds](docs/firefox.md) for signing, catalog access, and release configuration.
 
 ## Keyboard shortcuts
 

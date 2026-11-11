@@ -46,9 +46,9 @@ npm run build:firefox
 npx --yes web-ext sign --channel=listed --source-dir=dist/firefox --amo-metadata=amo/listing.json
 ```
 
-This submits the package for a public listing and Mozilla review. After creation, add the current `PRIVACY.md` text through the AMO privacy policy API or Developer Hub. The currently deployed website policy describes only the Chrome version and should be updated before using it as Firefox's policy link. Add screenshots when available.
+This submits the package for a public listing and Mozilla review. The initial listing was submitted and the current `PRIVACY.md` text was added through the AMO privacy policy API. The currently deployed website policy describes only the Chrome version and should be updated before using it as Firefox's policy link. Add screenshots when available.
 
-Until a Firefox listing exists, Firefox extension links point to the GitHub releases page. Once Mozilla supplies the listing URL, build with it:
+The Firefox listing is configured at `https://addons.mozilla.org/firefox/addon/open-prompt-manager-for-ai-age/`. To override it for a build:
 
 ```sh
 FIREFOX_STORE_URL=https://addons.mozilla.org/firefox/addon/YOUR-LISTING/ npm run build:firefox
