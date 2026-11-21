@@ -469,18 +469,18 @@ var injectGlobalStyles = window.injectGlobalStyles || function injectGlobalStyle
       border-radius: var(--border-radius);
       font-size: 14px;
       cursor: pointer;
-      transition: background-color var(--transition-speed) ease, transform var(--transition-speed) ease;
+      transition: background-color var(--transition-speed) ease;
       display: flex;
       align-items: center;
-      padding: 6px 12px;
+      padding: 5px 10px;
     }
     #${SELECTORS.ROOT} .opm-prompt-list-item.opm-light:hover {
-      background-color: #e2e8f0;
-      transform: translateY(-2px);
+      background-color: rgba(0, 0, 0, 0.08);
+      transform: none;
     }
     #${SELECTORS.ROOT} .opm-prompt-list-item.opm-dark:hover {
-      background-color: #2d3748;
-      transform: translateY(-2px);
+      background-color: rgba(255, 255, 255, 0.08);
+      transform: none;
     }
     /* Drag-and-drop placeholder to displace items during reordering */
     #${SELECTORS.ROOT} .opm-drop-placeholder {
@@ -517,7 +517,9 @@ var injectGlobalStyles = window.injectGlobalStyles || function injectGlobalStyle
     }
     /* Search input styling */
     #${SELECTORS.ROOT} .opm-prompt-list .opm-search-input {
-      width: 100%;
+      /* The bottom menu adds 10px horizontal padding; extend the search to align with the divider and list edges. */
+      width: calc(100% + 20px);
+      margin-inline: -10px;
       padding: 8px;
       font-size: 14px;
       border-radius: 4px;
@@ -631,15 +633,15 @@ var injectGlobalStyles = window.injectGlobalStyles || function injectGlobalStyle
     /* Keyboard navigation styling */
     #${SELECTORS.ROOT} .opm-prompt-list-item.opm-keyboard-selected {
       background-color: var(--dark-bg);
-      transform: translateY(-2px);
+      transform: none;
     }
     #${SELECTORS.ROOT} .opm-prompt-list-item.opm-light.opm-keyboard-selected {
       background-color: #e2e8f0;
-      transform: translateY(-2px);
+      transform: none;
     }
     #${SELECTORS.ROOT} .opm-prompt-list-item.opm-dark.opm-keyboard-selected {
       background-color: #2d3748;
-      transform: translateY(-2px);
+      transform: none;
     }
     #${SELECTORS.ROOT}:not(.opm-edit-mode-active) .opm-edit-only {
       display: none !important;
@@ -781,5 +783,3 @@ var injectGlobalStyles = window.injectGlobalStyles || function injectGlobalStyle
 
 // COMMENT: Preserve existing bootstrap call in content.js; we do not auto-invoke here to avoid double insertion.
 window.injectGlobalStyles = injectGlobalStyles;
-
-
