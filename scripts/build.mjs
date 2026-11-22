@@ -19,9 +19,6 @@ for (const browser of targets) {
     delete manifest.externally_connectable;
     manifest.permissions = manifest.permissions.filter(permission => permission !== 'sidePanel');
     manifest.permissions.push('clipboardWrite');
-    const storeUrl = process.env.FIREFOX_STORE_URL;
-    if (storeUrl && !storeUrl.startsWith('https://addons.mozilla.org/')) throw new Error('FIREFOX_STORE_URL must be an addons.mozilla.org URL');
-    manifest.homepage_url = storeUrl || manifest.homepage_url;
   }
 
   const destination = path.join(root, 'dist', browser);

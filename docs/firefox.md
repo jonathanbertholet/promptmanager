@@ -48,13 +48,7 @@ npx --yes web-ext sign --channel=listed --source-dir=dist/firefox --amo-metadata
 
 This submits the package for a public listing and Mozilla review. The initial listing was submitted and the current `PRIVACY.md` text was added through the AMO privacy policy API. The currently deployed website policy describes only the Chrome version and should be updated before using it as Firefox's policy link. Add screenshots when available.
 
-The Firefox listing is configured at `https://addons.mozilla.org/firefox/addon/open-prompt-manager-for-ai-age/`. To override it for a build:
-
-```sh
-FIREFOX_STORE_URL=https://addons.mozilla.org/firefox/addon/YOUR-LISTING/ npm run build:firefox
-```
-
-Set the same URL in the catalog repository's `public/assets/opm-browser.js`, then build and deploy the catalog. Both browsers continue to share one source tree; the catalog source changes also need deployment before its Firefox-specific install hints appear on the live website.
+The Firefox install link is configured in `src/platform.js` as `https://addons.mozilla.org/firefox/addon/open-prompt-manager-for-ai-age/`. Keep the same URL in the catalog repository's `public/assets/opm-browser.js`. The manifest's `homepage_url` points to the project repository: Mozilla rejects AMO store pages in that field. Both browsers continue to share one source tree; changes to the catalog's install hints also require building and deploying the catalog.
 
 ## Moving from Chrome
 
