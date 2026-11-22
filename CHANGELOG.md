@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning].
 
 ## [Unreleased]
 
+## [3.1.1] - 2026-11-22
+
+### Fixed
+
+- The sidebar keeps saved prompts and search visible before any website access is granted, and refreshes the list after saving.
+- An **Allow use on [current website]** card above search makes missing site access clear, including with an empty library.
+- The access card stays visible during permission checks and navigation within the same website instead of flashing in and out.
+
+### Changed
+
+- Tighter in-page prompt list spacing, aligned search width, and hover and keyboard highlights without vertical movement.
+- Removed the community note from the creation form and disabled update banners.
+
 ## [3.1.0] - 2026-11-11
 
 ### Added
