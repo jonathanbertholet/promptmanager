@@ -332,58 +332,6 @@ var injectGlobalStyles = window.injectGlobalStyles || function injectGlobalStyle
     #${SELECTORS.ROOT} .opm-form-container.opm-dark { color: var(--input-dark-text); }
     /* Tighter spacing only for prompt creation form */
     #${SELECTORS.ROOT} .opm-create-form { gap: 4px !important; }
-    /* COMMENT: Open Prompt Database promo — below Create Prompt, above bottom menu */
-    #${SELECTORS.ROOT} .opm-opd-catalog-link {
-      display: flex;
-      align-items: flex-start;
-      gap: 8px;
-      margin-top: 4px;
-      padding: 10px 12px;
-      border-radius: 6px;
-      text-decoration: none;
-      font-size: 12px;
-      line-height: 1.45;
-      flex-shrink: 0;
-      transition: background-color 0.15s ease, border-color 0.15s ease;
-    }
-    #${SELECTORS.ROOT} .opm-opd-catalog-link.opm-light {
-      border: 1px solid rgba(54, 116, 181, 0.2);
-      background-color: #ebf8ff;
-      color: #2c5282;
-    }
-    #${SELECTORS.ROOT} .opm-opd-catalog-link.opm-dark {
-      border: 1px solid rgba(99, 179, 237, 0.25);
-      background-color: rgba(54, 116, 181, 0.15);
-      color: #e2e8f0;
-    }
-    #${SELECTORS.ROOT} .opm-opd-catalog-link:hover,
-    #${SELECTORS.ROOT} .opm-opd-catalog-link:focus-visible {
-      outline: none;
-      border-color: var(--primary);
-      background-color: rgba(54, 116, 181, 0.12);
-    }
-    #${SELECTORS.ROOT}.opm-dark .opm-opd-catalog-link:hover,
-    #${SELECTORS.ROOT}.opm-dark .opm-opd-catalog-link:focus-visible {
-      background-color: rgba(54, 116, 181, 0.28);
-    }
-    #${SELECTORS.ROOT} .opm-opd-catalog-link strong {
-      font-weight: 700;
-      color: var(--primary);
-    }
-    #${SELECTORS.ROOT}.opm-dark .opm-opd-catalog-link strong {
-      color: #90cdf4;
-    }
-    #${SELECTORS.ROOT} .opm-opd-catalog-link-icon {
-      flex-shrink: 0;
-      display: inline-flex;
-      align-items: center;
-      opacity: 0.9;
-    }
-    #${SELECTORS.ROOT} .opm-opd-catalog-link-icon svg {
-      width: 18px;
-      height: 18px;
-      display: block;
-    }
     /* Let textarea fields expand to available space in forms */
     #${SELECTORS.ROOT} .opm-form-container {
       display: flex;

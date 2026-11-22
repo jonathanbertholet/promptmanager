@@ -360,6 +360,44 @@ html {
     margin-bottom: 8px;
   }
 
+  .site-access-prompt {
+    margin-bottom: 12px;
+    padding: 12px;
+    border: 1px solid rgba(54, 116, 181, 0.35);
+    border-radius: 8px;
+    background: rgba(54, 116, 181, 0.08);
+    color: var(--input-light-text);
+    font-size: 13px;
+    line-height: 1.45;
+    overflow-wrap: anywhere;
+  }
+
+  .site-access-prompt p {
+    margin: 0 0 10px;
+  }
+
+  .site-access-prompt .site-access-title {
+    font-weight: 600;
+  }
+
+  .site-access-prompt button {
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .site-access-prompt button:disabled {
+    opacity: 0.65;
+    cursor: wait;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    .site-access-prompt {
+      background: rgba(54, 116, 181, 0.18);
+      border-color: rgba(99, 179, 237, 0.45);
+      color: var(--input-dark-text);
+    }
+  }
+
   .prompt-search-input {
     width: 100%;
     box-sizing: border-box;

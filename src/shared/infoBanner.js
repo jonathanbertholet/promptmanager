@@ -7,7 +7,7 @@ import { OPD_CHANGELOG_URL } from '../opd/opdConstants.js';
 
 /** @type {{ active: boolean, id: string, storageKey: string }} */
 export const OPM_INFO_BANNER = {
-  active: true,
+  active: false,
   // COMMENT: Bump id when banner copy changes so dismissed users see the update
   id: 'info-banner-v4-community',
   storageKey: 'dismissedBanners',

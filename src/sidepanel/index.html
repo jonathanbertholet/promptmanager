@@ -77,10 +77,11 @@
             <button type="button" class="opm-button" id="spm-variable-back" data-i18n="common.back">Back</button>
           </div>
         </div>
-        <!-- COMMENT: Empty state when no LLM provider permissions are enabled -->
-        <div id="permissions-shortcut" class="shortcut-container" style="display: none">
-          <p style="margin: 8px 0" data-i18n="sidepanel.getStarted">Add your supported Assistants below to get started.</p>
-        </div>
+        <section id="site-access-prompt" class="site-access-prompt" aria-labelledby="site-access-title" hidden>
+          <p id="site-access-title" class="site-access-title">Enable prompts on this website</p>
+          <p data-i18n="sidepanel.siteAccessHelp">Allow website access to insert your saved prompts here.</p>
+          <button type="button" id="allow-current-site" class="main">Allow on this website</button>
+        </section>
         <!-- COMMENT: Search + tag filters mirror the in-page prompt list controls -->
         <div id="prompt-list-controls" class="prompt-list-controls" hidden>
           <div id="prompt-tags-filter" class="prompt-tags-filter" hidden></div>
@@ -89,47 +90,8 @@
         <ul id="prompt-list">
 
         </ul>
-        <!-- Add title and message about storage changes -->
         <div id="empty-state" class="shortcut-container" style="display: none">
-          <h3 data-i18n="sidepanel.shortcutsTitle">Keyboard Navigation &amp; Shortcuts</h3>
-          <p data-i18n="sidepanel.shortcutsHelp">These can be used on any page supported by the extension.</p>
-          <p style="display: flex; align-items: center; margin: 8px 0"> <span style="
-                  background-color: var(--primary);
-                  color: white;
-                  padding: 4px 8px;
-                  border-radius: 4px;
-                  margin-right: 10px;
-                " data-i18n="sidepanel.hoverClick">
-              Hover/Click </span> <span data-i18n="sidepanel.openPromptButtons">Open prompt list buttons</span> </p>
-          <p style="display: flex; align-items: center; margin: 8px 0"> <span style="
-                  background-color: var(--primary);
-                  color: white;
-                  padding: 4px 8px;
-                  border-radius: 4px;
-                  margin-right: 10px;
-                " data-i18n="sidepanel.customShortcut">
-              Custom shortcut </span> <span data-i18n="sidepanel.openClosePromptList">Open / close prompt list (set in Settings)</span> </p>
-          <p style="display: flex; align-items: center; margin: 8px 0"> <span style="
-                  background-color: var(--primary);
-                  color: white;
-                  padding: 4px 8px;
-                  border-radius: 4px;
-                  margin-right: 10px;
-                ">↑↓</span> <span data-i18n="sidepanel.navigatePromptList">Navigate the prompt list</span> </p>
-          <p style="display: flex; align-items: center; margin: 8px 0"> <span style="
-                  background-color: var(--primary);
-                  color: white;
-                  padding: 4px 8px;
-                  border-radius: 4px;
-                  margin-right: 10px;
-                ">Enter</span> <span data-i18n="sidepanel.selectPrompt">Select a prompt</span> </p>
-          <p style="display: flex; align-items: center; margin: 8px 0"> <span style="
-                  background-color: var(--primary);
-                  color: white;
-                  padding: 4px 8px;
-                  border-radius: 4px;
-                  margin-right: 10px;
-                ">Esc</span> <span data-i18n="sidepanel.closeManager">Close the prompt manager</span> </p>
+          <p data-i18n="sidepanel.emptyLibrary">No prompts yet. Create your first prompt or browse community prompts.</p>
         </div>
       </div>
     </div>

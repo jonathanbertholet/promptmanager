@@ -602,7 +602,6 @@ const OutsideClickCloser = (() => {
       || e.target.closest(`.${SELECTORS.PROMPT_ITEMS_CONTAINER}`)
       || e.target.closest('.opm-icon-button')
       || e.target.closest('.opm-form-container')
-      || e.target.closest('.opm-opd-catalog-link')
       || e.target.closest('.opm-button')
       // COMMENT: Tag suggestions render in a portal on #opm-root — keep panel open when picking a tag (#71)
       || e.target.closest('.opm-tag-suggestions')
@@ -872,7 +871,7 @@ window.PromptStorageManager = PromptStorageManager;
 class PromptUIManager {
   // COMMENT: Configuration for the info banner. Toggle 'active' to show/hide.
   static BANNER_CONFIG = {
-    active: true,
+    active: false,
     // COMMENT: Bump id when banner copy changes so users who dismissed an older banner see the update
     id: 'info-banner-v3',
   };

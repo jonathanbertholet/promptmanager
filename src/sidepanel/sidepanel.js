@@ -192,7 +192,7 @@ function openVariableInputView(prompt) {
 function closeVariableInputView() {
   pendingVariablePrompt = null;
   setVariableInputOpen(false);
-  renderPermissionsGate(undefined, { skipControls: true }).catch(console.error);
+  refreshCurrentSiteAccess().catch(console.error);
 }
 
 /** COMMENT: Replace variables then insert the resolved prompt into the active tab. */
@@ -280,18 +280,24 @@ function debounceSidepanel(fn, wait = 250) {
 
 let llmsSectionRenderInFlight = null;
 let cachedProvidersMap = null;
-// COMMENT: Cache permission gate result so init does not repeat storage reads
-let cachedPermissionAllowed = null;
+let currentSiteAccess = null;
+let siteAccessRefreshId = 0;
+let siteAccessRequestPending = false;
 
 /**
- * COMMENT: Update only the custom-website button when the active tab changes.
+ * COMMENT: Follow the current tab without rebuilding the prompt library.
  */
 async function refreshActiveTabAssistantsUI() {
   const customWebsiteBtn = document.getElementById('custom-website-btn');
-  await refreshCustomWebsiteButton(customWebsiteBtn);
+  await Promise.all([
+    refreshCurrentSiteAccess(),
+    refreshCustomWebsiteButton(customWebsiteBtn),
+  ]);
 }
 
-const scheduleActiveTabAssistantsRefresh = debounceSidepanel(refreshActiveTabAssistantsUI, 250);
+const scheduleActiveTabAssistantsRefresh = debounceSidepanel(() => {
+  refreshActiveTabAssistantsUI().catch(console.error);
+}, 250);
 
 /**
  * COMMENT: Get the currently focused browser tab for pin/status actions.
@@ -302,6 +308,73 @@ async function getActiveBrowserTab() {
   if (current[0]) return current[0];
   const lastFocused = await OPMApi.tabs.query({ active: true, lastFocusedWindow: true });
   return lastFocused[0] || null;
+}
+
+function clearCurrentSiteAccess() {
+  siteAccessRefreshId += 1;
+  currentSiteAccess = null;
+  const card = document.getElementById('site-access-prompt');
+  if (card) card.hidden = true;
+}
+
+/** COMMENT: Check the current website's actual permission, independently of other assistants. */
+async function refreshCurrentSiteAccess() {
+  clearCurrentSiteAccess();
+  const refreshId = siteAccessRefreshId;
+  const card = document.getElementById('site-access-prompt');
+  const button = document.getElementById('allow-current-site');
+  if (!card || !button) return;
+
+  const tab = await getActiveBrowserTab();
+  if (refreshId !== siteAccessRefreshId || !tab?.url || !/^https?:/i.test(tab.url)) return;
+
+  const url = new URL(tab.url);
+  const allowed = await OPMApi.permissions.contains({
+    origins: [`${url.protocol}//${url.hostname}/*`],
+  });
+  if (refreshId !== siteAccessRefreshId || allowed) return;
+
+  currentSiteAccess = { pattern: `*://${url.hostname}/*` };
+  bind(document.getElementById('site-access-title'), 'sidepanel.siteAccessTitle', { site: url.hostname });
+  bind(button, 'sidepanel.allowCurrentSite', { site: url.hostname });
+  button.disabled = siteAccessRequestPending;
+  card.hidden = false;
+}
+
+/** COMMENT: Called directly from the button click so Firefox retains the user gesture. */
+async function allowCurrentSite() {
+  if (!currentSiteAccess || siteAccessRequestPending) return;
+  const { pattern } = currentSiteAccess;
+  const button = document.getElementById('allow-current-site');
+  siteAccessRequestPending = true;
+  if (button) button.disabled = true;
+  try {
+    await OPMApi.permissions.request({ origins: [pattern] });
+  } catch (error) {
+    console.error(error);
+    showSidepanelToast('sidepanel.siteAccessFailed', { error: true });
+  } finally {
+    siteAccessRequestPending = false;
+    await refreshActiveTabAssistantsUI();
+  }
+}
+
+/** COMMENT: Keep assistant shortcuts in sync when access changes through the browser or sidebar. */
+async function syncProviderPermissions() {
+  const providersMap = await getProvidersMapOrFallback();
+  const entries = await Promise.all(Object.entries(providersMap).map(async ([name, info]) => [
+    name,
+    { ...info, hasPermission: await hasAnyOriginPermission(info?.urlPattern) ? 'Yes' : 'No' },
+  ]));
+  cachedProvidersMap = Object.fromEntries(entries);
+  await OPMApi.storage.local.set({ aiProvidersMap: cachedProvidersMap });
+  await renderLLMsSection();
+}
+
+function handleSitePermissionsChanged(permissions) {
+  if (!permissions?.origins?.length) return;
+  refreshCurrentSiteAccess().catch(console.error);
+  syncProviderPermissions().catch(console.error);
 }
 
 /**
@@ -406,8 +479,7 @@ async function insertPromptIntoActiveTab(prompt) {
       showSidepanelToast('sidepanel.pickerStartFailed', { error: true });
       return false;
     }
-    cachedPermissionAllowed = null;
-    await renderPermissionsGate();
+    await refreshCurrentSiteAccess();
     return true;
   }
 
@@ -640,44 +712,6 @@ const TAG_STORAGE = {
   tagsOrder: 'tagsOrder',
 };
 
-// COMMENT: Derive permission gate from already-loaded storage data
-function computePermissionFromData(providersMap, pinnedInputs) {
-  if (providersMap && typeof providersMap === 'object') {
-    const anyGranted = Object.values(providersMap).some(p => p && p.hasPermission === 'Yes');
-    if (anyGranted) return true;
-  }
-  return Object.keys(pinnedInputs || {}).length > 0;
-}
-
-// COMMENT: Helper to check if any provider permissions are granted
-async function hasAnyGrantedProviderPermission() {
-  if (cachedPermissionAllowed !== null) {
-    return cachedPermissionAllowed;
-  }
-
-  try {
-    const [stored, pinnedInputs] = await Promise.all([
-      new Promise(resolve => {
-        try {
-          OPMApi.storage.local.get(['aiProvidersMap'], resolve);
-        } catch (_) {
-          resolve({});
-        }
-      }),
-      getAllPinnedInputs().catch(() => ({})),
-    ]);
-
-    if (stored?.aiProvidersMap) {
-      cachedProvidersMap = stored.aiProvidersMap;
-    }
-    cachedPermissionAllowed = computePermissionFromData(stored?.aiProvidersMap, pinnedInputs);
-    return cachedPermissionAllowed;
-  } catch (_) {
-    cachedPermissionAllowed = false;
-    return false;
-  }
-}
-
 // COMMENT: Load prompts, provider map, pinned inputs, and tag settings in one parallel pass
 async function loadInitSnapshot() {
   const settingsKeys = [
@@ -721,7 +755,6 @@ async function initSidepanelContent() {
   if (snapshot.providersMap) {
     cachedProvidersMap = snapshot.providersMap;
   }
-  cachedPermissionAllowed = computePermissionFromData(cachedProvidersMap, snapshot.pinnedInputs);
   await refreshOpdPublishStatus();
 
   // COMMENT: Paint the prompt list before tag filters or Assistants build
@@ -730,15 +763,13 @@ async function initSidepanelContent() {
     allPromptsCache.length
   );
   lastPromptListDisplaySig = promptListDisplaySignature(allPromptsCache);
-  await renderPermissionsGate(cachedPermissionAllowed, { skipControls: true });
+  refreshCurrentSiteAccess().catch(console.error);
 
   const controls = document.getElementById('prompt-list-controls');
-  if (controls && cachedPermissionAllowed) {
-    controls.hidden = false;
-  }
+  if (controls) controls.hidden = false;
 
   const renderSecondaryUi = () => {
-    renderPromptListControls(allPromptsCache, cachedPermissionAllowed).catch(console.error);
+    renderPromptListControls(allPromptsCache).catch(console.error);
     initFormTags(cachedEnableTags).catch(console.error);
     renderLLMsSection({ pinnedInputs: snapshot.pinnedInputs }).catch(console.error);
   };
@@ -1388,18 +1419,11 @@ function refreshFilteredPromptList() {
   displayPrompts(filtered, allPromptsCache.length);
 }
 
-async function renderPromptListControls(prompts, allowedOverride) {
+async function renderPromptListControls(prompts) {
   const controls = document.getElementById('prompt-list-controls');
   if (!controls) return;
-
-  const allowed = allowedOverride !== undefined
-    ? allowedOverride
-    : await hasAnyGrantedProviderPermission();
-  controls.hidden = !allowed;
-
-  if (allowed) {
-    await renderTagsFilterBar(prompts, cachedEnableTags);
-  }
+  controls.hidden = false;
+  await renderTagsFilterBar(prompts, cachedEnableTags);
 }
 
 async function initFormTags(enableTagsOverride) {
@@ -1702,49 +1726,15 @@ async function renderLLMsSection(options = {}) {
   }
 }
 
-// COMMENT: Toggle visibility between permissions shortcut and prompt list based on granted permissions
-async function renderPermissionsGate(allowedOverride, { skipControls = false } = {}) {
-  const shortcut = document.getElementById('permissions-shortcut');
-  const promptList = document.getElementById('prompt-list');
-  const listControls = document.getElementById('prompt-list-controls');
-  const emptyState = document.getElementById('empty-state');
-  if (!shortcut || !promptList) return;
-  const allowed = allowedOverride !== undefined
-    ? allowedOverride
-    : await hasAnyGrantedProviderPermission();
-  if (allowed) {
-    // Hide shortcut, show list normally
-    shortcut.style.display = 'none';
-    promptList.style.display = 'block';
-    if (listControls) listControls.hidden = false;
-    if (!skipControls) {
-      await renderPromptListControls(allPromptsCache, allowed);
-    }
-    if (emptyState && promptList.children.length === 0) {
-      const hasAnyPrompts = allPromptsCache.length > 0;
-      emptyState.style.display = hasAnyPrompts ? 'none' : 'block';
-    }
-  } else {
-    // Show shortcut, hide list and empty state
-    shortcut.style.display = 'block';
-    promptList.style.display = 'none';
-    if (listControls) listControls.hidden = true;
-    if (emptyState) emptyState.style.display = 'none';
-  }
-}
-
 // COMMENT: Render the list of prompts in the sidepanel UI
 function displayPrompts(prompts, totalCount = prompts.length) {
   if (pendingVariablePrompt) return;
   const promptList = document.getElementById('prompt-list');
   const emptyState = document.getElementById('empty-state');
-  const shortcut = document.getElementById('permissions-shortcut');
   promptList.innerHTML = '';
   if (!Array.isArray(prompts) || prompts.length === 0) {
-    // If permissions shortcut is visible, prefer it over empty-state
-    const shortcutVisible = shortcut && shortcut.style.display !== 'none';
     // COMMENT: Hide empty-state when filters exclude all items but prompts still exist
-    if (emptyState) emptyState.style.display = (shortcutVisible || totalCount > 0) ? 'none' : 'block';
+    if (emptyState) emptyState.style.display = totalCount > 0 ? 'none' : 'block';
     return;
   }
   if (emptyState) emptyState.style.display = 'none';
@@ -1817,6 +1807,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   const closeExpandedBtn = document.getElementById('close-expanded-view');
   const createPromptBtn = document.getElementById('create-prompt-btn');
   const communityPromptsBtn = document.getElementById('community-prompts-btn');
+  document.getElementById('allow-current-site')?.addEventListener('click', () => {
+    allowCurrentSite().catch(console.error);
+  });
 
   if (communityPromptsBtn) {
     communityPromptsBtn.href = `${OPD_CATALOG_URL}/`;
@@ -1880,10 +1873,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   try {
     OPMApi.tabs.onActivated.addListener(() => {
+      clearCurrentSiteAccess();
       scheduleActiveTabAssistantsRefresh();
     });
-    OPMApi.tabs.onUpdated.addListener((_tabId, changeInfo) => {
-      if (changeInfo.status === 'complete' || changeInfo.url) {
+    OPMApi.tabs.onUpdated.addListener((_tabId, changeInfo, tab) => {
+      if (tab.active && (changeInfo.status === 'complete' || changeInfo.url)) {
+        clearCurrentSiteAccess();
         scheduleActiveTabAssistantsRefresh();
       }
     });
@@ -1894,8 +1889,6 @@ document.addEventListener('DOMContentLoaded', async () => {
           .catch(console.error);
       }
       if (area === 'local' && (changes.pinned_inputs_v1 || changes.learned_inputs_v1)) {
-        cachedPermissionAllowed = null;
-        renderPermissionsGate();
         renderLLMsSection();
       }
       if (area === 'local') {
@@ -1923,6 +1916,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Ignore if tabs API is unavailable in this context
   }
 
+  OPMApi.permissions.onAdded.addListener(handleSitePermissionsChanged);
+  OPMApi.permissions.onRemoved.addListener(handleSitePermissionsChanged);
+
   // COMMENT: Wire Available subheading toggle (fold/unfold)
   const availableToggle = document.getElementById('llms-available-toggle');
   const availableWrap = document.getElementById('llms-available');
@@ -1941,7 +1937,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   // COMMENT: Refresh UI whenever prompts change in storage
-  PromptStorage.onPromptsChanged(refreshPromptListView);
+  PromptStorage.onPromptsChanged(() => {
+    refreshPromptListView().catch(console.error);
+  });
   globalThis.OPMI18n.subscribe(() => {
     refreshCustomWebsiteButton(document.getElementById('custom-website-btn')).catch(console.error);
   });
@@ -1951,8 +1949,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     OPMApi.storage.onChanged.addListener((changes, area) => {
       if (area === 'local' && changes.aiProvidersMap) {
         cachedProvidersMap = changes.aiProvidersMap.newValue || null;
-        cachedPermissionAllowed = null;
-        renderPermissionsGate();
+        refreshCurrentSiteAccess().catch(console.error);
         // COMMENT: Also refresh the LLMs section so pills reflect new activation status
         renderLLMsSection();
       }
@@ -1980,6 +1977,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         await PromptStorage.updatePrompt(uuidInput.value, { title, content, tags });
       }
       resetPromptForm();
+      await refreshPromptListView(true);
     } catch (error) {
       console.error(error);
       showSidepanelToast('prompt.saveError', { error: true });
