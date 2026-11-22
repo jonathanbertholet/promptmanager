@@ -311,7 +311,6 @@ async function getActiveBrowserTab() {
 }
 
 function clearCurrentSiteAccess() {
-  siteAccessRefreshId += 1;
   currentSiteAccess = null;
   const card = document.getElementById('site-access-prompt');
   if (card) card.hidden = true;
@@ -319,24 +318,39 @@ function clearCurrentSiteAccess() {
 
 /** COMMENT: Check the current website's actual permission, independently of other assistants. */
 async function refreshCurrentSiteAccess() {
-  clearCurrentSiteAccess();
-  const refreshId = siteAccessRefreshId;
+  const refreshId = ++siteAccessRefreshId;
   const card = document.getElementById('site-access-prompt');
   const button = document.getElementById('allow-current-site');
   if (!card || !button) return;
 
   const tab = await getActiveBrowserTab();
-  if (refreshId !== siteAccessRefreshId || !tab?.url || !/^https?:/i.test(tab.url)) return;
+  if (refreshId !== siteAccessRefreshId) return;
+  if (!tab?.url || !/^https?:/i.test(tab.url)) {
+    clearCurrentSiteAccess();
+    return;
+  }
 
   const url = new URL(tab.url);
+  const sameSite = currentSiteAccess?.tabId === tab.id && currentSiteAccess.origin === url.origin;
+  if (!sameSite) clearCurrentSiteAccess();
   const allowed = await OPMApi.permissions.contains({
     origins: [`${url.protocol}//${url.hostname}/*`],
   });
-  if (refreshId !== siteAccessRefreshId || allowed) return;
+  if (refreshId !== siteAccessRefreshId) return;
+  if (allowed) {
+    clearCurrentSiteAccess();
+    return;
+  }
 
-  currentSiteAccess = { pattern: `*://${url.hostname}/*` };
-  bind(document.getElementById('site-access-title'), 'sidepanel.siteAccessTitle', { site: url.hostname });
-  bind(button, 'sidepanel.allowCurrentSite', { site: url.hostname });
+  currentSiteAccess = {
+    tabId: tab.id, windowId: tab.windowId, origin: url.origin,
+    pattern: `*://${url.hostname}/*`,
+  };
+  // Keep the visible card intact while rechecking permission on the same site.
+  if (!sameSite) {
+    bind(document.getElementById('site-access-title'), 'sidepanel.siteAccessTitle', { site: url.hostname });
+    bind(button, 'sidepanel.allowCurrentSite', { site: url.hostname });
+  }
   button.disabled = siteAccessRequestPending;
   card.hidden = false;
 }
@@ -1872,13 +1886,20 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   try {
-    OPMApi.tabs.onActivated.addListener(() => {
+    OPMApi.tabs.onActivated.addListener(({ windowId }) => {
+      if (currentSiteAccess && windowId !== currentSiteAccess.windowId) return;
+      siteAccessRefreshId += 1;
       clearCurrentSiteAccess();
       scheduleActiveTabAssistantsRefresh();
     });
-    OPMApi.tabs.onUpdated.addListener((_tabId, changeInfo, tab) => {
+    OPMApi.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
       if (tab.active && (changeInfo.status === 'complete' || changeInfo.url)) {
-        clearCurrentSiteAccess();
+        if (currentSiteAccess && tab.windowId !== currentSiteAccess.windowId) return;
+        siteAccessRefreshId += 1;
+        if (currentSiteAccess && (tabId !== currentSiteAccess.tabId
+          || (changeInfo.url && new URL(changeInfo.url).origin !== currentSiteAccess.origin))) {
+          clearCurrentSiteAccess();
+        }
         scheduleActiveTabAssistantsRefresh();
       }
     });

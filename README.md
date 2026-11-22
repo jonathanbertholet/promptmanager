@@ -15,7 +15,7 @@ A lightweight, open-source extension for Chrome and Firefox desktop, for saving,
 - **Variables** with `#variable#` syntax — fill in values in the side panel or in-page panel before inserting
 - **Import / export** full v2 backups (prompts, folders, tag metadata) as JSON
 - **Copy to clipboard** from the side panel — handy on unsupported sites
-- Your prompt library stays visible before granting site access. The side panel offers **Allow on this website** above search when the current site needs access.
+- Your prompt library stays visible before granting site access. The side panel offers **Allow use on this website** above search when the current site needs access.
 - Right-click a saved prompt in the **context menu** to insert it into the current chat
 - Save selected text to your library via the **context menu**
 

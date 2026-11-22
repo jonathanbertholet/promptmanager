@@ -60,7 +60,7 @@
   "tags.removeNamed": "从所有提示词中移除标签“{tag}”",
   "tags.removeConfirm": "从所有提示词中移除标签“{tag}”？",
   "sidepanel.getStarted": "请先在下方启用一个 AI 助手。",
-  "sidepanel.siteAccessTitle": "在 {site} 上启用提示词",
+  "sidepanel.siteAccessTitle": "允许在 {site} 上使用",
   "sidepanel.siteAccessHelp": "允许访问此网站，即可在这里插入已保存的提示词。",
   "sidepanel.allowCurrentSite": "允许在 {site} 上使用",
   "sidepanel.siteAccessFailed": "无法请求网站访问权限，请重试。",
