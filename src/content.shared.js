@@ -334,8 +334,8 @@
             className: `opm-prompt-list-item opm-${getMode()}`,
             styles: {
               justifyContent: 'space-between',
-              padding: '6px 12px',
-              margin: '6px 0',
+              padding: '5px 10px',
+              margin: '4px 0',
               borderRadius: '10px',
               gap: '8px'
             },
@@ -1372,4 +1372,3 @@
 
   window.__initPromptShared = initPromptManagerShared;
 })();
-
